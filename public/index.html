@@ -133,7 +133,7 @@
         </div>
         <div class="stat-box" style="border-left: 1px solid #eee; border-right: 1px solid #eee;">
             <h3 id="totalExpense" style="color: #ff7675;">Rs. 0</h3>
-            <p>कुल खर्च</p>
+            <p>खर्च (तेल+खाना+मर्मत)</p>
         </div>
         <div class="stat-box">
             <h3 id="totalSaved" style="color: var(--primary);">Rs. 0</h3>
@@ -177,6 +177,10 @@
             <div class="input-group" style="flex: 1;">
                 <label>खाजा खर्च</label>
                 <input type="number" id="food" placeholder="१५०">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>मर्मत (Maint.)</label>
+                <input type="number" id="maintenance" placeholder="०">
             </div>
         </div>
         <div class="input-group">
@@ -263,6 +267,7 @@
         const income = document.getElementById('income').value;
         const fuel = document.getElementById('fuel').value;
         const food = document.getElementById('food').value || 0;
+        const maintenance = document.getElementById('maintenance').value || 0;
         const note = document.getElementById('note').value;
         const btn = document.getElementById('saveBtn');
 
@@ -276,6 +281,7 @@
             income: Number(income),
             fuel: Number(fuel),
             food: Number(food),
+            maintenance: Number(maintenance),
             note: note,
             date: dateInput ? new Date(dateInput).toLocaleDateString('ne-NP') : undefined
         };
@@ -344,7 +350,8 @@
         const uniqueDays = new Set();
 
         data.forEach(item => {
-            const expense = Number(item.fuel) + Number(item.food || 0);
+            const maintenanceCost = Number(item.maintenance || 0);
+            const expense = Number(item.fuel) + Number(item.food || 0) + maintenanceCost;
             const net = item.income - expense;
             const savingsPercent = item.income > 0 ? Math.round((net / item.income) * 100) : 0;
 
@@ -361,9 +368,10 @@
                     <div class="history-info" style="flex: 1;">
                         <p class="date" style="font-size:11px; color:#999; margin:0; font-weight:600;">📅 ${item.date || 'आज'}</p>
                         <p style="margin:5px 0 0 0; font-size:14px; font-weight:700;">💰 Rs. ${item.income.toLocaleString()}</p>
-                        <div style="display:flex; gap:10px; margin-top:3px;">
+                        <div style="display:flex; gap:10px; margin-top:3px; flex-wrap: wrap;">
                             <span style="font-size:10px; color:#ea8685;"><i class="fas fa-gas-pump"></i> ${item.fuel}</span>
                             <span style="font-size:10px; color:#f8c291;"><i class="fas fa-hamburger"></i> ${item.food || 0}</span>
+                            <span style="font-size:10px; color:#74b9ff;"><i class="fas fa-tools"></i> ${maintenanceCost}</span>
                         </div>
                         ${item.note ? `<p style="margin:8px 0 0 0; font-size:11px; color:#777; background:var(--light); padding:5px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">📝 ${item.note}</p>` : ''}
                     </div>
@@ -378,10 +386,10 @@
             `;
         });
 
-        const totalExpense = tFuel + tFood;
+        const totalExpense = tFuel + tFood + (data.reduce((acc, curr) => acc + (curr.maintenance || 0), 0));
         const fuelWidth = totalExpense > 0 ? (tFuel / totalExpense) * 100 : 50;
         document.getElementById('fuelBar').style.width = fuelWidth + "%";
-        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%";
+        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%"; // Note: This bar logic only splits between fuel and food. We might want to add maintenance bar too.
 
         document.getElementById('totalIncome').innerText = "Rs. " + tIncome.toLocaleString();
         document.getElementById('totalExpense').innerText = "Rs. " + totalExpense.toLocaleString();
@@ -395,7 +403,7 @@
         // डेटालाई मिति अनुसार जोड्ने
         [...data].forEach(item => {
             const d = item.date;
-            const net = item.income - (Number(item.fuel) + Number(item.food || 0));
+            const net = item.income - (Number(item.fuel) + Number(item.food || 0) + Number(item.maintenance || 0));
             grouped[d] = (grouped[d] || 0) + net;
         });
 
