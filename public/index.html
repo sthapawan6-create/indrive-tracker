@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>InDrive Tracker</title>
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #00b894; --secondary: #0984e3; --dark: #2d3436; --light: #f8f9fa; }
+        body { font-family: 'Poppins', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: var(--dark); }
+        .container { max-width: 480px; margin: auto; min-height: 100vh; background: white; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+
+        /* Header Section */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 40px 20px 90px 20px;
+            color: white;
+            border-radius: 0 0 35px 35px;
+            text-align: center;
+            position: relative;
+        }
+        .user-chip {
+            position: absolute; top: 15px; left: 15px;
+            display: flex; align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px; border-radius: 20px; font-size: 13px;
+        }
+        .user-chip img { width: 25px; height: 25px; border-radius: 50%; margin-right: 8px; border: 1px solid white; }
+        .logout-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 11px;
+        }
+
+        /* Dashboard Card */
+        .dashboard {
+            display: flex; justify-content: space-around;
+            background: white;
+            margin: -50px 20px 20px 20px;
+            padding: 25px 10px; border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center; z-index: 10;
+        }
+        .stat-box h3 { margin: 0; color: var(--primary); font-size: 1.5em; font-weight: 700; }
+        .stat-box p { margin: 2px 0 0 0; font-size: 11px; color: #95a5a6; text-transform: uppercase; font-weight: 600; }
+
+        /* Form Area */
+        .form-area { padding: 10px 25px 25px 25px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #555; }
+        input {
+            width: 100%; padding: 12px 15px;
+            border: 2px solid #f1f3f5; border-radius: 12px;
+            font-size: 16px; box-sizing: border-box; transition: 0.3s;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+        .save-btn {
+            width: 100%; padding: 15px;
+            background: var(--primary); color: white;
+            border: none; border-radius: 12px;
+            font-weight: 700; font-size: 16px; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,184,148,0.3); transition: 0.3s;
+        }
+        .save-btn:active { transform: scale(0.98); }
+
+        /* History */
+        .history-list { padding: 20px; background: #f8f9fa; flex-grow: 1; border-radius: 30px 30px 0 0; }
+        .history-item {
+            background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid var(--primary);
+        }
+
+        .hidden { display: none !important; }
+        .login-screen { text-align: center; padding: 100px 30px; }
+        .google-btn {
+            width: 100%; padding: 15px; background: white; border: 1px solid #ddd;
+            border-radius: 12px; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 10px; font-weight: 600; font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .google-btn:active { background: #f9f9f9; transform: scale(0.98); }
+    </style>
+</head>
+<body>
+
+<div id="loginSection" class="container">
+    <div class="login-screen">
+        <h1 style="color: var(--primary); font-size: 2.2em; margin-bottom: 10px;">🚖 InDrive Tracker</h1>
+        <p style="color: #666; margin-bottom: 50px;">आफ्नो Gmail बाट लगिन गर्नुहोस्।</p>
+        <button class="google-btn" id="loginBtn" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G">
+            Continue with Google
+        </button>
+        <p id="statusMsg" style="margin-top: 20px; font-size: 12px; color: #999;"></p>
+    </div>
+</div>
+
+<div id="mainSection" class="container hidden">
+    <div class="header">
+        <div class="user-chip">
+            <img id="userImg" src="" alt="👤">
+            <span id="userName"></span>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+        <h2 style="margin: 0; font-size: 1.8em; letter-spacing: 1px;">DashBoard</h2>
+        <p style="font-size: 12px; opacity: 0.8; margin-top: 5px;">आजको प्रगति हेर्नुहोस्</p>
+    </div>
+
+    <div class="dashboard">
+        <div class="stat-box">
+            <h3 id="totalSaved">Rs. 0</h3>
+            <p>कुल बचत</p>
+        </div>
+        <div class="stat-box">
+            <h3 id="recordCount">0</h3>
+            <p>दिनहरू</p>
+        </div>
+    </div>
+
+    <div class="form-area">
+        <div class="input-group">
+            <label>कुल कमाइ (Rs.)</label>
+            <input type="number" id="income" placeholder="उदा: १०००">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <div class="input-group" style="flex: 1;">
+                <label>पेट्रोल खर्च</label>
+                <input type="number" id="fuel" placeholder="२००">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>खाजा खर्च</label>
+                <input type="number" id="food" placeholder="१५०">
+            </div>
+        </div>
+        <div class="input-group">
+            <label>नोट / टिप्पणी</label>
+            <input type="text" id="note" placeholder="आजको विशेष केही...">
+        </div>
+        <button class="save-btn" id="saveBtn" onclick="saveRecord()">हिसाब सुरक्षित गर्नुहोस्</button>
+    </div>
+
+    <div class="history-list">
+        <p style="font-weight: 600; margin-bottom: 15px; color: #636e72; font-size: 14px;">पछिल्लो हिसाबहरू</p>
+        <div id="historyItems"></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDZaWUcQermGfb_pQSxXvYCpDV8i0CbKKk",
+        authDomain: "perfect-solution-accounting.firebaseapp.com",
+        projectId: "perfect-solution-accounting",
+        appId: "1:1047065509704:web:d15acdd34608def4ec7d7d"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+            document.getElementById('userName').innerText = user.displayName.split(' ')[0];
+            document.getElementById('userImg').src = user.photoURL;
+            loadHistory();
+        } else {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('mainSection').classList.add('hidden');
+        }
+    });
+
+    function loginWithGoogle() {
+        if (window.location.protocol === 'file:') {
+            alert("त्रुटि: तपाईंले फाइल सिधै खोल्नुभएको छ। कृपया http://localhost:3000 मा जानुहोस्।");
+            return;
+        }
+        console.log("Login button clicked");
+        const btn = document.getElementById('loginBtn');
+        btn.innerText = "Connecting...";
+
+        // Try Popup first, fallback to Redirect if environment doesn't support popups
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                console.log("Login success");
+            })
+            .catch((error) => {
+                console.error("Login Error:", error);
+                if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                    auth.signInWithRedirect(provider);
+                } else {
+                    alert("लगिनमा समस्या आयो: " + error.message + "\n\nसुझाव: ब्राउजरमा http://localhost:3000 खोल्नुहोस्।");
+                    btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G"> Continue with Google`;
+                }
+            });
+    }
+
+    // Handle redirect result
+    auth.getRedirectResult().then((result) => {
+        if (result.user) console.log("Redirect login success");
+    }).catch((error) => {
+        console.error("Redirect Error:", error);
+    });
+
+    function logout() { if(confirm("Logout गर्ने हो?")) auth.signOut(); }
+
+    async function saveRecord() {
+        const income = document.getElementById('income').value;
+        const fuel = document.getElementById('fuel').value;
+        const food = document.getElementById('food').value || 0;
+        const note = document.getElementById('note').value;
+        const btn = document.getElementById('saveBtn');
+
+        if(!income || !fuel) return alert("कृपया कमाइ र पेट्रोल खर्च भर्नुहोस्!");
+
+        btn.innerText = "सेभ हुँदैछ...";
+        btn.disabled = true;
+
+        const data = { userId: auth.currentUser.uid, income: Number(income), fuel: Number(fuel), food: Number(food), note: note };
+
+        try {
+            const res = await fetch('/api/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                alert("हिसाब सुरक्षित भयो! ✅");
+                document.querySelectorAll('input').forEach(i => i.value = '');
+                loadHistory();
+            } else {
+                alert("डाटा सेभ भएन! सर्भर चेक गर्नुहोस्।");
+            }
+        } catch (e) {
+            alert("सर्भर कनेक्सन एरर!");
+        } finally {
+            btn.innerText = "हिसाब सुरक्षित गर्नुहोस्";
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteRecord(id) {
+        if(!confirm("के तपाइँ यो रेकर्ड हटाउन चाहनुहुन्छ?")) return;
+        try {
+            const res = await fetch(`/api/delete/${id}`, { method: 'DELETE' });
+            if(res.ok) {
+                loadHistory();
+            }
+        } catch (e) { alert("Error deleting record"); }
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch(`/api/history?userId=${auth.currentUser.uid}`);
+            const data = await res.json();
+            const list = document.getElementById('historyItems');
+            list.innerHTML = '';
+            let total = 0;
+            data.forEach(item => {
+                const net = item.income - item.fuel - (item.food || 0);
+                total += net;
+                list.innerHTML += `
+                    <div class="history-item">
+                        <div class="history-info">
+                            <p class="date" style="font-size:12px; color:#666; margin:0;">📅 ${item.date || 'आज'}</p>
+                            <p style="margin:5px 0 0 0; font-size:13px;">💰 कमाइ: ${item.income} | ⛽ तेल: ${item.fuel}</p>
+                            ${item.note ? `<p style="margin:2px 0 0 0; font-size:11px; color:#888; font-style:italic;">"${item.note}"</p>` : ''}
+                        </div>
+                        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
+                            <span onclick="deleteRecord('${item._id}')" style="cursor:pointer; font-size:12px; color:#ff7675;">🗑️</span>
+                            <div>
+                                <p style="color:var(--primary); font-weight:700; font-size:1.1em; margin:0;">Rs. ${net}</p>
+                                <p style="font-size:10px; color:#999; margin:0;">बचत</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('totalSaved').innerText = "Rs. " + total;
+            document.getElementById('recordCount').innerText = data.length;
+        } catch (e) { console.log(e); }
+    }
+</script>
+</body>
+</html>
