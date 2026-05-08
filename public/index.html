@@ -339,6 +339,7 @@
         let tFuel = 0;
         let tFood = 0;
         let tSavings = 0;
+        const uniqueDays = new Set();
 
         data.forEach(item => {
             const expense = Number(item.fuel) + Number(item.food || 0);
@@ -349,6 +350,7 @@
             tFuel += item.fuel;
             tFood += (item.food || 0);
             tSavings += net;
+            if (item.date) uniqueDays.add(item.date);
 
             const color = savingsPercent > 60 ? '#00b894' : (savingsPercent < 30 ? '#ff7675' : '#0984e3');
 
@@ -382,19 +384,31 @@
         document.getElementById('totalIncome').innerText = "Rs. " + tIncome.toLocaleString();
         document.getElementById('totalExpense').innerText = "Rs. " + totalExpense.toLocaleString();
         document.getElementById('totalSaved').innerText = "Rs. " + tSavings.toLocaleString();
-        document.getElementById('recordCount').innerText = data.length;
-        document.getElementById('avgSavings').innerText = "Rs. " + (data.length > 0 ? Math.round(tSavings / data.length).toLocaleString() : 0);
+        document.getElementById('recordCount').innerText = uniqueDays.size;
+        document.getElementById('avgSavings').innerText = "Rs. " + (uniqueDays.size > 0 ? Math.round(tSavings / uniqueDays.size).toLocaleString() : 0);
     }
 
     function updateChart(data) {
-        const last7Days = data.slice(0, 7).reverse();
-        const labels = last7Days.map(d => d.date.split('/')[0] + '/' + d.date.split('/')[1]);
-        const savingsData = last7Days.map(d => d.income - (Number(d.fuel) + Number(d.food || 0)));
+        const grouped = {};
+        // डेटालाई मिति अनुसार जोड्ने
+        [...data].forEach(item => {
+            const d = item.date;
+            const net = item.income - (Number(item.fuel) + Number(item.food || 0));
+            grouped[d] = (grouped[d] || 0) + net;
+        });
+
+        const sortedDates = Object.keys(grouped).sort((a, b) => {
+            const [d1, m1, y1] = a.split('/').map(Number);
+            const [d2, m2, y2] = b.split('/').map(Number);
+            return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+        });
+
+        const last7Dates = sortedDates.slice(-7);
+        const labels = last7Dates.map(d => d.split('/')[0] + '/' + d.split('/')[1]);
+        const savingsData = last7Dates.map(d => grouped[d]);
 
         const ctx = document.getElementById('savingsChart').getContext('2d');
-
         if (myChart) myChart.destroy();
-
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
