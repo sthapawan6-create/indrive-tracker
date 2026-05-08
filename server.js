@@ -50,7 +50,11 @@ app.post('/api/add', async (req, res) => {
 
 app.get('/api/history', async (req, res) => {
     try {
-        const history = await Record.find({ userId: req.query.userId }).sort({ createdAt: -1 });
+        const { userId } = req.query;
+        if (!userId) {
+            return res.status(400).json({ error: "User ID आवश्यक छ" });
+        }
+        const history = await Record.find({ userId: userId }).sort({ createdAt: -1 });
         res.json(history);
     } catch (err) {
         res.status(500).json({ error: err.message });
