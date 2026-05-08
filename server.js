@@ -35,7 +35,11 @@ const Record = mongoose.model('Record', RecordSchema);
 app.post('/api/add', async (req, res) => {
     try {
         console.log("Saving Data for user:", req.body.userId);
-        const newRecord = new Record(req.body);
+        const recordData = { ...req.body };
+        if (!recordData.date) {
+            recordData.date = new Date().toLocaleDateString('ne-NP');
+        }
+        const newRecord = new Record(recordData);
         await newRecord.save();
         res.status(200).json({ message: "Successfully Saved" });
     } catch (err) {
