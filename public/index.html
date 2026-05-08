@@ -9,11 +9,20 @@
     <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00b894; --secondary: #0984e3; --dark: #2d3436; --light: #f8f9fa; }
-        body { font-family: 'Poppins', sans-serif; background: #f0f2f5; margin: 0; padding: 0; color: var(--dark); }
-        .container { max-width: 480px; margin: auto; min-height: 100vh; background: white; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        :root { --primary: #00b894; --secondary: #0984e3; --dark: #2d3436; --light: #f8f9fa; --bg: #f0f2f5; --card: #ffffff; --text: #2d3436; }
+        .dark-mode { --bg: #1a1a1a; --card: #2d2d2d; --text: #f5f5f5; --light: #3d3d3d; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); transition: 0.3s; }
+        .container { max-width: 480px; margin: auto; min-height: 100vh; background: var(--card); display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        .dashboard { background: var(--card); color: var(--text); }
+        .history-item { background: var(--card); color: var(--text); border: 1px solid var(--light); }
+        input { background: var(--card); color: var(--text); border: 2px solid var(--light); }
+        ::-webkit-calendar-picker-indicator { filter: invert(0); }
+        .dark-mode ::-webkit-calendar-picker-indicator { filter: invert(1); }
+        .theme-toggle { position: absolute; top: 15px; left: 80px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 20px; cursor: pointer; font-size: 14px; }
 
         /* Header Section */
         .header {
@@ -46,8 +55,9 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center; z-index: 10;
         }
-        .stat-box h3 { margin: 0; color: var(--primary); font-size: 1.5em; font-weight: 700; }
-        .stat-box p { margin: 2px 0 0 0; font-size: 11px; color: #95a5a6; text-transform: uppercase; font-weight: 600; }
+        .stat-box { flex: 1; padding: 5px; }
+        .stat-box h3 { margin: 0; font-size: 1.1em; font-weight: 700; }
+        .stat-box p { margin: 2px 0 0 0; font-size: 9px; color: #95a5a6; text-transform: uppercase; font-weight: 700; }
 
         /* Form Area */
         .form-area { padding: 10px 25px 25px 25px; }
@@ -108,26 +118,54 @@
             <img id="userImg" src="" alt="👤">
             <span id="userName"></span>
         </div>
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
         <button class="logout-btn" onclick="logout()">Logout</button>
         <h2 style="margin: 0; font-size: 1.8em; letter-spacing: 1px;">DashBoard</h2>
         <p style="font-size: 12px; opacity: 0.8; margin-top: 5px;">आजको प्रगति हेर्नुहोस्</p>
     </div>
 
-    <div class="dashboard">
+    <div class="dashboard" style="display: flex; flex-wrap: wrap;">
         <div class="stat-box">
-            <h3 id="totalSaved">Rs. 0</h3>
-            <p>कुल बचत</p>
+            <h3 id="totalIncome" style="color: var(--secondary);">Rs. 0</h3>
+            <p>कुल कमाइ</p>
+        </div>
+        <div class="stat-box" style="border-left: 1px solid #eee; border-right: 1px solid #eee;">
+            <h3 id="totalExpense" style="color: #ff7675;">Rs. 0</h3>
+            <p>कुल खर्च</p>
         </div>
         <div class="stat-box">
-            <h3 id="recordCount">0</h3>
-            <p>दिनहरू</p>
+            <h3 id="totalSaved" style="color: var(--primary);">Rs. 0</h3>
+            <p>कुल बचत</p>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-around; padding: 10px; background: #f8f9fa; border-radius: 15px; margin: 0 20px 20px 20px; font-size: 11px;">
+        <div><b>औसत बचत:</b> <span id="avgSavings" style="color:var(--primary)">Rs. 0</span></div>
+        <div><b>कुल दिन:</b> <span id="recordCount">0</span></div>
+    </div>
+
+    <!-- ग्राफ सेक्सन -->
+    <div style="padding: 0 20px 20px 20px;">
+        <div style="background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid var(--light);">
+            <p style="font-size: 11px; margin-bottom: 10px; font-weight: 700; opacity: 0.7;">📊 खर्चको बाँडफाँड (तेल vs खाजा)</p>
+            <div style="height: 10px; background: #eee; border-radius: 5px; display: flex; overflow: hidden; margin-bottom: 15px;">
+                <div id="fuelBar" style="width: 50%; background: #ea8685;"></div>
+                <div id="foodBar" style="width: 50%; background: #f8c291;"></div>
+            </div>
+            <canvas id="savingsChart" height="150"></canvas>
         </div>
     </div>
 
     <div class="form-area">
-        <div class="input-group">
-            <label>कुल कमाइ (Rs.)</label>
-            <input type="number" id="income" placeholder="उदा: १०००">
+        <div style="display: flex; gap: 10px;">
+            <div class="input-group" style="flex: 1;">
+                <label>मिति (Date)</label>
+                <input type="date" id="date">
+            </div>
+            <div class="input-group" style="flex: 1;">
+                <label>कुल कमाइ (Rs.)</label>
+                <input type="number" id="income" placeholder="उदा: १०००">
+            </div>
         </div>
         <div style="display: flex; gap: 10px;">
             <div class="input-group" style="flex: 1;">
@@ -147,7 +185,13 @@
     </div>
 
     <div class="history-list">
-        <p style="font-weight: 600; margin-bottom: 15px; color: #636e72; font-size: 14px;">पछिल्लो हिसाबहरू</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <p style="font-weight: 700; margin: 0; color: #636e72; font-size: 14px;">📜 पछिल्लो हिसाबहरू</p>
+            <div style="display:flex; gap:5px;">
+                <button onclick="exportToCSV()" style="padding:5px 10px; font-size:10px; border-radius:8px; border:1px solid var(--primary); background:none; color:var(--primary); cursor:pointer;"><i class="fas fa-file-excel"></i></button>
+                <input type="text" id="searchInput" onkeyup="filterHistory()" placeholder="खोज..." style="width: 80px; padding: 5px 10px; font-size: 11px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+        </div>
         <div id="historyItems"></div>
     </div>
 </div>
@@ -213,6 +257,7 @@
     function logout() { if(confirm("Logout गर्ने हो?")) auth.signOut(); }
 
     async function saveRecord() {
+        const dateInput = document.getElementById('date').value;
         const income = document.getElementById('income').value;
         const fuel = document.getElementById('fuel').value;
         const food = document.getElementById('food').value || 0;
@@ -224,7 +269,14 @@
         btn.innerText = "सेभ हुँदैछ...";
         btn.disabled = true;
 
-        const data = { userId: auth.currentUser.uid, income: Number(income), fuel: Number(fuel), food: Number(food), note: note };
+        const data = {
+            userId: auth.currentUser.uid,
+            income: Number(income),
+            fuel: Number(fuel),
+            food: Number(food),
+            note: note,
+            date: dateInput ? new Date(dateInput).toLocaleDateString('ne-NP') : undefined
+        };
 
         try {
             const res = await fetch('/api/add', {
@@ -257,36 +309,134 @@
         } catch (e) { alert("Error deleting record"); }
     }
 
+    let allData = []; // ग्लोबल डाटा राख्न
+    let myChart = null;
+
     async function loadHistory() {
         try {
             const res = await fetch(`/api/history?userId=${auth.currentUser.uid}`);
-            const data = await res.json();
-            const list = document.getElementById('historyItems');
-            list.innerHTML = '';
-            let total = 0;
-            data.forEach(item => {
-                const net = item.income - item.fuel - (item.food || 0);
-                total += net;
-                list.innerHTML += `
-                    <div class="history-item">
-                        <div class="history-info">
-                            <p class="date" style="font-size:12px; color:#666; margin:0;">📅 ${item.date || 'आज'}</p>
-                            <p style="margin:5px 0 0 0; font-size:13px;">💰 कमाइ: ${item.income} | ⛽ तेल: ${item.fuel}</p>
-                            ${item.note ? `<p style="margin:2px 0 0 0; font-size:11px; color:#888; font-style:italic;">"${item.note}"</p>` : ''}
+            allData = await res.json();
+            renderHistory(allData);
+            updateChart(allData);
+        } catch (e) { console.log(e); }
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const icon = document.querySelector('.theme-toggle i');
+        if(document.body.classList.contains('dark-mode')) {
+            icon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            icon.classList.replace('fa-sun', 'fa-moon');
+        }
+    }
+
+    function renderHistory(data) {
+        const list = document.getElementById('historyItems');
+        list.innerHTML = '';
+
+        let tIncome = 0;
+        let tFuel = 0;
+        let tFood = 0;
+        let tSavings = 0;
+
+        data.forEach(item => {
+            const expense = Number(item.fuel) + Number(item.food || 0);
+            const net = item.income - expense;
+            const savingsPercent = item.income > 0 ? Math.round((net / item.income) * 100) : 0;
+
+            tIncome += item.income;
+            tFuel += item.fuel;
+            tFood += (item.food || 0);
+            tSavings += net;
+
+            const color = savingsPercent > 60 ? '#00b894' : (savingsPercent < 30 ? '#ff7675' : '#0984e3');
+
+            list.innerHTML += `
+                <div class="history-item" style="border-left: 8px solid ${color}; transform: scale(1); transition: 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    <div class="history-info" style="flex: 1;">
+                        <p class="date" style="font-size:11px; color:#999; margin:0; font-weight:600;">📅 ${item.date || 'आज'}</p>
+                        <p style="margin:5px 0 0 0; font-size:14px; font-weight:700;">💰 Rs. ${item.income.toLocaleString()}</p>
+                        <div style="display:flex; gap:10px; margin-top:3px;">
+                            <span style="font-size:10px; color:#ea8685;"><i class="fas fa-gas-pump"></i> ${item.fuel}</span>
+                            <span style="font-size:10px; color:#f8c291;"><i class="fas fa-hamburger"></i> ${item.food || 0}</span>
                         </div>
-                        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
-                            <span onclick="deleteRecord('${item._id}')" style="cursor:pointer; font-size:12px; color:#ff7675;">🗑️</span>
-                            <div>
-                                <p style="color:var(--primary); font-weight:700; font-size:1.1em; margin:0;">Rs. ${net}</p>
-                                <p style="font-size:10px; color:#999; margin:0;">बचत</p>
-                            </div>
+                        ${item.note ? `<p style="margin:8px 0 0 0; font-size:11px; color:#777; background:var(--light); padding:5px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">📝 ${item.note}</p>` : ''}
+                    </div>
+                    <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; min-width:80px;">
+                        <span onclick="deleteRecord('${item._id}')" style="cursor:pointer; font-size:12px; background:#fff5f5; padding:5px; border-radius:50%; margin-bottom:5px; color:#ff7675;"><i class="fas fa-trash"></i></span>
+                        <div>
+                            <p style="color:${color}; font-weight:800; font-size:1.1em; margin:0;">Rs. ${net.toLocaleString()}</p>
+                            <span style="font-size:9px; background:${color}22; color:${color}; padding:2px 6px; border-radius:10px; font-weight:700;">${savingsPercent}% बचत</span>
                         </div>
                     </div>
-                `;
-            });
-            document.getElementById('totalSaved').innerText = "Rs. " + total;
-            document.getElementById('recordCount').innerText = data.length;
-        } catch (e) { console.log(e); }
+                </div>
+            `;
+        });
+
+        const totalExpense = tFuel + tFood;
+        const fuelWidth = totalExpense > 0 ? (tFuel / totalExpense) * 100 : 50;
+        document.getElementById('fuelBar').style.width = fuelWidth + "%";
+        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%";
+
+        document.getElementById('totalIncome').innerText = "Rs. " + tIncome.toLocaleString();
+        document.getElementById('totalExpense').innerText = "Rs. " + totalExpense.toLocaleString();
+        document.getElementById('totalSaved').innerText = "Rs. " + tSavings.toLocaleString();
+        document.getElementById('recordCount').innerText = data.length;
+        document.getElementById('avgSavings').innerText = "Rs. " + (data.length > 0 ? Math.round(tSavings / data.length).toLocaleString() : 0);
+    }
+
+    function updateChart(data) {
+        const last7Days = data.slice(0, 7).reverse();
+        const labels = last7Days.map(d => d.date.split('/')[0] + '/' + d.date.split('/')[1]);
+        const savingsData = last7Days.map(d => d.income - (Number(d.fuel) + Number(d.food || 0)));
+
+        const ctx = document.getElementById('savingsChart').getContext('2d');
+
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'दैनिक बचत',
+                    data: savingsData,
+                    borderColor: '#00b894',
+                    backgroundColor: 'rgba(0, 184, 148, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+            }
+        });
+    }
+
+    function exportToCSV() {
+        let csv = "मिति,कमाइ,तेल,खाजा,बचत,नोट\n";
+        allData.forEach(item => {
+            const net = item.income - (item.fuel + (item.food || 0));
+            csv += `${item.date},${item.income},${item.fuel},${item.food || 0},${net},${item.note || ''}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `indrive_report_${new Date().toLocaleDateString()}.csv`);
+        a.click();
+    }
+
+    function filterHistory() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allData.filter(item =>
+            (item.note && item.note.toLowerCase().includes(query)) ||
+            (item.date && item.date.includes(query))
+        );
+        renderHistory(filtered);
     }
 </script>
 </body>
