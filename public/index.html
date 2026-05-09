@@ -141,6 +141,17 @@
         </div>
     </div>
 
+    <div style="margin: 0 20px 20px 20px; background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid var(--light);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--secondary);">🎯 मासिक लक्ष्य (Goal: Rs. 50,000)</span>
+            <span id="goalPercent" style="font-size: 12px; font-weight: 700; color: var(--primary);">0%</span>
+        </div>
+        <div style="height: 12px; background: #eee; border-radius: 6px; overflow: hidden; position: relative;">
+            <div id="goalBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: 1s ease-out;"></div>
+        </div>
+        <p style="font-size: 10px; color: #999; margin: 8px 0 0 0; text-align: center;">यो महिनाको बचत: <span id="thisMonthSavings" style="font-weight: 700; color: var(--text);">Rs. 0</span></p>
+    </div>
+
     <div style="display: flex; justify-content: space-around; padding: 10px; background: #f8f9fa; border-radius: 15px; margin: 0 20px 20px 20px; font-size: 11px;">
         <div><b>औसत बचत:</b> <span id="avgSavings" style="color:var(--primary)">Rs. 0</span></div>
         <div><b>कुल दिन:</b> <span id="recordCount">0</span></div>
@@ -346,8 +357,12 @@
         let tIncome = 0;
         let tFuel = 0;
         let tFood = 0;
+        let tMaintenance = 0;
         let tSavings = 0;
+        let monthSavings = 0;
         const uniqueDays = new Set();
+        const currentMonth = new Date().getMonth() + 1; // 1-12
+        const currentYear = new Date().getFullYear();
 
         data.forEach(item => {
             const maintenanceCost = Number(item.maintenance || 0);
@@ -358,8 +373,16 @@
             tIncome += item.income;
             tFuel += item.fuel;
             tFood += (item.food || 0);
+            tMaintenance += maintenanceCost;
             tSavings += net;
-            if (item.date) uniqueDays.add(item.date);
+            if (item.date) {
+                uniqueDays.add(item.date);
+                // Check if the record belongs to the current month
+                const [d, m, y] = item.date.split('/').map(Number);
+                if (m === currentMonth && y === currentYear) {
+                    monthSavings += net;
+                }
+            }
 
             const color = savingsPercent > 60 ? '#00b894' : (savingsPercent < 30 ? '#ff7675' : '#0984e3');
 
@@ -386,10 +409,18 @@
             `;
         });
 
-        const totalExpense = tFuel + tFood + (data.reduce((acc, curr) => acc + (curr.maintenance || 0), 0));
+        const totalExpense = tFuel + tFood + tMaintenance;
+
+        // Progress Bar Logic
+        const monthlyGoal = 50000;
+        const progress = Math.min((monthSavings / monthlyGoal) * 100, 100);
+        document.getElementById('goalBar').style.width = progress + "%";
+        document.getElementById('goalPercent').innerText = Math.round(progress) + "%";
+        document.getElementById('thisMonthSavings').innerText = "Rs. " + monthSavings.toLocaleString();
+
         const fuelWidth = totalExpense > 0 ? (tFuel / totalExpense) * 100 : 50;
         document.getElementById('fuelBar').style.width = fuelWidth + "%";
-        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%"; // Note: This bar logic only splits between fuel and food. We might want to add maintenance bar too.
+        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%";
 
         document.getElementById('totalIncome').innerText = "Rs. " + tIncome.toLocaleString();
         document.getElementById('totalExpense').innerText = "Rs. " + totalExpense.toLocaleString();

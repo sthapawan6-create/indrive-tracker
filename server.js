@@ -25,6 +25,7 @@ const RecordSchema = new mongoose.Schema({
     income: Number,
     fuel: Number,
     food: Number,
+    maintenance: { type: Number, default: 0 },
     note: String,
     date: { type: String, default: () => new Date().toLocaleDateString('ne-NP') },
     createdAt: { type: Date, default: Date.now }
