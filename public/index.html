@@ -5,16 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise ERP - Perfect Accounting</title>
     <script>
-        // पुरानो Service Worker हटाउन यो कोड
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for(let registration of registrations) { registration.unregister(); }
-            });
+        // पुरानो Service Worker र Cache लाई पूर्ण रूपमा खत्तम पार्ने कडा कोड
+        async function forceUpdateERP() {
+            // १. सबै Service Workers हटाउने
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (let reg of regs) { await reg.unregister(); }
+            }
+            // २. सबै Cache सफा गर्ने
+            const names = await caches.keys();
+            for (let name of names) { await caches.delete(name); }
+
+            // ३. यदि पहिलो पटक आएको हो भने LocalStorage सफा गरेर कडा रिफ्रेस गर्ने
+            if (!localStorage.getItem('erp_final_v5')) {
+                localStorage.clear();
+                localStorage.setItem('erp_final_v5', 'true');
+                // Browser लाई 'Hard Reload' गर्न लगाउने
+                window.location.reload(true);
+            }
         }
-        // पुरानो Cache सफा गर्ने
-        caches.keys().then(names => {
-            for (let name of names) caches.delete(name);
-        });
+        forceUpdateERP();
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
