@@ -230,6 +230,7 @@
                     </div>
 
                     <!-- Voucher Table -->
+                    <datalist id="ledgerOptions"></datalist>
                     <table class="voucher-table" id="voucherTable">
                         <thead>
                             <tr>
@@ -490,13 +491,6 @@
         document.getElementById('jou-entries').innerHTML = '';
         document.getElementById('jou-desc').value = '';
         addJournalRow();
-        setTimeout(() => {
-            const lastRow = document.querySelector('#jou-entries tr:last-child');
-            if (lastRow) {
-                lastRow.querySelector('.row-type').value = 'dr';
-                updateRowColor(lastRow.querySelector('.row-type'));
-            }
-        }, 10);
     }
 
     async function fetchAccounts() {
@@ -504,6 +498,7 @@
         allAccounts = await res.json();
         const tbody = document.querySelector('#accountsTable tbody');
         const select = document.getElementById('stat-acc-select');
+        const datalist = document.getElementById('ledgerOptions');
 
         tbody.innerHTML = allAccounts.map(acc => `
             <tr>
@@ -527,6 +522,9 @@
 
         select.innerHTML = '<option value="">-- Choose Account --</option>' +
             allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+
+        // Update datalist for typing
+        datalist.innerHTML = allAccounts.map(a => `<option value="${a.name}" data-id="${a._id}">`).join('');
     }
 
     let editingAccId = null;
@@ -602,39 +600,116 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
-                <select class="row-type" onchange="updateRowColor(this)" style="font-weight:700; border:none; background:transparent;">
+                <select class="row-type" onchange="updateRowColor(this)" style="font-weight:700; border:1px solid var(--border); border-radius:4px; padding:8px; cursor:pointer; width:100%;">
                     <option value="dr">By (Dr)</option>
                     <option value="cr">To (Cr)</option>
                 </select>
             </td>
             <td>
-                <select class="row-acc" style="border:none; font-weight:600;">
-                    <option value="">-- Select Ledger --</option>
-                    ${allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('')}
-                </select>
+                <div style="position:relative">
+                    <input type="text" list="ledgerOptions" class="row-acc-input" placeholder="Type account name..."
+                        onchange="validateAccount(this)"
+                        onkeydown="if(event.key==='Enter') focusAmount(this)"
+                        style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
+                    <input type="hidden" class="row-acc-id">
+                </div>
             </td>
-            <td><input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border:none; background:transparent; font-weight:700;"></td>
-            <td><input type="number" class="row-cr text-right" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border:none; background:transparent; font-weight:700;"></td>
+            <td><input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+            <td><input type="number" class="row-cr text-right" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
             <td class="text-right">
-                <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size:18px;"><i class="fas fa-times"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
         updateRowColor(tr.querySelector('.row-type'));
     }
 
+    function validateAccount(el) {
+        const val = el.value;
+        const opts = document.getElementById('ledgerOptions').childNodes;
+        let found = false;
+        let id = "";
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+                found = true;
+                id = opts[i].getAttribute('data-id');
+                break;
+            }
+        }
+
+        const row = el.parentElement.parentElement;
+        const idInput = row.querySelector('.row-acc-id');
+
+        if (found) {
+            idInput.value = id;
+            el.style.color = "var(--primary)";
+            el.style.borderColor = "var(--border)";
+        } else if (val) {
+            // If not found, show option to create
+            if(confirm(`"${val}" not found. Create new Expense account?`)) {
+                quickCreateAccount(val, el);
+            } else {
+                el.value = '';
+                idInput.value = '';
+            }
+        }
+    }
+
+    async function quickCreateAccount(name, inputEl) {
+        const res = await fetch('/api/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUser.uid,
+                name: name,
+                type: 'Expense',
+                group: 'Indirect Expenses',
+                openingBalance: 0,
+                balance: 0
+            })
+        });
+        if(res.ok) {
+            const newAcc = await res.json();
+            await fetchAccounts(); // Refresh datalist
+            inputEl.value = newAcc.name;
+            inputEl.parentElement.querySelector('.row-acc-id').value = newAcc._id;
+            focusAmount(inputEl);
+        }
+    }
+
+    function focusAmount(el) {
+        const row = el.closest('tr');
+        const type = row.querySelector('.row-type').value;
+        const target = type === 'dr' ? row.querySelector('.row-dr') : row.querySelector('.row-cr');
+        if (target) {
+            target.focus();
+            target.select();
+        }
+    }
+
     function updateRowColor(el) {
         const row = el.parentElement.parentElement;
+        const drInput = row.querySelector('.row-dr');
+        const crInput = row.querySelector('.row-cr');
+
         if (el.value === 'dr') {
             row.style.background = "#f0f9ff"; // Light blue for Debit
-            row.querySelector('.row-cr').disabled = true;
-            row.querySelector('.row-cr').value = '';
-            row.querySelector('.row-dr').disabled = false;
+            crInput.disabled = true;
+            crInput.value = '';
+            crInput.style.background = "#fee2e2"; // Light red to indicate disabled
+            crInput.style.cursor = "not-allowed";
+            drInput.disabled = false;
+            drInput.style.background = "#ffffff";
+            drInput.style.cursor = "text";
         } else {
             row.style.background = "#fffaf0"; // Light orange for Credit
-            row.querySelector('.row-dr').disabled = true;
-            row.querySelector('.row-dr').value = '';
-            row.querySelector('.row-cr').disabled = false;
+            drInput.disabled = true;
+            drInput.value = '';
+            drInput.style.background = "#fee2e2"; // Light red to indicate disabled
+            drInput.style.cursor = "not-allowed";
+            crInput.disabled = false;
+            crInput.style.background = "#ffffff";
+            crInput.style.cursor = "text";
         }
         calcJournalTotals();
     }
@@ -677,22 +752,29 @@
         tx.entries.forEach(e => {
             const tr = document.createElement('tr');
             const type = e.debit > 0 ? 'dr' : 'cr';
+            const accName = e.account?.name || '';
+            const accId = e.account?._id || e.account || '';
+
             tr.innerHTML = `
                 <td>
-                    <select class="row-type" onchange="updateRowColor(this)" style="font-weight:700; border:none; background:transparent;">
+                    <select class="row-type" onchange="updateRowColor(this)" style="font-weight:700; border:1px solid var(--border); border-radius:4px; padding:8px; width:100%;">
                         <option value="dr" ${type==='dr'?'selected':''}>By (Dr)</option>
                         <option value="cr" ${type==='cr'?'selected':''}>To (Cr)</option>
                     </select>
                 </td>
                 <td>
-                    <select class="row-acc" style="border:none; font-weight:600;">
-                        ${allAccounts.map(a => `<option value="${a._id}" ${a._id===(e.account?._id||e.account)?'selected':''}>${a.name}</option>`).join('')}
-                    </select>
+                    <div style="position:relative">
+                        <input type="text" list="ledgerOptions" class="row-acc-input" value="${accName}" placeholder="Type account name..."
+                            onchange="validateAccount(this)"
+                            onkeydown="if(event.key==='Enter') focusAmount(this)"
+                            style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
+                        <input type="hidden" class="row-acc-id" value="${accId}">
+                    </div>
                 </td>
-                <td><input type="number" class="row-dr text-right" value="${e.debit||''}" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border:none; background:transparent; font-weight:700;"></td>
-                <td><input type="number" class="row-cr text-right" value="${e.credit||''}" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border:none; background:transparent; font-weight:700;"></td>
+                <td><input type="number" class="row-dr text-right" value="${e.debit||''}" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+                <td><input type="number" class="row-cr text-right" value="${e.credit||''}" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
                 <td class="text-right">
-                    <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></button>
+                    <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size:18px;"><i class="fas fa-times"></i></button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -711,7 +793,7 @@
 
             const entries = [];
             document.querySelectorAll('#jou-entries tr').forEach(row => {
-                const acc = row.querySelector('.row-acc').value;
+                const acc = row.querySelector('.row-acc-id').value;
                 const dr = Number(row.querySelector('.row-dr').value || 0);
                 const cr = Number(row.querySelector('.row-cr').value || 0);
                 if (acc && (dr > 0 || cr > 0)) entries.push({ account: acc, debit: dr, credit: cr });
@@ -810,12 +892,8 @@
     }
 
     function filterVouchers() {
-        const term = document.getElementById('searchTx').value.toLowerCase();
-        const rows = document.querySelectorAll('#transactionsTable tbody tr');
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(term) ? '' : 'none';
-        });
+        const q = document.getElementById('searchTx').value.toLowerCase();
+        document.querySelectorAll('#transactionsTable tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
     }
 
     async function deleteTransaction(id) {
@@ -894,48 +972,117 @@
 
     function generateStatement() {
         const accId = document.getElementById('stat-acc-select').value;
-        const from = document.getElementById('stat-from').value;
-        const to = document.getElementById('stat-to').value;
-        if (!accId) return;
+        const fromDateStr = document.getElementById('stat-from').value;
+        const toDateStr = document.getElementById('stat-to').value;
+        if (!accId || !fromDateStr || !toDateStr) return alert("Please select an account and both dates.");
+
+        const fromDate = new Date(fromDateStr);
+        fromDate.setHours(0,0,0,0);
+        const toDate = new Date(toDateStr);
+        toDate.setHours(23,59,59,999);
 
         const acc = allAccounts.find(a => a._id === accId);
-        document.getElementById('stat-title').innerText = `Statement: ${acc.name} (${from} to ${to})`;
+        if (!acc) return;
+
+        document.getElementById('stat-title').innerText = `Statement: ${acc.name} (${fromDateStr} to ${toDateStr})`;
         document.getElementById('statementResult').classList.remove('hidden');
 
-        const tbody = document.querySelector('#statementTable tbody');
-        let runningBal = acc.openingBalance || 0;
-        let rowsHtml = `<tr><td colspan="2"><b>Opening Balance</b></td><td></td><td></td><td class="text-right"><b>${Math.abs(runningBal).toLocaleString()} ${runningBal >=0 ? (['Asset','Expense'].includes(acc.type)?'Dr':'Cr') : (['Asset','Expense'].includes(acc.type)?'Cr':'Dr')}</b></td></tr>`;
+        const isDrInc = ['Asset', 'Expense'].includes(acc.type);
 
-        const filteredTx = [];
+        // Collect all entries for this account and sort them
+        const allFiltered = [];
         allTransactions.forEach(tx => {
             tx.entries.forEach(e => {
-                if (e.account && e.account._id === accId) filteredTx.push({ date: tx.date, desc: tx.description, dr: e.debit, cr: e.credit, ts: new Date(tx.createdAt) });
+                const entryAccId = e.account?._id || e.account;
+                if (entryAccId === accId) {
+                    allFiltered.push({
+                        date: tx.date,
+                        dateObj: new Date(tx.date),
+                        desc: tx.description,
+                        dr: e.debit,
+                        cr: e.credit,
+                        ts: new Date(tx.createdAt)
+                    });
+                }
             });
         });
-        filteredTx.sort((a, b) => new Date(a.date) - new Date(b.date) || a.ts - b.ts);
 
-        const isDrInc = ['Asset', 'Expense'].includes(acc.type);
-        filteredTx.forEach(e => {
-            runningBal += isDrInc ? (e.dr - e.cr) : (e.cr - e.dr);
-            rowsHtml += `<tr><td>${e.date}</td><td>${e.desc}</td><td class="text-right">${e.dr || '-'}</td><td class="text-right">${e.cr || '-'}</td><td class="text-right">Rs. ${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? (isDrInc ? 'Dr':'Cr') : (isDrInc ? 'Cr':'Dr')}</td></tr>`;
+        // Sort by user-entered date, then by system creation time
+        allFiltered.sort((a, b) => a.dateObj - b.dateObj || a.ts - b.ts);
+
+        let openingForPeriod = acc.openingBalance || 0;
+        const periodTx = [];
+
+        allFiltered.forEach(e => {
+            if (e.dateObj < fromDate) {
+                openingForPeriod += isDrInc ? (e.dr - e.cr) : (e.cr - e.dr);
+            } else if (e.dateObj <= toDate) {
+                periodTx.push(e);
+            }
         });
-        tbody.innerHTML = rowsHtml;
+
+        const tbody = document.querySelector('#statementTable tbody');
+        let html = `
+            <tr style="background:#f8fafc; font-weight:700;">
+                <td colspan="2">Opening Balance as of ${fromDateStr}</td>
+                <td></td>
+                <td></td>
+                <td class="text-right">Rs. ${Math.abs(openingForPeriod).toLocaleString(undefined, {minimumFractionDigits: 2})} ${openingForPeriod >= 0 ? (isDrInc ? 'Dr' : 'Cr') : (isDrInc ? 'Cr' : 'Dr')}</td>
+            </tr>
+        `;
+
+        let currentRunning = openingForPeriod;
+        let totalDr = 0, totalCr = 0;
+
+        periodTx.forEach(e => {
+            currentRunning += isDrInc ? (e.dr - e.cr) : (e.cr - e.dr);
+            totalDr += e.dr;
+            totalCr += e.cr;
+            html += `
+                <tr>
+                    <td>${e.date}</td>
+                    <td>${e.desc}</td>
+                    <td class="text-right">${e.dr > 0 ? e.dr.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                    <td class="text-right">${e.cr > 0 ? e.cr.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                    <td class="text-right">Rs. ${Math.abs(currentRunning).toLocaleString(undefined, {minimumFractionDigits: 2})} ${currentRunning >= 0 ? (isDrInc ? 'Dr' : 'Cr') : (isDrInc ? 'Cr' : 'Dr')}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+            <tr style="background:#f1f5f9; font-weight:800;">
+                <td colspan="2" class="text-right">PERIOD TOTAL</td>
+                <td class="text-right">${totalDr.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="text-right">${totalCr.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td class="text-right">Rs. ${Math.abs(currentRunning).toLocaleString(undefined, {minimumFractionDigits: 2})} ${currentRunning >= 0 ? (isDrInc ? 'Dr' : 'Cr') : (isDrInc ? 'Cr' : 'Dr')}</td>
+            </tr>
+        `;
+
+        tbody.innerHTML = html;
     }
 
     function renderReport(type) {
         const div = document.getElementById('reportContent');
         let html = "";
         if (type === 'trial') {
-            html = `<h3>Trial Balance Summary</h3><table style="margin-top:20px"><thead><tr><th>Ledger Account</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead><tbody>`;
+            html = `<h3>Trial Balance Summary</h3><table style="margin-top:20px"><thead><tr><th>Ledger Account</th><th class="text-right">Debit (Rs.)</th><th class="text-right">Credit (Rs.)</th></tr></thead><tbody>`;
             let td=0, tc=0;
             allAccounts.forEach(a => {
-                if(a.balance === 0) return;
-                const isDr = ['Asset','Expense'].includes(a.type);
-                if((isDr && a.balance > 0) || (!isDr && a.balance < 0)) { html += `<tr><td>${a.name}</td><td class="text-right">${Math.abs(a.balance).toLocaleString()}</td><td></td></tr>`; td += Math.abs(a.balance); }
-                else { html += `<tr><td>${a.name}</td><td></td><td class="text-right">${Math.abs(a.balance).toLocaleString()}</td></tr>`; tc += Math.abs(a.balance); }
+                if(Math.abs(a.balance) < 0.01) return;
+                const isDrNormal = ['Asset','Expense'].includes(a.type);
+                const isDebitBal = (isDrNormal && a.balance > 0) || (!isDrNormal && a.balance < 0);
+
+                if(isDebitBal) {
+                    html += `<tr><td>${a.name}</td><td class="text-right">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</td><td></td></tr>`;
+                    td += Math.abs(a.balance);
+                } else {
+                    html += `<tr><td>${a.name}</td><td></td><td class="text-right">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+                    tc += Math.abs(a.balance);
+                }
             });
-            html += `<tr style="font-weight:bold; background:#f8fafc"><td>TOTAL</td><td class="text-right">${td.toLocaleString()}</td><td class="text-right">${tc.toLocaleString()}</td></tr></tbody></table>`;
-        } else if (type === 'pl') {
+            html += `<tr style="font-weight:bold; background:#f8fafc; border-top: 2px solid var(--primary);"><td>TOTAL</td><td class="text-right">${td.toLocaleString(undefined, {minimumFractionDigits: 2})}</td><td class="text-right">${tc.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr></tbody></table>`;
+        }
+else if (type === 'pl') {
             const rev = allAccounts.filter(a => a.type === 'Revenue');
             const exp = allAccounts.filter(a => a.type === 'Expense');
             const tr = rev.reduce((s,a) => s+a.balance, 0);
