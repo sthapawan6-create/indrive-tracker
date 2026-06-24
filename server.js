@@ -133,13 +133,15 @@ app.get('/api/reports/trial-balance', async (req, res) => {
     }
 });
 
-app.delete('/api/transactions/:id', async (req, res) => {
+// Update Transaction (Edit)
+app.put('/api/transactions/:id', async (req, res) => {
     try {
-        const tx = await Transaction.findById(req.params.id);
-        if (!tx) return res.status(404).json({ error: "Not found" });
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "Not found" });
 
-        // Reverse balances before deleting
-        for (const entry of tx.entries) {
+        // १. पुरानो हिसाब उल्टाउने (Reverse old balances)
+        for (const entry of oldTx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
                 const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
@@ -148,8 +150,46 @@ app.delete('/api/transactions/:id', async (req, res) => {
                 await acc.save();
             }
         }
-        await Transaction.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: "Deleted" });
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply new balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update Account
+app.put('/api/accounts/:id', async (req, res) => {
+    try {
+        const acc = await Account.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(acc);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete Account
+app.delete('/api/accounts/:id', async (req, res) => {
+    try {
+        const txCount = await Transaction.countDocuments({ "entries.account": req.params.id });
+        if (txCount > 0) return res.status(400).json({ error: "Cannot delete account with transactions" });
+        await Account.findByIdAndDelete(req.params.id);
+        res.json({ message: "Deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -349,7 +349,7 @@
                 </div>
                 <div class="card-body" style="padding:0">
                     <table id="accountsTable">
-                        <thead><tr><th>Name</th><th>Category</th><th>Group</th><th>Contact</th><th class="text-right">Balance</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Category</th><th>Group</th><th>Contact</th><th class="text-right">Balance</th><th class="text-right" style="width:100px">Actions</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -510,6 +510,10 @@
                     <b>Rs. ${Math.abs(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</b>
                     <small>${getBalanceSide(acc)}</small>
                 </td>
+                <td class="text-right">
+                    <button class="btn btn-outline" style="color:var(--accent); border:none; padding:5px;" onclick="editAccount('${acc._id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-outline" style="color:var(--danger); border:none; padding:5px;" onclick="deleteAccount('${acc._id}')"><i class="fas fa-trash-alt"></i></button>
+                </td>
             </tr>
         `).join('');
 
@@ -517,10 +521,30 @@
             allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
     }
 
-    function getBalanceSide(acc) {
-        if (acc.balance === 0) return '';
-        const isDr = ['Asset', 'Expense'].includes(acc.type);
-        return acc.balance >= 0 ? (isDr ? 'Dr' : 'Cr') : (isDr ? 'Cr' : 'Dr');
+    let editingAccId = null;
+    function editAccount(id) {
+        const acc = allAccounts.find(a => a._id === id);
+        if(!acc) return;
+        editingAccId = id;
+        document.getElementById('acc-name').value = acc.name;
+        document.getElementById('acc-type').value = acc.type;
+        document.getElementById('acc-group').value = acc.group;
+        document.getElementById('acc-phone').value = acc.phone;
+        document.getElementById('acc-address').value = acc.address;
+        document.getElementById('acc-op').value = acc.openingBalance;
+        document.querySelector('#ledger button').innerText = "Update Ledger";
+    }
+
+    async function deleteAccount(id) {
+        if(!confirm("Are you sure you want to delete this account?")) return;
+        const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(res.ok) {
+            alert("Account deleted!");
+            fetchAccounts();
+        } else {
+            alert(data.error || "Cannot delete account");
+        }
     }
 
     async function createAccount() {
@@ -533,21 +557,27 @@
 
         if (!name) return alert("Account name is required");
 
-        await fetch('/api/accounts', {
-            method: 'POST',
+        const method = editingAccId ? 'PUT' : 'POST';
+        const url = editingAccId ? `/api/accounts/${editingAccId}` : '/api/accounts';
+
+        const res = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: currentUser.uid,
                 name, type, group, phone, address,
                 openingBalance: opening,
-                balance: opening
+                balance: opening // Simple logic for now, in real ERP this would recalculate
             })
         });
 
-        // Reset fields
-        ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
-        fetchAccounts();
-        alert("Ledger / Party created successfully!");
+        if(res.ok) {
+            alert(editingAccId ? "Ledger Updated!" : "Ledger Created!");
+            editingAccId = null;
+            document.querySelector('#ledger button').innerText = "Create Ledger / Party";
+            ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
+            fetchAccounts();
+        }
     }
 
     function addJournalRow() {
@@ -617,6 +647,44 @@
         }
     }
 
+    let editingTxId = null;
+    function editTransaction(id) {
+        const tx = allTransactions.find(t => t._id === id);
+        if (!tx) return;
+        editingTxId = id;
+        document.getElementById('jou-date').value = tx.date;
+        document.getElementById('jou-desc').value = tx.description;
+
+        const tbody = document.getElementById('jou-entries');
+        tbody.innerHTML = '';
+        tx.entries.forEach(e => {
+            const tr = document.createElement('tr');
+            const type = e.debit > 0 ? 'dr' : 'cr';
+            tr.innerHTML = `
+                <td>
+                    <select class="row-type" onchange="updateRowColor(this)" style="font-weight:700; border:none; background:transparent;">
+                        <option value="dr" ${type==='dr'?'selected':''}>By (Dr)</option>
+                        <option value="cr" ${type==='cr'?'selected':''}>To (Cr)</option>
+                    </select>
+                </td>
+                <td>
+                    <select class="row-acc" style="border:none; font-weight:600;">
+                        ${allAccounts.map(a => `<option value="${a._id}" ${a._id===(e.account?._id||e.account)?'selected':''}>${a.name}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="row-dr text-right" value="${e.debit||''}" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border:none; background:transparent; font-weight:700;"></td>
+                <td><input type="number" class="row-cr text-right" value="${e.credit||''}" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border:none; background:transparent; font-weight:700;"></td>
+                <td class="text-right">
+                    <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            updateRowColor(tr.querySelector('.row-type'));
+        });
+        showSection('journal');
+        document.getElementById('post-btn').innerText = "Update Voucher";
+    }
+
     async function saveTransaction() {
         const date = document.getElementById('jou-date').value;
         const description = document.getElementById('jou-desc').value;
@@ -630,14 +698,19 @@
 
         if (entries.length < 2) return alert("Double entry required");
 
-        const res = await fetch('/api/transactions', {
-            method: 'POST',
+        const url = editingTxId ? `/api/transactions/${editingTxId}` : '/api/transactions';
+        const method = editingTxId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
         });
 
         if (res.ok) {
-            alert("Voucher Posted! ✅");
+            alert(editingTxId ? "Voucher Updated! ✅" : "Voucher Posted! ✅");
+            editingTxId = null;
+            document.getElementById('post-btn').innerText = "Post Voucher";
             init();
             document.getElementById('jou-desc').value = '';
         } else {
@@ -674,6 +747,7 @@
                     </div>
                 </td>
                 <td class="text-right">
+                    <button class="btn btn-outline" style="color:var(--accent); border:none; margin-right:5px;" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-outline" style="color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
                 </td>
             </tr>
