@@ -291,40 +291,65 @@
         <!-- Ledgers -->
         <div id="tab-accounts" class="tab-content hidden">
             <div class="card">
-                <div class="card-header"><h3>Master Ledger Creation</h3></div>
+                <div class="card-header"><h3>Master Ledger / Party Creation</h3></div>
                 <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                    <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                         <div>
-                            <label>Account Name</label>
-                            <input type="text" id="acc-name" placeholder="e.g. Salary Expense, Nabil Bank">
+                            <label>Account / Party Name</label>
+                            <input type="text" id="acc-name" placeholder="e.g. Ramesh Hardware, Nabil Bank">
                         </div>
                         <div>
                             <label>Category</label>
                             <select id="acc-type">
-                                <option value="Asset">Asset</option>
-                                <option value="Liability">Liability</option>
-                                <option value="Equity">Equity</option>
-                                <option value="Revenue">Revenue</option>
-                                <option value="Expense">Expense</option>
+                                <option value="Asset">Asset (Debtors/Bank/Cash)</option>
+                                <option value="Liability">Liability (Creditors/Loans)</option>
+                                <option value="Equity">Equity (Capital)</option>
+                                <option value="Revenue">Revenue (Sales)</option>
+                                <option value="Expense">Expense (Purchases/Bills)</option>
                             </select>
                         </div>
                         <div>
-                            <label>Group (e.g. Bank, Cash)</label>
-                            <input type="text" id="acc-group" placeholder="Cash/Bank/Party">
+                            <label>Group</label>
+                            <select id="acc-group">
+                                <option value="Sundry Debtors">Sundry Debtors (Customers)</option>
+                                <option value="Sundry Creditors">Sundry Creditors (Suppliers)</option>
+                                <option value="Bank Accounts">Bank Accounts</option>
+                                <option value="Cash-in-hand">Cash-in-hand</option>
+                                <option value="Direct Expenses">Direct Expenses</option>
+                                <option value="Indirect Expenses">Indirect Expenses</option>
+                                <option value="Sales Accounts">Sales Accounts</option>
+                                <option value="Purchase Accounts">Purchase Accounts</option>
+                                <option value="Capital Account">Capital Account</option>
+                            </select>
                         </div>
                         <div>
-                            <label>Opening Bal (Dr/Cr)</label>
+                            <label>Opening Bal (Amount)</label>
                             <input type="number" id="acc-op" placeholder="0.00">
                         </div>
-                        <button class="btn btn-primary" onclick="createAccount()">Create Ledger</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 15px; align-items: flex-end;">
+                        <div>
+                            <label>Phone Number (Optional)</label>
+                            <input type="text" id="acc-phone" placeholder="98XXXXXXXX">
+                        </div>
+                        <div>
+                            <label>Address / Contact Details</label>
+                            <input type="text" id="acc-address" placeholder="Street, City">
+                        </div>
+                        <button class="btn btn-primary" onclick="createAccount()" style="padding: 10px 30px;">
+                            <i class="fas fa-plus-circle"></i> Create Ledger / Party
+                        </button>
                     </div>
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3>Chart of Accounts</h3></div>
+                <div class="card-header">
+                    <h3>Chart of Accounts & Party List</h3>
+                    <input type="text" id="searchLedger" placeholder="Search accounts..." onkeyup="filterLedgers()" style="width: 250px;">
+                </div>
                 <div class="card-body" style="padding:0">
                     <table id="accountsTable">
-                        <thead><tr><th>Name</th><th>Type</th><th>Group</th><th class="text-right">Balance</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Category</th><th>Group</th><th>Contact</th><th class="text-right">Balance</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -474,10 +499,17 @@
 
         tbody.innerHTML = allAccounts.map(acc => `
             <tr>
-                <td style="font-weight:600">${acc.name}</td>
+                <td style="font-weight:600">
+                    ${acc.name}<br>
+                    <small style="color:#64748b">${acc.phone || ''}</small>
+                </td>
                 <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
-                <td>${acc.group || '-'}</td>
-                <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">Rs. ${Math.abs(acc.balance).toLocaleString()} ${getBalanceSide(acc)}</td>
+                <td><small>${acc.group || '-'}</small></td>
+                <td><small>${acc.address || '-'}</small></td>
+                <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">
+                    <b>Rs. ${Math.abs(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</b>
+                    <small>${getBalanceSide(acc)}</small>
+                </td>
             </tr>
         `).join('');
 
@@ -495,17 +527,27 @@
         const name = document.getElementById('acc-name').value;
         const type = document.getElementById('acc-type').value;
         const group = document.getElementById('acc-group').value;
+        const phone = document.getElementById('acc-phone').value;
+        const address = document.getElementById('acc-address').value;
         const opening = Number(document.getElementById('acc-op').value || 0);
+
         if (!name) return alert("Account name is required");
 
         await fetch('/api/accounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid, name, type, group, openingBalance: opening, balance: opening })
+            body: JSON.stringify({
+                userId: currentUser.uid,
+                name, type, group, phone, address,
+                openingBalance: opening,
+                balance: opening
+            })
         });
-        document.getElementById('acc-name').value = '';
-        document.getElementById('acc-op').value = '';
+
+        // Reset fields
+        ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
         fetchAccounts();
+        alert("Ledger / Party created successfully!");
     }
 
     function addJournalRow() {
@@ -607,31 +649,67 @@
     async function fetchTransactions() {
         const res = await fetch(`/api/transactions?userId=${currentUser.uid}`);
         allTransactions = await res.json();
+        renderTransactionTable(allTransactions);
+    }
+
+    function renderTransactionTable(txs) {
         const tbody = document.querySelector('#transactionsTable tbody');
         const dashRecent = document.querySelector('#dash-recent-tx tbody');
 
-        tbody.innerHTML = allTransactions.map(tx => `
+        tbody.innerHTML = txs.map(tx => `
             <tr>
-                <td>${tx.date}</td>
-                <td><b style="color:var(--primary)">${tx.description}</b></td>
-                <td style="font-size: 11px; color: #64748b;">
-                    ${tx.entries.map(e => `<div>${e.account?.name || '??'}: ${e.debit > 0 ? 'Dr '+e.debit : 'Cr '+e.credit}</div>`).join('')}
+                <td><b>${new Date(tx.date).toLocaleDateString()}</b></td>
+                <td>
+                    <div style="font-weight:600">${tx.description}</div>
+                    <small style="color:#64748b">ID: ${tx._id.slice(-6).toUpperCase()}</small>
                 </td>
-                <td class="text-right"><button class="btn btn-outline" style="color:var(--danger)" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button></td>
+                <td>
+                    <div style="font-size:11px">
+                        ${tx.entries.map(e => `
+                            <div style="display:flex; justify-content:space-between; margin-bottom:2px; padding:2px 5px; border-radius:3px; background:${e.debit > 0 ? '#f0f9ff' : '#fffaf0'}">
+                                <span>${e.debit > 0 ? 'By' : 'To'} <b>${e.account?.name || 'Unknown'}</b></span>
+                                <span>${(e.debit || e.credit).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </td>
+                <td class="text-right">
+                    <button class="btn btn-outline" style="color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
+                </td>
             </tr>
         `).join('');
 
-        dashRecent.innerHTML = allTransactions.slice(0, 8).map(tx => `
-            <tr>
-                <td style="border:none">
-                    <div style="font-weight:600">${tx.description}</div>
-                    <small style="color:#94a3b8">${tx.date}</small>
-                </td>
-                <td class="text-right" style="border:none">
-                    <div style="font-weight:700">Rs. ${tx.entries[0]?.debit || tx.entries[0]?.credit}</div>
-                </td>
-            </tr>
-        `).join('');
+        if (dashRecent) {
+            dashRecent.innerHTML = txs.slice(0, 8).map(tx => `
+                <tr>
+                    <td style="border:none">
+                        <div style="font-weight:600">${tx.description}</div>
+                        <small style="color:#94a3b8">${tx.date}</small>
+                    </td>
+                    <td class="text-right" style="border:none">
+                        <div style="font-weight:700">Rs. ${(tx.entries.find(e => e.debit > 0)?.debit || tx.entries[0]?.credit || 0).toLocaleString()}</div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    function filterLedgers() {
+        const term = document.getElementById('searchLedger').value.toLowerCase();
+        const rows = document.querySelectorAll('#accountsTable tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    }
+
+    function filterVouchers() {
+        const term = document.getElementById('searchTx').value.toLowerCase();
+        const rows = document.querySelectorAll('#transactionsTable tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
     }
 
     async function deleteTransaction(id) {
@@ -667,7 +745,7 @@
         initCharts(revenue, expense, expenseData);
     }
 
-    function initCharts(revenue, expense, expenseData) {
+    function initCharts(rev, exp, expenseData) {
         const ctx = document.getElementById('performanceChart').getContext('2d');
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
@@ -675,7 +753,7 @@
             data: {
                 labels: ['Revenue', 'Expenses', 'Net Profit'],
                 datasets: [{
-                    data: [revenue, expense, revenue - expense],
+                    data: [rev, exp, rev - exp],
                     backgroundColor: ['#2563eb', '#dc2626', '#059669'],
                     borderRadius: 5
                 }]
@@ -767,33 +845,19 @@
                 <div style="flex:1"><h4>Assets</h4><table>${assets.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr style="font-weight:700; background:#eee"><td>Total Assets</td><td class="text-right">${assets.reduce((s,a)=>s+a.balance,0).toLocaleString()}</td></tr></table></div>
                 <div style="flex:1"><h4>Liabilities & Equity</h4><table>${liabs.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr><td>Current Profit</td><td class="text-right">${netProfit.toLocaleString()}</td></tr><tr style="font-weight:700; background:#eee"><td>Total Liab & Equity</td><td class="text-right">${(liabs.reduce((s,a)=>s+a.balance,0)+netProfit).toLocaleString()}</td></tr></table></div>
             </div>`;
+        } else if (type === 'daybook') {
+            html = `<h3>Day Book - All Transactions</h3><table style="margin-top:20px"><thead><tr><th>Date</th><th>Narration</th><th>Particulars</th><th class="text-right">Amount</th></tr></thead><tbody>`;
+            allTransactions.forEach(tx => {
+                html += `<tr>
+                    <td>${tx.date}</td>
+                    <td><b>${tx.description}</b></td>
+                    <td><small>${tx.entries.map(e => e.account?.name || '??').join(', ')}</small></td>
+                    <td class="text-right">${tx.entries.find(e => e.debit > 0)?.debit.toLocaleString()}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
         }
         div.innerHTML = html;
-    }
-
-    function initCharts() {
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        if (myChart) myChart.destroy();
-
-        const rev = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0);
-        const exp = allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
-
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Revenue', 'Expenses', 'Net Profit'],
-                datasets: [{
-                    label: 'Financial Performance',
-                    data: [rev, exp, rev - exp],
-                    backgroundColor: ['#2563eb', '#dc2626', '#059669'],
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { display: false } } }
-            }
-        });
     }
 
     function exportToExcel(tableId) {

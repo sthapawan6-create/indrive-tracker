@@ -32,7 +32,9 @@ const AccountSchema = new mongoose.Schema({
     userId: String,
     name: String,
     type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] },
-    group: String,
+    group: String, // e.g., 'Sundry Debtors', 'Sundry Creditors', 'Bank Accounts'
+    phone: String,
+    address: String,
     openingBalance: { type: Number, default: 0 },
     balance: { type: Number, default: 0 }
 });
