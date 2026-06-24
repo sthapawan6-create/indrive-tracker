@@ -17,9 +17,9 @@
             for (let name of names) { await caches.delete(name); }
 
             // ३. यदि पहिलो पटक आएको हो भने LocalStorage सफा गरेर कडा रिफ्रेस गर्ने
-            if (!localStorage.getItem('erp_final_v5')) {
+            if (!localStorage.getItem('erp_final_v7')) {
                 localStorage.clear();
-                localStorage.setItem('erp_final_v5', 'true');
+                localStorage.setItem('erp_final_v7', 'true');
                 // Browser लाई 'Hard Reload' गर्न लगाउने
                 window.location.reload(true);
             }
@@ -168,24 +168,24 @@
 
             <div class="stat-grid">
                 <div class="stat-card" style="border-left: 4px solid var(--accent);">
-                    <div class="label">Liquid Cash & Bank</div>
+                    <div class="label">Actual Cash & Bank (सम्पत्ति)</div>
                     <div class="value" id="dash-cash">Rs. 0</div>
-                    <div class="trend text-success"><i class="fas fa-university"></i> Safe Liquidity</div>
+                    <div class="trend text-success"><i class="fas fa-wallet"></i> Total Liquidity</div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                    <div class="label">Receivables (AR)</div>
+                    <div class="label">Lina Baaki (Receivables)</div>
                     <div class="value" id="dash-ar">Rs. 0</div>
-                    <div class="trend text-warning">Pending Collections</div>
-                </div>
-                <div class="stat-card" style="border-left: 4px solid var(--success);">
-                    <div class="label">Net Profit (MTD)</div>
-                    <div class="value text-success" id="dash-profit">Rs. 0</div>
-                    <div class="trend">After all Expenses</div>
+                    <div class="trend text-warning">Other Assets</div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid var(--danger);">
-                    <div class="label">Payables (AP)</div>
+                    <div class="label">Dina Baaki (Payables)</div>
                     <div class="value text-danger" id="dash-ap">Rs. 0</div>
-                    <div class="trend">To be Paid</div>
+                    <div class="trend">Total Liabilities</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--success);">
+                    <div class="label">Net Worth (खुद पूँजी)</div>
+                    <div class="value text-success" id="dash-networth">Rs. 0</div>
+                    <div class="trend">Cash + AR - AP</div>
                 </div>
             </div>
 
@@ -704,37 +704,50 @@
     }
 
     async function saveTransaction() {
-        const date = document.getElementById('jou-date').value;
-        const description = document.getElementById('jou-desc').value;
-        const entries = [];
-        document.querySelectorAll('#jou-entries tr').forEach(row => {
-            const acc = row.querySelector('.row-acc').value;
-            const dr = Number(row.querySelector('.row-dr').value || 0);
-            const cr = Number(row.querySelector('.row-cr').value || 0);
-            if (acc && (dr > 0 || cr > 0)) entries.push({ account: acc, debit: dr, credit: cr });
-        });
+        try {
+            const date = document.getElementById('jou-date').value;
+            const description = document.getElementById('jou-desc').value;
+            if (!description) return alert("Please enter a description/narration.");
 
-        if (entries.length < 2) return alert("Double entry required");
+            const entries = [];
+            document.querySelectorAll('#jou-entries tr').forEach(row => {
+                const acc = row.querySelector('.row-acc').value;
+                const dr = Number(row.querySelector('.row-dr').value || 0);
+                const cr = Number(row.querySelector('.row-cr').value || 0);
+                if (acc && (dr > 0 || cr > 0)) entries.push({ account: acc, debit: dr, credit: cr });
+            });
 
-        const url = editingTxId ? `/api/transactions/${editingTxId}` : '/api/transactions';
-        const method = editingTxId ? 'PUT' : 'POST';
+            if (entries.length < 2) return alert("Double entry is required (At least one Dr and one Cr).");
 
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
-        });
+            document.getElementById('post-btn').disabled = true;
+            document.getElementById('post-btn').innerText = "Saving...";
 
-        if (res.ok) {
-            alert(editingTxId ? "Voucher Updated! ✅" : "Voucher Posted! ✅");
-            editingTxId = null;
-            document.getElementById('post-btn').innerText = "Post Voucher";
-            document.getElementById('cancel-edit-btn').classList.add('hidden');
-            init();
-            document.getElementById('jou-desc').value = '';
-        } else {
-            const err = await res.json();
-            alert("Error: " + err.error);
+            const url = editingTxId ? `/api/transactions/${editingTxId}` : '/api/transactions';
+            const method = editingTxId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
+            });
+
+            if (res.ok) {
+                alert(editingTxId ? "Voucher Updated! ✅" : "Voucher Posted! ✅");
+                editingTxId = null;
+                document.getElementById('post-btn').innerText = "Post Voucher";
+                document.getElementById('cancel-edit-btn').classList.add('hidden');
+                await init();
+                document.getElementById('jou-desc').value = '';
+            } else {
+                const err = await res.json();
+                alert("Error Saving: " + (err.error || "Unknown server error"));
+            }
+        } catch (e) {
+            alert("Network Error: Could not connect to server.");
+            console.error(e);
+        } finally {
+            document.getElementById('post-btn').disabled = false;
+            document.getElementById('post-btn').innerHTML = '<i class="fas fa-check-circle"></i> POST VOUCHER';
         }
     }
 
@@ -820,11 +833,17 @@
             const type = acc.type;
             const bal = acc.balance;
 
-            if (grp.includes('cash') || grp.includes('bank')) cash += bal;
-            if (type === 'Asset' && !grp.includes('cash') && !grp.includes('bank')) ar += bal;
-            if (type === 'Liability') ap += Math.abs(bal);
-            if (type === 'Revenue') revenue += bal;
-            if (type === 'Expense') {
+            if (type === 'Asset') {
+                if (grp.includes('cash') || grp.includes('bank')) {
+                    cash += bal;
+                } else {
+                    ar += bal;
+                }
+            } else if (type === 'Liability') {
+                ap += bal;
+            } else if (type === 'Revenue') {
+                revenue += bal;
+            } else if (type === 'Expense') {
                 expense += bal;
                 expenseData[acc.name] = (expenseData[acc.name] || 0) + bal;
             }
@@ -833,7 +852,7 @@
         document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
-        document.getElementById('dash-profit').innerText = "Rs. " + (revenue - expense).toLocaleString();
+        document.getElementById('dash-networth').innerText = "Rs. " + (cash + ar - ap).toLocaleString();
 
         initCharts(revenue, expense, expenseData);
     }
