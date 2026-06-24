@@ -3,213 +3,324 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#00b894">
-    <title>InDrive Tracker</title>
-    <!-- Firebase Libraries -->
+    <title>Enterprise ERP - Perfect Accounting</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00b894; --secondary: #0984e3; --dark: #2d3436; --light: #f8f9fa; --bg: #f0f2f5; --card: #ffffff; --text: #2d3436; }
-        .dark-mode { --bg: #1a1a1a; --card: #2d2d2d; --text: #f5f5f5; --light: #3d3d3d; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); transition: 0.3s; }
-        .container { max-width: 480px; margin: auto; min-height: 100vh; background: var(--card); display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
-        .dashboard { background: var(--card); color: var(--text); }
-        .history-item { background: var(--card); color: var(--text); border: 1px solid var(--light); }
-        input { background: var(--card); color: var(--text); border: 2px solid var(--light); }
-        ::-webkit-calendar-picker-indicator { filter: invert(0); }
-        .dark-mode ::-webkit-calendar-picker-indicator { filter: invert(1); }
-        .theme-toggle { position: absolute; top: 15px; left: 80px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+        :root { --primary: #0f172a; --secondary: #1e293b; --accent: #2563eb; --success: #059669; --danger: #dc2626; --warning: #d97706; --bg: #f1f5f9; --white: #ffffff; --border: #e2e8f0; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: #1e293b; font-size: 13px; line-height: 1.5; }
+        .container { max-width: 1400px; margin: auto; padding: 20px; }
 
-        /* Header Section */
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            padding: 40px 20px 90px 20px;
-            color: white;
-            border-radius: 0 0 35px 35px;
-            text-align: center;
-            position: relative;
-        }
-        .user-chip {
-            position: absolute; top: 15px; left: 15px;
-            display: flex; align-items: center;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 12px; border-radius: 20px; font-size: 13px;
-        }
-        .user-chip img { width: 25px; height: 25px; border-radius: 50%; margin-right: 8px; border: 1px solid white; }
-        .logout-btn {
-            position: absolute; top: 15px; right: 15px;
-            background: rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.3);
-            color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 11px;
+        /* Layout */
+        .sidebar-nav { width: 220px; background: var(--primary); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 20px 0; }
+        .main-content { margin-left: 220px; padding: 20px; }
+        @media (max-width: 900px) {
+            .sidebar-nav { width: 60px; }
+            .main-content { margin-left: 60px; }
+            .nav-label { display: none; }
         }
 
-        /* Dashboard Card */
-        .dashboard {
-            display: flex; justify-content: space-around;
-            background: white;
-            margin: -50px 20px 20px 20px;
-            padding: 25px 10px; border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center; z-index: 10;
-        }
-        .stat-box { flex: 1; padding: 5px; }
-        .stat-box h3 { margin: 0; font-size: 1.1em; font-weight: 700; }
-        .stat-box p { margin: 2px 0 0 0; font-size: 9px; color: #95a5a6; text-transform: uppercase; font-weight: 700; }
+        /* Sidebar Links */
+        .nav-item { padding: 12px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #94a3b8; transition: 0.2s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: white; border-left-color: var(--accent); }
+        .nav-item i { width: 20px; text-align: center; font-size: 16px; }
 
-        /* Form Area */
-        .form-area { padding: 10px 25px 25px 25px; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #555; }
-        input {
-            width: 100%; padding: 12px 15px;
-            border: 2px solid #f1f3f5; border-radius: 12px;
-            font-size: 16px; box-sizing: border-box; transition: 0.3s;
-        }
-        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+        /* Top Header */
+        .top-header { background: white; padding: 12px 25px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 
-        .save-btn {
-            width: 100%; padding: 15px;
-            background: var(--primary); color: white;
-            border: none; border-radius: 12px;
-            font-weight: 700; font-size: 16px; cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,184,148,0.3); transition: 0.3s;
-        }
-        .save-btn:active { transform: scale(0.98); }
+        /* Dashboard Stats */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); transition: 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .stat-card .label { color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card .value { font-size: 1.5rem; font-weight: 700; margin: 8px 0; }
+        .stat-card .trend { font-size: 11px; display: flex; align-items: center; gap: 4px; }
 
-        /* History */
-        .history-list { padding: 20px; background: #f8f9fa; flex-grow: 1; border-radius: 30px 30px 0 0; }
-        .history-item {
-            background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02); border-left: 5px solid var(--primary);
-        }
+        /* Generic UI Elements */
+        .card { background: var(--white); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 25px; overflow: hidden; }
+        .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fcfcfd; }
+        .card-body { padding: 20px; }
+        h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--primary); }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 15px; font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); background: #f8fafc; }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #f8fafc; }
+
+        .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; border: 1px solid transparent; transition: 0.2s; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: white; border-color: var(--border); color: var(--secondary); }
+        .btn-outline:hover { background: #f8fafc; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        input, select, textarea { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 100%; }
+        input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        .badge { padding: 3px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge-asset { background: #dcfce7; color: #166534; }
+        .badge-liab { background: #fee2e2; color: #991b1b; }
+        .badge-rev { background: #e0f2fe; color: #075985; }
+        .badge-exp { background: #fef3c7; color: #92400e; }
 
         .hidden { display: none !important; }
-        .login-screen { text-align: center; padding: 100px 30px; }
-        .google-btn {
-            width: 100%; padding: 15px; background: white; border: 1px solid #ddd;
-            border-radius: 12px; cursor: pointer; display: flex; align-items: center;
-            justify-content: center; gap: 10px; font-weight: 600; font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        .text-right { text-align: right; }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+
+        /* Print Styles */
+        @media print {
+            .sidebar-nav, .top-header, .btn, .no-print { display: none !important; }
+            .main-content { margin: 0; padding: 0; }
+            .card { border: none; box-shadow: none; }
+            .container { max-width: 100%; }
         }
-        .google-btn:active { background: #f9f9f9; transform: scale(0.98); }
     </style>
 </head>
 <body>
 
-<div id="loginSection" class="container">
-    <div class="login-screen">
-        <h1 style="color: var(--primary); font-size: 2.2em; margin-bottom: 10px;">🚖 InDrive Tracker</h1>
-        <p style="color: #666; margin-bottom: 50px;">आफ्नो Gmail बाट लगिन गर्नुहोस्।</p>
-        <button class="google-btn" id="loginBtn" onclick="loginWithGoogle()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G">
-            Continue with Google
+<div id="loginSection" class="container" style="display: flex; height: 100vh; align-items: center; justify-content: center;">
+    <div class="card" style="width: 400px; text-align: center; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
+        <div style="font-size: 40px; margin-bottom: 20px;">🏛️</div>
+        <h2 style="margin-bottom: 10px;">Enterprise ERP</h2>
+        <p style="color: #64748b; margin-bottom: 30px;">Professional Accounting & Financial Suite</p>
+        <button class="btn btn-primary" onclick="loginWithGoogle()" style="width: 100%; justify-content: center; padding: 12px;">
+            <i class="fab fa-google"></i> Login with Google
         </button>
-        <p id="statusMsg" style="margin-top: 20px; font-size: 12px; color: #999;"></p>
     </div>
 </div>
 
-<div id="mainSection" class="container hidden">
-    <div class="header">
-        <div class="user-chip">
-            <img id="userImg" src="" alt="👤">
-            <span id="userName"></span>
+<div id="mainSection" class="hidden">
+    <div class="sidebar-nav">
+        <div style="padding: 0 20px 30px 20px; font-weight: 800; font-size: 1.2rem; color: white;">
+            ERP <span style="color:var(--accent)">System</span>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-        <h2 style="margin: 0; font-size: 1.8em; letter-spacing: 1px;">DashBoard</h2>
-        <p style="font-size: 12px; opacity: 0.8; margin-top: 5px;">आजको प्रगति हेर्नुहोस्</p>
-    </div>
-
-    <div class="dashboard" style="display: flex; flex-wrap: wrap;">
-        <div class="stat-box">
-            <h3 id="totalIncome" style="color: var(--secondary);">Rs. 0</h3>
-            <p>कुल कमाइ</p>
-        </div>
-        <div class="stat-box" style="border-left: 1px solid #eee; border-right: 1px solid #eee;">
-            <h3 id="totalExpense" style="color: #ff7675;">Rs. 0</h3>
-            <p>खर्च (तेल+खाना+मर्मत)</p>
-        </div>
-        <div class="stat-box">
-            <h3 id="totalSaved" style="color: var(--primary);">Rs. 0</h3>
-            <p>कुल बचत</p>
+        <div class="nav-item active" onclick="showTab('dashboard', this)"><i class="fas fa-home"></i> <span class="nav-label">Dashboard</span></div>
+        <div class="nav-item" onclick="showTab('journal', this)"><i class="fas fa-file-invoice"></i> <span class="nav-label">Vouchers</span></div>
+        <div class="nav-item" onclick="showTab('accounts', this)"><i class="fas fa-address-book"></i> <span class="nav-label">Ledgers</span></div>
+        <div class="nav-item" onclick="showTab('statement', this)"><i class="fas fa-book-open"></i> <span class="nav-label">Statement</span></div>
+        <div class="nav-item" onclick="showTab('reports', this)"><i class="fas fa-chart-pie"></i> <span class="nav-label">Reports</span></div>
+        <div style="position: absolute; bottom: 20px; width: 100%;">
+            <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> <span class="nav-label">Logout</span></div>
         </div>
     </div>
 
-    <div style="margin: 0 20px 20px 20px; background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid var(--light);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 12px; font-weight: 700; color: var(--secondary);">🎯 मासिक लक्ष्य (Goal: Rs. 50,000)</span>
-            <span id="goalPercent" style="font-size: 12px; font-weight: 700; color: var(--primary);">0%</span>
+    <div class="main-content">
+        <div class="top-header">
+            <div>
+                <h2 id="pageTitle" style="margin:0; font-size: 1.1rem;">Dashboard Overview</h2>
+                <small style="color:#64748b" id="currentDateDisp"></small>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="badge badge-asset" id="userName">User</div>
+                <img id="userImg" src="" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent);">
+            </div>
         </div>
-        <div style="height: 12px; background: #eee; border-radius: 6px; overflow: hidden; position: relative;">
-            <div id="goalBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: 1s ease-out;"></div>
-        </div>
-        <p style="font-size: 10px; color: #999; margin: 8px 0 0 0; text-align: center;">यो महिनाको बचत: <span id="thisMonthSavings" style="font-weight: 700; color: var(--text);">Rs. 0</span></p>
-    </div>
 
-    <div style="display: flex; justify-content: space-around; padding: 10px; background: #f8f9fa; border-radius: 15px; margin: 0 20px 20px 20px; font-size: 11px;">
-        <div><b>औसत बचत:</b> <span id="avgSavings" style="color:var(--primary)">Rs. 0</span></div>
-        <div><b>कुल दिन:</b> <span id="recordCount">0</span></div>
-    </div>
+        <!-- Dashboard -->
+        <div id="tab-dashboard" class="tab-content">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="label">Total Liquid Cash</div>
+                    <div class="value" id="dash-cash">Rs. 0</div>
+                    <div class="trend text-success"><i class="fas fa-arrow-up"></i> 12.5% <span style="color:#94a3b8">from last month</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Accounts Receivable</div>
+                    <div class="value" id="dash-ar">Rs. 0</div>
+                    <div class="trend text-warning">Pending 14 invoices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Net Profit (MTD)</div>
+                    <div class="value text-success" id="dash-profit">Rs. 0</div>
+                    <div class="trend text-success">Safe Margin</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Total Expenses</div>
+                    <div class="value text-danger" id="dash-expense">Rs. 0</div>
+                    <div class="trend text-danger"><i class="fas fa-caret-up"></i> 4% spike</div>
+                </div>
+            </div>
 
-    <!-- ग्राफ सेक्सन -->
-    <div style="padding: 0 20px 20px 20px;">
-        <div style="background: var(--card); padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid var(--light);">
-            <p style="font-size: 11px; margin-bottom: 10px; font-weight: 700; opacity: 0.7;">📊 खर्चको बाँडफाँड (तेल vs खाजा)</p>
-            <div style="height: 10px; background: #eee; border-radius: 5px; display: flex; overflow: hidden; margin-bottom: 15px;">
-                <div id="fuelBar" style="width: 50%; background: #ea8685;"></div>
-                <div id="foodBar" style="width: 50%; background: #f8c291;"></div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 25px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Financial Performance</h3>
+                        <div class="no-print"><button class="btn btn-outline" onclick="initCharts()"><i class="fas fa-sync"></i> Refresh</button></div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart" height="120"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Recent Activity</h3></div>
+                    <div class="card-body" style="padding:0">
+                        <table id="dash-recent-tx">
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <canvas id="savingsChart" height="150"></canvas>
         </div>
-    </div>
 
-    <div class="form-area">
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
-                <label>मिति (Date)</label>
-                <input type="date" id="date">
+        <!-- Journal Voucher -->
+        <div id="tab-journal" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header">
+                    <h3>New Journal Voucher (Double Entry)</h3>
+                    <div class="badge badge-rev">Draft Mode</div>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 150px 1fr 150px; gap: 20px; margin-bottom: 20px;">
+                        <div>
+                            <label>Date</label>
+                            <input type="date" id="jou-date">
+                        </div>
+                        <div>
+                            <label>Narration / Particulars</label>
+                            <input type="text" id="jou-desc" placeholder="Being payment made for...">
+                        </div>
+                        <div>
+                            <label>Ref / Invoice No.</label>
+                            <input type="text" id="jou-ref" placeholder="JV-001">
+                        </div>
+                    </div>
+                    <div id="jou-entries-container">
+                        <div id="jou-entries"></div>
+                        <button class="btn" onclick="addJournalRow()" style="color:var(--accent); margin-top: 10px; border:none; background:none; font-weight:700;">+ Add New Row</button>
+                    </div>
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; gap: 40px; background: #f8fafc; padding: 15px 25px; border-radius: 8px;">
+                            <div><small style="color:#64748b">Total Debit</small><br><b id="total-dr" style="font-size:1.2rem;">0.00</b></div>
+                            <div><small style="color:#64748b">Total Credit</small><br><b id="total-cr" style="font-size:1.2rem;">0.00</b></div>
+                            <div id="diff-alert" class="hidden"><small style="color:var(--danger)">Mismatch</small><br><b id="total-diff" class="text-danger">0.00</b></div>
+                        </div>
+                        <button class="btn btn-primary" id="post-btn" onclick="saveTransaction()" style="padding: 12px 30px;"><i class="fas fa-save"></i> POST TRANSACTION</button>
+                    </div>
+                </div>
             </div>
-            <div class="input-group" style="flex: 1;">
-                <label>कुल कमाइ (Rs.)</label>
-                <input type="number" id="income" placeholder="उदा: १०००">
-            </div>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <div class="input-group" style="flex: 1;">
-                <label>पेट्रोल खर्च</label>
-                <input type="number" id="fuel" placeholder="२००">
-            </div>
-            <div class="input-group" style="flex: 1;">
-                <label>खाजा खर्च</label>
-                <input type="number" id="food" placeholder="१५०">
-            </div>
-            <div class="input-group" style="flex: 1;">
-                <label>मर्मत (Maint.)</label>
-                <input type="number" id="maintenance" placeholder="०">
-            </div>
-        </div>
-        <div class="input-group">
-            <label>नोट / टिप्पणी</label>
-            <input type="text" id="note" placeholder="आजको विशेष केही...">
-        </div>
-        <button class="save-btn" id="saveBtn" onclick="saveRecord()">हिसाब सुरक्षित गर्नुहोस्</button>
-    </div>
 
-    <div class="history-list">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <p style="font-weight: 700; margin: 0; color: #636e72; font-size: 14px;">📜 पछिल्लो हिसाबहरू</p>
-            <div style="display:flex; gap:5px;">
-                <button onclick="exportToCSV()" style="padding:5px 10px; font-size:10px; border-radius:8px; border:1px solid var(--primary); background:none; color:var(--primary); cursor:pointer;"><i class="fas fa-file-excel"></i></button>
-                <input type="text" id="searchInput" onkeyup="filterHistory()" placeholder="खोज..." style="width: 80px; padding: 5px 10px; font-size: 11px; border-radius: 8px; border: 1px solid #ddd;">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Transaction Log</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="searchTx" placeholder="Search..." onkeyup="filterVouchers()" style="width: 200px;">
+                        <button class="btn btn-outline" onclick="exportToExcel('transactionsTable')"><i class="fas fa-file-excel"></i></button>
+                    </div>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <table id="transactionsTable">
+                        <thead><tr><th>Date</th><th>Description</th><th>Journal Detail</th><th class="text-right">Action</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
-        <div id="historyItems"></div>
+
+        <!-- Ledgers -->
+        <div id="tab-accounts" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header"><h3>Master Ledger Creation</h3></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                        <div>
+                            <label>Account Name</label>
+                            <input type="text" id="acc-name" placeholder="e.g. Salary Expense, Nabil Bank">
+                        </div>
+                        <div>
+                            <label>Category</label>
+                            <select id="acc-type">
+                                <option value="Asset">Asset</option>
+                                <option value="Liability">Liability</option>
+                                <option value="Equity">Equity</option>
+                                <option value="Revenue">Revenue</option>
+                                <option value="Expense">Expense</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Group (e.g. Bank, Cash)</label>
+                            <input type="text" id="acc-group" placeholder="Cash/Bank/Party">
+                        </div>
+                        <div>
+                            <label>Opening Bal (Dr/Cr)</label>
+                            <input type="number" id="acc-op" placeholder="0.00">
+                        </div>
+                        <button class="btn btn-primary" onclick="createAccount()">Create Ledger</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>Chart of Accounts</h3></div>
+                <div class="card-body" style="padding:0">
+                    <table id="accountsTable">
+                        <thead><tr><th>Name</th><th>Type</th><th>Group</th><th class="text-right">Balance</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports -->
+        <div id="tab-reports" class="tab-content hidden">
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;" class="no-print">
+                <button class="btn btn-outline" onclick="renderReport('trial')">Trial Balance</button>
+                <button class="btn btn-outline" onclick="renderReport('pl')">Profit & Loss</button>
+                <button class="btn btn-outline" onclick="renderReport('bs')">Balance Sheet</button>
+                <button class="btn btn-outline" onclick="renderReport('daybook')">Day Book</button>
+                <button class="btn btn-primary" style="margin-left: auto;" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+            </div>
+            <div id="reportArea" class="card">
+                <div class="card-body" id="reportContent">
+                    <div style="text-align: center; padding: 50px; color: #94a3b8;">
+                        <i class="fas fa-file-contract" style="font-size: 40px; margin-bottom: 15px;"></i>
+                        <p>Select a report to generate financial statement.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statement -->
+        <div id="tab-statement" class="tab-content hidden">
+            <div class="card no-print">
+                <div class="card-header"><h3>Filter Statement</h3></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                        <div>
+                            <label>Select Account</label>
+                            <select id="stat-acc-select"></select>
+                        </div>
+                        <div>
+                            <label>From</label>
+                            <input type="date" id="stat-from">
+                        </div>
+                        <div>
+                            <label>To</label>
+                            <input type="date" id="stat-to">
+                        </div>
+                        <button class="btn btn-primary" onclick="generateStatement()"><i class="fas fa-sync"></i> View Statement</button>
+                    </div>
+                </div>
+            </div>
+            <div id="statementResult" class="card hidden">
+                <div class="card-header">
+                    <h3 id="stat-title">Ledger Statement</h3>
+                    <button class="btn btn-outline" onclick="exportToExcel('statementTable')"><i class="fas fa-download"></i> Download Excel</button>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <table id="statementTable">
+                        <thead><tr><th>Date</th><th>Narration</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Balance</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -221,286 +332,328 @@
         appId: "1:1047065509704:web:d15acdd34608def4ec7d7d"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
+    let currentUser = null;
+    let allAccounts = [];
+    let allTransactions = [];
+    let myChart = null;
+
     auth.onAuthStateChanged(user => {
         if (user) {
+            currentUser = user;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
-            document.getElementById('userName').innerText = user.displayName.split(' ')[0];
+            document.getElementById('userName').innerText = user.displayName;
             document.getElementById('userImg').src = user.photoURL;
-            loadHistory();
+            document.getElementById('currentDateDisp').innerText = new Date().toDateString();
+            init();
         } else {
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
         }
     });
 
-    function loginWithGoogle() {
-        if (window.location.protocol === 'file:') {
-            alert("त्रुटि: तपाईंले फाइल सिधै खोल्नुभएको छ। कृपया http://localhost:3000 मा जानुहोस्।");
-            return;
-        }
-        console.log("Login button clicked");
-        const btn = document.getElementById('loginBtn');
-        btn.innerText = "Connecting...";
+    function loginWithGoogle() { auth.signInWithPopup(provider); }
+    function logout() { if(confirm("Sign out?")) auth.signOut(); }
 
-        // Try Popup first, fallback to Redirect if environment doesn't support popups
-        auth.signInWithPopup(provider)
-            .then((result) => {
-                console.log("Login success");
-            })
-            .catch((error) => {
-                console.error("Login Error:", error);
-                if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                    auth.signInWithRedirect(provider);
-                } else {
-                    alert("लगिनमा समस्या आयो: " + error.message + "\n\nसुझाव: ब्राउजरमा http://localhost:3000 खोल्नुहोस्।");
-                    btn.innerHTML = `<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G"> Continue with Google`;
-                }
-            });
+    async function init() {
+        await fetchAccounts();
+        await fetchTransactions();
+        updateDashboard();
+        initCharts();
+        document.getElementById('jou-date').valueAsDate = new Date();
+        document.getElementById('stat-to').valueAsDate = new Date();
+        const prevMonth = new Date(); prevMonth.setMonth(prevMonth.getMonth() - 1);
+        document.getElementById('stat-from').valueAsDate = prevMonth;
+
+        document.getElementById('jou-entries').innerHTML = '';
+        addJournalRow(); addJournalRow();
     }
 
-    // Handle redirect result
-    auth.getRedirectResult().then((result) => {
-        if (result.user) console.log("Redirect login success");
-    }).catch((error) => {
-        console.error("Redirect Error:", error);
-    });
-
-    function logout() { if(confirm("Logout गर्ने हो?")) auth.signOut(); }
-
-    async function saveRecord() {
-        const dateInput = document.getElementById('date').value;
-        const income = document.getElementById('income').value;
-        const fuel = document.getElementById('fuel').value;
-        const food = document.getElementById('food').value || 0;
-        const maintenance = document.getElementById('maintenance').value || 0;
-        const note = document.getElementById('note').value;
-        const btn = document.getElementById('saveBtn');
-
-        if(!income || !fuel) return alert("कृपया कमाइ र पेट्रोल खर्च भर्नुहोस्!");
-
-        btn.innerText = "सेभ हुँदैछ...";
-        btn.disabled = true;
-
-        const data = {
-            userId: auth.currentUser.uid,
-            income: Number(income),
-            fuel: Number(fuel),
-            food: Number(food),
-            maintenance: Number(maintenance),
-            note: note,
-            date: dateInput ? new Date(dateInput).toLocaleDateString('ne-NP') : undefined
-        };
-
-        try {
-            const res = await fetch('/api/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (res.ok) {
-                alert("हिसाब सुरक्षित भयो! ✅");
-                document.querySelectorAll('input').forEach(i => i.value = '');
-                loadHistory();
-            } else {
-                alert("डाटा सेभ भएन! सर्भर चेक गर्नुहोस्।");
-            }
-        } catch (e) {
-            alert("सर्भर कनेक्सन एरर!");
-        } finally {
-            btn.innerText = "हिसाब सुरक्षित गर्नुहोस्";
-            btn.disabled = false;
-        }
+    function showTab(tabId, el) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        if(el) el.classList.add('active');
+        document.getElementById('pageTitle').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1) + " Section";
     }
 
-    async function deleteRecord(id) {
-        if(!confirm("के तपाइँ यो रेकर्ड हटाउन चाहनुहुन्छ?")) return;
-        try {
-            const res = await fetch(`/api/delete/${id}`, { method: 'DELETE' });
-            if(res.ok) {
-                loadHistory();
-            }
-        } catch (e) { alert("Error deleting record"); }
+    async function fetchAccounts() {
+        const res = await fetch(`/api/accounts?userId=${currentUser.uid}`);
+        allAccounts = await res.json();
+        const tbody = document.querySelector('#accountsTable tbody');
+        const select = document.getElementById('stat-acc-select');
+
+        tbody.innerHTML = allAccounts.map(acc => `
+            <tr>
+                <td style="font-weight:600">${acc.name}</td>
+                <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
+                <td>${acc.group || '-'}</td>
+                <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">Rs. ${Math.abs(acc.balance).toLocaleString()} ${getBalanceSide(acc)}</td>
+            </tr>
+        `).join('');
+
+        select.innerHTML = '<option value="">-- Choose Account --</option>' +
+            allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
     }
 
-    let allData = []; // ग्लोबल डाटा राख्न
-    let myChart = null;
-
-    async function loadHistory() {
-        try {
-            const res = await fetch(`/api/history?userId=${auth.currentUser.uid}`);
-            allData = await res.json();
-            renderHistory(allData);
-            updateChart(allData);
-        } catch (e) { console.log(e); }
+    function getBalanceSide(acc) {
+        if (acc.balance === 0) return '';
+        const isDr = ['Asset', 'Expense'].includes(acc.type);
+        return acc.balance >= 0 ? (isDr ? 'Dr' : 'Cr') : (isDr ? 'Cr' : 'Dr');
     }
 
-    function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        const icon = document.querySelector('.theme-toggle i');
-        if(document.body.classList.contains('dark-mode')) {
-            icon.classList.replace('fa-moon', 'fa-sun');
+    async function createAccount() {
+        const name = document.getElementById('acc-name').value;
+        const type = document.getElementById('acc-type').value;
+        const group = document.getElementById('acc-group').value;
+        const opening = Number(document.getElementById('acc-op').value || 0);
+        if (!name) return alert("Account name is required");
+
+        await fetch('/api/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.uid, name, type, group, openingBalance: opening, balance: opening })
+        });
+        document.getElementById('acc-name').value = '';
+        document.getElementById('acc-op').value = '';
+        fetchAccounts();
+    }
+
+    function addJournalRow() {
+        const container = document.getElementById('jou-entries');
+        const div = document.createElement('div');
+        div.style.display = 'grid';
+        div.style.gridTemplateColumns = '2fr 1fr 1fr 40px';
+        div.style.gap = '10px';
+        div.style.marginBottom = '8px';
+        div.innerHTML = `
+            <select class="row-acc">
+                <option value="">-- Ledger --</option>
+                ${allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('')}
+            </select>
+            <input type="number" class="row-dr" placeholder="Debit" oninput="syncEntry(this, 'dr')">
+            <input type="number" class="row-cr" placeholder="Credit" oninput="syncEntry(this, 'cr')">
+            <button onclick="this.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
+        `;
+        container.appendChild(div);
+    }
+
+    function syncEntry(el, type) {
+        const row = el.parentElement;
+        if (type === 'dr' && el.value > 0) row.querySelector('.row-cr').value = '';
+        if (type === 'cr' && el.value > 0) row.querySelector('.row-dr').value = '';
+        calcJournalTotals();
+    }
+
+    function calcJournalTotals() {
+        let dr = 0, cr = 0;
+        document.querySelectorAll('.row-dr').forEach(i => dr += Number(i.value || 0));
+        document.querySelectorAll('.row-cr').forEach(i => cr += Number(i.value || 0));
+        document.getElementById('total-dr').innerText = dr.toFixed(2);
+        document.getElementById('total-cr').innerText = cr.toFixed(2);
+        const diff = Math.abs(dr - cr);
+        const alertBox = document.getElementById('diff-alert');
+        if (diff > 0.01) {
+            alertBox.classList.remove('hidden');
+            document.getElementById('total-diff').innerText = diff.toFixed(2);
+            document.getElementById('post-btn').disabled = true;
+            document.getElementById('post-btn').style.opacity = 0.5;
         } else {
-            icon.classList.replace('fa-sun', 'fa-moon');
+            alertBox.classList.add('hidden');
+            document.getElementById('post-btn').disabled = false;
+            document.getElementById('post-btn').style.opacity = 1;
         }
     }
 
-    function renderHistory(data) {
-        const list = document.getElementById('historyItems');
-        list.innerHTML = '';
-
-        let tIncome = 0;
-        let tFuel = 0;
-        let tFood = 0;
-        let tMaintenance = 0;
-        let tSavings = 0;
-        let monthSavings = 0;
-        const uniqueDays = new Set();
-        const currentMonth = new Date().getMonth() + 1; // 1-12
-        const currentYear = new Date().getFullYear();
-
-        data.forEach(item => {
-            const maintenanceCost = Number(item.maintenance || 0);
-            const expense = Number(item.fuel) + Number(item.food || 0) + maintenanceCost;
-            const net = item.income - expense;
-            const savingsPercent = item.income > 0 ? Math.round((net / item.income) * 100) : 0;
-
-            tIncome += item.income;
-            tFuel += item.fuel;
-            tFood += (item.food || 0);
-            tMaintenance += maintenanceCost;
-            tSavings += net;
-            if (item.date) {
-                uniqueDays.add(item.date);
-                // Check if the record belongs to the current month
-                const [d, m, y] = item.date.split('/').map(Number);
-                if (m === currentMonth && y === currentYear) {
-                    monthSavings += net;
-                }
-            }
-
-            const color = savingsPercent > 60 ? '#00b894' : (savingsPercent < 30 ? '#ff7675' : '#0984e3');
-
-            list.innerHTML += `
-                <div class="history-item" style="border-left: 8px solid ${color}; transform: scale(1); transition: 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                    <div class="history-info" style="flex: 1;">
-                        <p class="date" style="font-size:11px; color:#999; margin:0; font-weight:600;">📅 ${item.date || 'आज'}</p>
-                        <p style="margin:5px 0 0 0; font-size:14px; font-weight:700;">💰 Rs. ${item.income.toLocaleString()}</p>
-                        <div style="display:flex; gap:10px; margin-top:3px; flex-wrap: wrap;">
-                            <span style="font-size:10px; color:#ea8685;"><i class="fas fa-gas-pump"></i> ${item.fuel}</span>
-                            <span style="font-size:10px; color:#f8c291;"><i class="fas fa-hamburger"></i> ${item.food || 0}</span>
-                            <span style="font-size:10px; color:#74b9ff;"><i class="fas fa-tools"></i> ${maintenanceCost}</span>
-                        </div>
-                        ${item.note ? `<p style="margin:8px 0 0 0; font-size:11px; color:#777; background:var(--light); padding:5px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">📝 ${item.note}</p>` : ''}
-                    </div>
-                    <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; min-width:80px;">
-                        <span onclick="deleteRecord('${item._id}')" style="cursor:pointer; font-size:12px; background:#fff5f5; padding:5px; border-radius:50%; margin-bottom:5px; color:#ff7675;"><i class="fas fa-trash"></i></span>
-                        <div>
-                            <p style="color:${color}; font-weight:800; font-size:1.1em; margin:0;">Rs. ${net.toLocaleString()}</p>
-                            <span style="font-size:9px; background:${color}22; color:${color}; padding:2px 6px; border-radius:10px; font-weight:700;">${savingsPercent}% बचत</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+    async function saveTransaction() {
+        const date = document.getElementById('jou-date').value;
+        const description = document.getElementById('jou-desc').value;
+        const entries = [];
+        document.querySelectorAll('#jou-entries > div').forEach(row => {
+            const acc = row.querySelector('.row-acc').value;
+            const dr = Number(row.querySelector('.row-dr').value || 0);
+            const cr = Number(row.querySelector('.row-cr').value || 0);
+            if (acc && (dr > 0 || cr > 0)) entries.push({ account: acc, debit: dr, credit: cr });
         });
 
-        const totalExpense = tFuel + tFood + tMaintenance;
+        if (entries.length < 2) return alert("Double entry required");
 
-        // Progress Bar Logic
-        const monthlyGoal = 50000;
-        const progress = Math.min((monthSavings / monthlyGoal) * 100, 100);
-        document.getElementById('goalBar').style.width = progress + "%";
-        document.getElementById('goalPercent').innerText = Math.round(progress) + "%";
-        document.getElementById('thisMonthSavings').innerText = "Rs. " + monthSavings.toLocaleString();
+        const res = await fetch('/api/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
+        });
 
-        const fuelWidth = totalExpense > 0 ? (tFuel / totalExpense) * 100 : 50;
-        document.getElementById('fuelBar').style.width = fuelWidth + "%";
-        document.getElementById('foodBar').style.width = (100 - fuelWidth) + "%";
-
-        document.getElementById('totalIncome').innerText = "Rs. " + tIncome.toLocaleString();
-        document.getElementById('totalExpense').innerText = "Rs. " + totalExpense.toLocaleString();
-        document.getElementById('totalSaved').innerText = "Rs. " + tSavings.toLocaleString();
-        document.getElementById('recordCount').innerText = uniqueDays.size;
-        document.getElementById('avgSavings').innerText = "Rs. " + (uniqueDays.size > 0 ? Math.round(tSavings / uniqueDays.size).toLocaleString() : 0);
+        if (res.ok) {
+            alert("Voucher Posted! ✅");
+            init();
+            document.getElementById('jou-desc').value = '';
+        } else {
+            const err = await res.json();
+            alert("Error: " + err.error);
+        }
     }
 
-    function updateChart(data) {
-        const grouped = {};
-        // डेटालाई मिति अनुसार जोड्ने
-        [...data].forEach(item => {
-            const d = item.date;
-            const net = item.income - (Number(item.fuel) + Number(item.food || 0) + Number(item.maintenance || 0));
-            grouped[d] = (grouped[d] || 0) + net;
+    async function fetchTransactions() {
+        const res = await fetch(`/api/transactions?userId=${currentUser.uid}`);
+        allTransactions = await res.json();
+        const tbody = document.querySelector('#transactionsTable tbody');
+        const dashRecent = document.querySelector('#dash-recent-tx tbody');
+
+        tbody.innerHTML = allTransactions.map(tx => `
+            <tr>
+                <td>${tx.date}</td>
+                <td><b style="color:var(--primary)">${tx.description}</b></td>
+                <td style="font-size: 11px; color: #64748b;">
+                    ${tx.entries.map(e => `<div>${e.account?.name || '??'}: ${e.debit > 0 ? 'Dr '+e.debit : 'Cr '+e.credit}</div>`).join('')}
+                </td>
+                <td class="text-right"><button class="btn btn-outline" style="color:var(--danger)" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button></td>
+            </tr>
+        `).join('');
+
+        dashRecent.innerHTML = allTransactions.slice(0, 8).map(tx => `
+            <tr>
+                <td style="border:none">
+                    <div style="font-weight:600">${tx.description}</div>
+                    <small style="color:#94a3b8">${tx.date}</small>
+                </td>
+                <td class="text-right" style="border:none">
+                    <div style="font-weight:700">Rs. ${tx.entries[0]?.debit || tx.entries[0]?.credit}</div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm("Delete transaction? This will automatically reverse ledger balances.")) return;
+        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        init();
+    }
+
+    function updateDashboard() {
+        let cash = 0, ar = 0, revenue = 0, expense = 0;
+        allAccounts.forEach(acc => {
+            const grp = acc.group?.toLowerCase() || '';
+            if (grp.includes('cash') || grp.includes('bank')) cash += acc.balance;
+            if (grp.includes('party') || acc.type === 'Asset') {
+                if (acc.type === 'Asset' && !grp.includes('cash')) ar += acc.balance;
+            }
+            if (acc.type === 'Revenue') revenue += acc.balance;
+            if (acc.type === 'Expense') expense += acc.balance;
         });
+        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
+        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
+        document.getElementById('dash-profit').innerText = "Rs. " + (revenue - expense).toLocaleString();
+        document.getElementById('dash-expense').innerText = "Rs. " + expense.toLocaleString();
+    }
 
-        const sortedDates = Object.keys(grouped).sort((a, b) => {
-            const [d1, m1, y1] = a.split('/').map(Number);
-            const [d2, m2, y2] = b.split('/').map(Number);
-            return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+    function generateStatement() {
+        const accId = document.getElementById('stat-acc-select').value;
+        const from = document.getElementById('stat-from').value;
+        const to = document.getElementById('stat-to').value;
+        if (!accId) return;
+
+        const acc = allAccounts.find(a => a._id === accId);
+        document.getElementById('stat-title').innerText = `Statement: ${acc.name} (${from} to ${to})`;
+        document.getElementById('statementResult').classList.remove('hidden');
+
+        const tbody = document.querySelector('#statementTable tbody');
+        let runningBal = acc.openingBalance || 0;
+        let rowsHtml = `<tr><td colspan="2"><b>Opening Balance</b></td><td></td><td></td><td class="text-right"><b>${Math.abs(runningBal).toLocaleString()} ${runningBal >=0 ? (['Asset','Expense'].includes(acc.type)?'Dr':'Cr') : (['Asset','Expense'].includes(acc.type)?'Cr':'Dr')}</b></td></tr>`;
+
+        const filteredTx = [];
+        allTransactions.forEach(tx => {
+            tx.entries.forEach(e => {
+                if (e.account && e.account._id === accId) filteredTx.push({ date: tx.date, desc: tx.description, dr: e.debit, cr: e.credit, ts: new Date(tx.createdAt) });
+            });
         });
+        filteredTx.sort((a, b) => new Date(a.date) - new Date(b.date) || a.ts - b.ts);
 
-        const last7Dates = sortedDates.slice(-7);
-        const labels = last7Dates.map(d => d.split('/')[0] + '/' + d.split('/')[1]);
-        const savingsData = last7Dates.map(d => grouped[d]);
+        const isDrInc = ['Asset', 'Expense'].includes(acc.type);
+        filteredTx.forEach(e => {
+            runningBal += isDrInc ? (e.dr - e.cr) : (e.cr - e.dr);
+            rowsHtml += `<tr><td>${e.date}</td><td>${e.desc}</td><td class="text-right">${e.dr || '-'}</td><td class="text-right">${e.cr || '-'}</td><td class="text-right">Rs. ${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? (isDrInc ? 'Dr':'Cr') : (isDrInc ? 'Cr':'Dr')}</td></tr>`;
+        });
+        tbody.innerHTML = rowsHtml;
+    }
 
-        const ctx = document.getElementById('savingsChart').getContext('2d');
+    function renderReport(type) {
+        const div = document.getElementById('reportContent');
+        let html = "";
+        if (type === 'trial') {
+            html = `<h3>Trial Balance Summary</h3><table style="margin-top:20px"><thead><tr><th>Ledger Account</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead><tbody>`;
+            let td=0, tc=0;
+            allAccounts.forEach(a => {
+                if(a.balance === 0) return;
+                const isDr = ['Asset','Expense'].includes(a.type);
+                if((isDr && a.balance > 0) || (!isDr && a.balance < 0)) { html += `<tr><td>${a.name}</td><td class="text-right">${Math.abs(a.balance).toLocaleString()}</td><td></td></tr>`; td += Math.abs(a.balance); }
+                else { html += `<tr><td>${a.name}</td><td></td><td class="text-right">${Math.abs(a.balance).toLocaleString()}</td></tr>`; tc += Math.abs(a.balance); }
+            });
+            html += `<tr style="font-weight:bold; background:#f8fafc"><td>TOTAL</td><td class="text-right">${td.toLocaleString()}</td><td class="text-right">${tc.toLocaleString()}</td></tr></tbody></table>`;
+        } else if (type === 'pl') {
+            const rev = allAccounts.filter(a => a.type === 'Revenue');
+            const exp = allAccounts.filter(a => a.type === 'Expense');
+            const tr = rev.reduce((s,a) => s+a.balance, 0);
+            const te = exp.reduce((s,a) => s+a.balance, 0);
+            html = `<h3>Profit & Loss Account</h3><table style="margin-top:20px">
+                <tr style="background:#f1f5f9"><th>Incomes / Revenue</th><th class="text-right">Amount</th></tr>
+                ${rev.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}
+                <tr style="font-weight:700"><td>Total Income</td><td class="text-right">${tr.toLocaleString()}</td></tr>
+                <tr style="background:#f1f5f9"><th>Operating Expenses</th><th class="text-right">Amount</th></tr>
+                ${exp.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}
+                <tr style="font-weight:700"><td>Total Expenses</td><td class="text-right">${te.toLocaleString()}</td></tr>
+                <tr style="background:var(--primary); color:white"><td>NET PROFIT / LOSS</td><td class="text-right">${(tr-te).toLocaleString()}</td></tr>
+            </table>`;
+        } else if (type === 'bs') {
+            const assets = allAccounts.filter(a => a.type === 'Asset');
+            const liabs = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity');
+            const netProfit = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0) - allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
+            html = `<h3>Balance Sheet</h3><div style="display:flex; gap:30px; margin-top:20px;">
+                <div style="flex:1"><h4>Assets</h4><table>${assets.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr style="font-weight:700; background:#eee"><td>Total Assets</td><td class="text-right">${assets.reduce((s,a)=>s+a.balance,0).toLocaleString()}</td></tr></table></div>
+                <div style="flex:1"><h4>Liabilities & Equity</h4><table>${liabs.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr><td>Current Profit</td><td class="text-right">${netProfit.toLocaleString()}</td></tr><tr style="font-weight:700; background:#eee"><td>Total Liab & Equity</td><td class="text-right">${(liabs.reduce((s,a)=>s+a.balance,0)+netProfit).toLocaleString()}</td></tr></table></div>
+            </div>`;
+        }
+        div.innerHTML = html;
+    }
+
+    function initCharts() {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
         if (myChart) myChart.destroy();
+
+        const rev = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0);
+        const exp = allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
+
         myChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: labels,
+                labels: ['Revenue', 'Expenses', 'Net Profit'],
                 datasets: [{
-                    label: 'दैनिक बचत',
-                    data: savingsData,
-                    borderColor: '#00b894',
-                    backgroundColor: 'rgba(0, 184, 148, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
+                    label: 'Financial Performance',
+                    data: [rev, exp, rev - exp],
+                    backgroundColor: ['#2563eb', '#dc2626', '#059669'],
+                    borderRadius: 8
                 }]
             },
             options: {
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                scales: { y: { beginAtZero: true, grid: { display: false } } }
             }
         });
     }
 
-    function exportToCSV() {
-        let csv = "मिति,कमाइ,तेल,खाजा,बचत,नोट\n";
-        allData.forEach(item => {
-            const net = item.income - (item.fuel + (item.food || 0));
-            csv += `${item.date},${item.income},${item.fuel},${item.food || 0},${net},${item.note || ''}\n`;
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('href', url);
-        a.setAttribute('download', `indrive_report_${new Date().toLocaleDateString()}.csv`);
-        a.click();
+    function exportToExcel(tableId) {
+        const table = document.getElementById(tableId);
+        const wb = XLSX.utils.table_to_book(table);
+        XLSX.writeFile(wb, `${tableId}_export.xlsx`);
     }
 
-    function filterHistory() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allData.filter(item =>
-            (item.note && item.note.toLowerCase().includes(query)) ||
-            (item.date && item.date.includes(query))
-        );
-        renderHistory(filtered);
-    }
-
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('Service Worker registered!'))
-                .catch(err => console.log('Service Worker registration failed: ', err));
-        });
+    function filterVouchers() {
+        const q = document.getElementById('searchTx').value.toLowerCase();
+        document.querySelectorAll('#transactionsTable tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
     }
 </script>
 </body>
