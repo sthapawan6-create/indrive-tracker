@@ -209,6 +209,14 @@
 
         <!-- Journal Voucher -->
         <div id="tab-journal" class="tab-content hidden">
+            <div class="card no-print" style="margin-bottom: 15px;">
+                <div class="card-body" style="padding: 10px; display: flex; gap: 10px; background: #f8fafc;">
+                    <span style="font-weight: 700; align-self: center; margin-right: 10px; color: #64748b;">Quick Entry:</span>
+                    <button class="btn btn-outline" style="background:#fee2e2; border-color:#fecaca" onclick="quickEntry('payment')"><i class="fas fa-arrow-up"></i> Payment (Cash/Bank Out)</button>
+                    <button class="btn btn-outline" style="background:#dcfce7; border-color:#bbf7d0" onclick="quickEntry('receipt')"><i class="fas fa-arrow-down"></i> Receipt (Cash/Bank In)</button>
+                    <button class="btn btn-outline" style="background:#fef9c3; border-color:#fef08a" onclick="quickEntry('contra')"><i class="fas fa-exchange-alt"></i> Contra (Bank/Cash)</button>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-header">
                     <h3>Journal Voucher / Entry</h3>
@@ -366,6 +374,7 @@
                 <button class="btn btn-outline" onclick="renderReport('bs')">Balance Sheet</button>
                 <button class="btn btn-outline" onclick="renderReport('daybook')">Day Book</button>
                 <button class="btn btn-primary" style="margin-left: auto;" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+                <button class="btn btn-outline" style="background:#16a34a; color:white; border:none;" onclick="exportToExcel('accountsTable')"><i class="fas fa-file-excel"></i> Export All Ledgers</button>
             </div>
             <div id="reportArea" class="card">
                 <div class="card-body" id="reportContent">
@@ -466,6 +475,11 @@
         document.getElementById('stat-to').valueAsDate = new Date();
         const prevMonth = new Date(); prevMonth.setMonth(prevMonth.getMonth() - 1);
         document.getElementById('stat-from').valueAsDate = prevMonth;
+
+        // Auto-refresh Dashboard every 5 minutes
+        setInterval(() => {
+            if (currentUser) init();
+        }, 300000);
 
         // Auto-select Type based on Group (Add listener only once)
         const groupEl = document.getElementById('acc-group');
@@ -646,7 +660,12 @@
                     <span class="row-grp-badge" style="font-size:10px; font-weight:700; color:#64748b; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap; display:none;"></span>
                 </div>
             </td>
-            <td><input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+            <td>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;">
+                    <button class="btn btn-outline no-print" onclick="applyVat(this)" title="Add 13% VAT" style="padding:2px 5px; font-size:10px; background:#f1f5f9; border:1px solid #cbd5e1;">VAT</button>
+                </div>
+            </td>
             <td><input type="number" class="row-cr text-right" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
             <td class="text-right">
                 <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size:18px;"><i class="fas fa-times"></i></button>
@@ -907,6 +926,7 @@
                     </div>
                 </td>
                 <td class="text-right">
+                    <button class="btn btn-outline" style="color:var(--primary); border:none; margin-right:5px;" onclick="printVoucher('${tx._id}')" title="Print Voucher"><i class="fas fa-print"></i></button>
                     <button class="btn btn-outline" style="color:var(--accent); border:none; margin-right:5px;" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
                     <button class="btn btn-outline" style="color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
                 </td>
@@ -937,9 +957,51 @@
         });
     }
 
-    function filterVouchers() {
-        const q = document.getElementById('searchTx').value.toLowerCase();
-        document.querySelectorAll('#transactionsTable tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
+    function quickEntry(type) {
+        resetVoucher();
+        const tbody = document.getElementById('jou-entries');
+        tbody.innerHTML = ''; // Clear defaults
+
+        if (type === 'payment') {
+            document.getElementById('jou-desc').value = "Cash/Bank Payment to ";
+            addJournalRow(); // Dr Row
+            addJournalRow(); // Cr Row
+            const rows = tbody.querySelectorAll('tr');
+            rows[0].querySelector('.row-type').value = 'dr';
+            rows[1].querySelector('.row-type').value = 'cr';
+            updateRowColor(rows[0].querySelector('.row-type'));
+            updateRowColor(rows[1].querySelector('.row-type'));
+        } else if (type === 'receipt') {
+            document.getElementById('jou-desc').value = "Cash/Bank Receipt from ";
+            addJournalRow(); // Dr Row
+            addJournalRow(); // Cr Row
+            const rows = tbody.querySelectorAll('tr');
+            rows[0].querySelector('.row-type').value = 'dr';
+            rows[1].querySelector('.row-type').value = 'cr';
+            updateRowColor(rows[0].querySelector('.row-type'));
+            updateRowColor(rows[1].querySelector('.row-type'));
+        } else if (type === 'contra') {
+            document.getElementById('jou-desc').value = "Cash/Bank Transfer";
+            addJournalRow();
+            addJournalRow();
+        }
+    }
+
+    function applyVat(el) {
+        const row = el.parentElement.parentElement;
+        const drInput = row.querySelector('.row-dr');
+        const crInput = row.querySelector('.row-cr');
+        const val = Number(drInput.value || crInput.value || 0);
+        if (val === 0) return alert("Enter amount first");
+
+        const vat = val * 0.13;
+        const total = val + vat;
+
+        if (confirm(`Add 13% VAT (Rs. ${vat.toFixed(2)})?\nTotal: Rs. ${total.toFixed(2)}`)) {
+            if (drInput.value) drInput.value = total.toFixed(2);
+            else crInput.value = total.toFixed(2);
+            calcJournalTotals();
+        }
     }
 
     async function deleteTransaction(id) {
@@ -978,7 +1040,12 @@
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
         document.getElementById('dash-networth').innerText = "Rs. " + (cash + ar - ap).toLocaleString();
 
-        initCharts(revenue, expense, expenseData);
+        // Calculate Accounting Health
+        const totalRevenue = allAccounts.filter(a => ['Revenue', 'Income', 'Sales'].some(t => a.type.includes(t))).reduce((s,a) => s+a.balance, 0);
+        const totalExpense = allAccounts.filter(a => ['Expense', 'Purchase'].some(t => a.type.includes(t))).reduce((s,a) => s+a.balance, 0);
+        const netProfit = totalRevenue - totalExpense;
+
+        initCharts(totalRevenue, totalExpense, expenseData);
     }
 
     function initCharts(rev, exp, expenseData) {
@@ -1222,13 +1289,57 @@
 
     function exportToExcel(tableId) {
         const table = document.getElementById(tableId);
+        if (!table) return alert("Table not found. Please open the tab first.");
         const wb = XLSX.utils.table_to_book(table);
-        XLSX.writeFile(wb, `${tableId}_export.xlsx`);
+        const fileName = `${tableId}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     }
 
-    function filterVouchers() {
-        const q = document.getElementById('searchTx').value.toLowerCase();
-        document.querySelectorAll('#transactionsTable tbody tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
+    function quickEntry(type) {
+        resetVoucher();
+        const tbody = document.getElementById('jou-entries');
+        tbody.innerHTML = ''; // Clear defaults
+
+        if (type === 'payment') {
+            document.getElementById('jou-desc').value = "Cash/Bank Payment to ";
+            addJournalRow(); // Dr Row
+            addJournalRow(); // Cr Row
+            const rows = tbody.querySelectorAll('tr');
+            rows[0].querySelector('.row-type').value = 'dr';
+            rows[1].querySelector('.row-type').value = 'cr';
+            updateRowColor(rows[0].querySelector('.row-type'));
+            updateRowColor(rows[1].querySelector('.row-type'));
+        } else if (type === 'receipt') {
+            document.getElementById('jou-desc').value = "Cash/Bank Receipt from ";
+            addJournalRow(); // Dr Row
+            addJournalRow(); // Cr Row
+            const rows = tbody.querySelectorAll('tr');
+            rows[0].querySelector('.row-type').value = 'dr';
+            rows[1].querySelector('.row-type').value = 'cr';
+            updateRowColor(rows[0].querySelector('.row-type'));
+            updateRowColor(rows[1].querySelector('.row-type'));
+        } else if (type === 'contra') {
+            document.getElementById('jou-desc').value = "Cash/Bank Transfer";
+            addJournalRow();
+            addJournalRow();
+        }
+    }
+
+    function applyVat(el) {
+        const row = el.parentElement.parentElement;
+        const drInput = row.querySelector('.row-dr');
+        const crInput = row.querySelector('.row-cr');
+        const val = Number(drInput.value || crInput.value || 0);
+        if (val === 0) return alert("Enter amount first");
+
+        const vat = val * 0.13;
+        const total = val + vat;
+
+        if (confirm(`Add 13% VAT (Rs. ${vat.toFixed(2)})?\nTotal: Rs. ${total.toFixed(2)}`)) {
+            if (drInput.value) drInput.value = total.toFixed(2);
+            else crInput.value = total.toFixed(2);
+            calcJournalTotals();
+        }
     }
 </script>
 </body>
