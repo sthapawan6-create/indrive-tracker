@@ -467,6 +467,27 @@
         const prevMonth = new Date(); prevMonth.setMonth(prevMonth.getMonth() - 1);
         document.getElementById('stat-from').valueAsDate = prevMonth;
 
+        // Auto-select Type based on Group (Add listener only once)
+        const groupEl = document.getElementById('acc-group');
+        if (groupEl && !groupEl.getAttribute('data-listener')) {
+            groupEl.addEventListener('change', function() {
+                const group = this.value;
+                const typeSelect = document.getElementById('acc-type');
+                if (['Bank Accounts', 'Cash-in-hand', 'Sundry Debtors'].includes(group)) {
+                    typeSelect.value = 'Asset';
+                } else if (group === 'Sundry Creditors') {
+                    typeSelect.value = 'Liability';
+                } else if (group === 'Capital Account') {
+                    typeSelect.value = 'Equity';
+                } else if (group === 'Sales Accounts') {
+                    typeSelect.value = 'Revenue';
+                } else if (group === 'Purchase Accounts' || group.includes('Expenses')) {
+                    typeSelect.value = 'Expense';
+                }
+            });
+            groupEl.setAttribute('data-listener', 'true');
+        }
+
         document.getElementById('jou-entries').innerHTML = '';
         addJournalRow(); addJournalRow();
     }
@@ -675,14 +696,20 @@
     }
 
     async function quickCreateAccount(name, inputEl) {
+        const type = prompt(`Enter category for "${name}" (Asset, Liability, Equity, Revenue, Expense):`, "Asset");
+        if (!type) {
+            inputEl.value = '';
+            return;
+        }
+
         const res = await fetch('/api/accounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: currentUser.uid,
                 name: name,
-                type: 'Expense',
-                group: 'Indirect Expenses',
+                type: type,
+                group: type === 'Asset' ? 'Bank Accounts' : (type === 'Liability' ? 'Sundry Creditors' : 'General'),
                 openingBalance: 0,
                 balance: 0
             })
@@ -1154,14 +1181,14 @@
                             </table>
                         </div>
                     </div>
-                    <div style="flex:1; min-width:300px;">
+            <div style="flex:1; min-width:300px;">
                         <div style="background:var(--primary); color:white; padding:12px; font-weight:700; text-align:center; letter-spacing:1px;">LIABILITIES & EQUITY</div>
                         <div style="padding:15px;">
                             <table style="border:none">
                                 <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-bottom:5px; text-decoration:underline;">Liabilities</td></tr>
-                                ${liabilities.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name}</td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
+                                ${liabilities.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name} <small style="color:#94a3b8">(${a.type})</small></td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
                                 <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-top:15px; padding-bottom:5px; text-decoration:underline;">Equity & Profit</td></tr>
-                                ${equity.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name}</td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
+                                ${equity.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name} <small style="color:#94a3b8">(${a.type})</small></td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
                                 <tr><td style="border:none; padding:5px 0 5px 15px;">Net Profit / Loss (MTD)</td><td class="text-right" style="border:none; font-weight:600; color:${netProfit>=0?'var(--success)':'var(--danger)'}">${netProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
                                 <tr style="border-top:2px solid var(--primary); font-weight:800; color:var(--primary);">
                                     <td style="border:none; padding-top:15px;">TOTAL LIAB. & EQUITY</td>
