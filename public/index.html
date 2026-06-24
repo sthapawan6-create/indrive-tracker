@@ -523,8 +523,16 @@
         select.innerHTML = '<option value="">-- Choose Account --</option>' +
             allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
 
-        // Update datalist for typing
-        datalist.innerHTML = allAccounts.map(a => `<option value="${a.name}" data-id="${a._id}">`).join('');
+        // Update datalist with Category Prefixes for easy search
+        datalist.innerHTML = allAccounts.map(a => {
+            let prefix = a.group || a.type;
+            if (prefix.includes('Bank')) prefix = 'Bank';
+            else if (prefix.includes('Debtors')) prefix = 'Customer';
+            else if (prefix.includes('Creditors')) prefix = 'Supplier';
+            else if (prefix.includes('Cash')) prefix = 'Cash';
+
+            return `<option value="${prefix}: ${a.name}" data-id="${a._id}" data-name="${a.name}" data-group="${prefix}">`;
+        }).join('');
     }
 
     let editingAccId = null;
@@ -606,12 +614,15 @@
                 </select>
             </td>
             <td>
-                <div style="position:relative">
-                    <input type="text" list="ledgerOptions" class="row-acc-input" placeholder="Type account name..."
-                        onchange="validateAccount(this)"
-                        onkeydown="if(event.key==='Enter') focusAmount(this)"
-                        style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
-                    <input type="hidden" class="row-acc-id">
+                <div style="position:relative; display:flex; align-items:center; gap:8px;">
+                    <div style="flex:1; position:relative;">
+                        <input type="text" list="ledgerOptions" class="row-acc-input" placeholder="Search (Bank, Party, etc...)"
+                            onchange="validateAccount(this)"
+                            onkeydown="if(event.key==='Enter') focusAmount(this)"
+                            style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
+                        <input type="hidden" class="row-acc-id">
+                    </div>
+                    <span class="row-grp-badge" style="font-size:10px; font-weight:700; color:#64748b; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap; display:none;"></span>
                 </div>
             </td>
             <td><input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
@@ -626,31 +637,39 @@
 
     function validateAccount(el) {
         const val = el.value;
-        const opts = document.getElementById('ledgerOptions').childNodes;
+        const opts = document.getElementById('ledgerOptions').options;
         let found = false;
         let id = "";
+        let cleanName = "";
+        let group = "";
+
         for (let i = 0; i < opts.length; i++) {
             if (opts[i].value === val) {
                 found = true;
                 id = opts[i].getAttribute('data-id');
+                cleanName = opts[i].getAttribute('data-name');
+                group = opts[i].getAttribute('data-group');
                 break;
             }
         }
 
-        const row = el.parentElement.parentElement;
+        const row = el.closest('tr');
         const idInput = row.querySelector('.row-acc-id');
+        const grpBadge = row.querySelector('.row-grp-badge');
 
         if (found) {
             idInput.value = id;
-            el.style.color = "var(--primary)";
+            el.value = cleanName; // Show clean name after selection
+            grpBadge.innerText = group;
+            grpBadge.style.display = 'inline-block';
             el.style.borderColor = "var(--border)";
         } else if (val) {
-            // If not found, show option to create
-            if(confirm(`"${val}" not found. Create new Expense account?`)) {
+            if(confirm(`"${val}" not found. Create new account?`)) {
                 quickCreateAccount(val, el);
             } else {
                 el.value = '';
                 idInput.value = '';
+                grpBadge.style.display = 'none';
             }
         }
     }
