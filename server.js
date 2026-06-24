@@ -195,5 +195,29 @@ app.delete('/api/accounts/:id', async (req, res) => {
     }
 });
 
+// Delete Transaction
+app.delete('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id);
+        if (!tx) return res.status(404).json({ error: "Transaction not found" });
+
+        // Reverse balances
+        for (const entry of tx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        await Transaction.findByIdAndDelete(req.params.id);
+        res.json({ message: "Transaction deleted and balances reversed" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 सर्भर यहाँ चलिरहेको छ: http://localhost:${PORT}`));

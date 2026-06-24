@@ -263,7 +263,8 @@
                         </div>
                     </div>
 
-                    <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; text-align: right;">
+                    <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="cancel-edit-btn" class="btn btn-outline hidden" onclick="resetVoucher(); editingTxId=null; this.classList.add('hidden');">Cancel Edit</button>
                         <button class="btn btn-primary" id="post-btn" onclick="saveTransaction()" style="padding: 12px 40px; font-size: 14px; letter-spacing: 0.5px;">
                             <i class="fas fa-check-circle"></i> POST VOUCHER
                         </button>
@@ -336,7 +337,7 @@
                             <label>Address / Contact Details</label>
                             <input type="text" id="acc-address" placeholder="Street, City">
                         </div>
-                        <button class="btn btn-primary" onclick="createAccount()" style="padding: 10px 30px;">
+                        <button class="btn btn-primary" id="save-acc-btn" onclick="createAccount()" style="padding: 10px 30px;">
                             <i class="fas fa-plus-circle"></i> Create Ledger / Party
                         </button>
                     </div>
@@ -449,6 +450,13 @@
     function loginWithGoogle() { auth.signInWithPopup(provider); }
     function logout() { if(confirm("Sign out?")) auth.signOut(); }
 
+    function getBalanceSide(acc) {
+        if (!acc || acc.balance === 0) return "";
+        const isDebitNormal = ['Asset', 'Expense'].includes(acc.type);
+        if (acc.balance > 0) return isDebitNormal ? "Dr" : "Cr";
+        return isDebitNormal ? "Cr" : "Dr";
+    }
+
     async function init() {
         await fetchAccounts();
         await fetchTransactions();
@@ -532,7 +540,7 @@
         document.getElementById('acc-phone').value = acc.phone;
         document.getElementById('acc-address').value = acc.address;
         document.getElementById('acc-op').value = acc.openingBalance;
-        document.querySelector('#ledger button').innerText = "Update Ledger";
+        document.getElementById('save-acc-btn').innerText = "Update Ledger";
     }
 
     async function deleteAccount(id) {
@@ -557,6 +565,15 @@
 
         if (!name) return alert("Account name is required");
 
+        let currentBalance = opening;
+        if (editingAccId) {
+            const oldAcc = allAccounts.find(a => a._id === editingAccId);
+            if (oldAcc) {
+                const opDiff = opening - oldAcc.openingBalance;
+                currentBalance = oldAcc.balance + opDiff;
+            }
+        }
+
         const method = editingAccId ? 'PUT' : 'POST';
         const url = editingAccId ? `/api/accounts/${editingAccId}` : '/api/accounts';
 
@@ -567,14 +584,14 @@
                 userId: currentUser.uid,
                 name, type, group, phone, address,
                 openingBalance: opening,
-                balance: opening // Simple logic for now, in real ERP this would recalculate
+                balance: currentBalance
             })
         });
 
         if(res.ok) {
             alert(editingAccId ? "Ledger Updated!" : "Ledger Created!");
             editingAccId = null;
-            document.querySelector('#ledger button').innerText = "Create Ledger / Party";
+            document.getElementById('save-acc-btn').innerText = "Create Ledger / Party";
             ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
             fetchAccounts();
         }
@@ -681,8 +698,9 @@
             tbody.appendChild(tr);
             updateRowColor(tr.querySelector('.row-type'));
         });
-        showSection('journal');
+        showTab('journal');
         document.getElementById('post-btn').innerText = "Update Voucher";
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
     }
 
     async function saveTransaction() {
@@ -711,6 +729,7 @@
             alert(editingTxId ? "Voucher Updated! ✅" : "Voucher Posted! ✅");
             editingTxId = null;
             document.getElementById('post-btn').innerText = "Post Voucher";
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
             init();
             document.getElementById('jou-desc').value = '';
         } else {
@@ -913,20 +932,68 @@
             </table>`;
         } else if (type === 'bs') {
             const assets = allAccounts.filter(a => a.type === 'Asset');
-            const liabs = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity');
-            const netProfit = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0) - allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
-            html = `<h3>Balance Sheet</h3><div style="display:flex; gap:30px; margin-top:20px;">
-                <div style="flex:1"><h4>Assets</h4><table>${assets.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr style="font-weight:700; background:#eee"><td>Total Assets</td><td class="text-right">${assets.reduce((s,a)=>s+a.balance,0).toLocaleString()}</td></tr></table></div>
-                <div style="flex:1"><h4>Liabilities & Equity</h4><table>${liabs.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`).join('')}<tr><td>Current Profit</td><td class="text-right">${netProfit.toLocaleString()}</td></tr><tr style="font-weight:700; background:#eee"><td>Total Liab & Equity</td><td class="text-right">${(liabs.reduce((s,a)=>s+a.balance,0)+netProfit).toLocaleString()}</td></tr></table></div>
-            </div>`;
+            const liabilities = allAccounts.filter(a => a.type === 'Liability');
+            const equity = allAccounts.filter(a => a.type === 'Equity');
+
+            const totalRevenue = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0);
+            const totalExpense = allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
+            const netProfit = totalRevenue - totalExpense;
+
+            const totalAssets = assets.reduce((s,a) => s+a.balance, 0);
+            const totalLiabilities = liabilities.reduce((s,a) => s+a.balance, 0);
+            const totalEquity = equity.reduce((s,a) => s+a.balance, 0);
+            const totalLiabEquity = totalLiabilities + totalEquity + netProfit;
+
+            html = `
+                <div style="text-align:center; margin-bottom:25px;">
+                    <h2 style="margin:0; color:var(--primary);">BALANCE SHEET</h2>
+                    <p style="margin:5px 0; color:#64748b; font-weight:600;">As on ${new Date().toLocaleDateString()}</p>
+                </div>
+                <div style="display:flex; border:2px solid var(--primary); border-radius:8px; overflow:hidden; background:white;">
+                    <div style="flex:1; border-right:1px solid var(--border);">
+                        <div style="background:var(--primary); color:white; padding:12px; font-weight:700; text-align:center; letter-spacing:1px;">ASSETS</div>
+                        <div style="padding:15px;">
+                            <table style="border:none">
+                                ${assets.map(a => `<tr><td style="border:none; padding:8px 0;">${a.name}</td><td class="text-right" style="border:none; font-weight:600;">${a.balance.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
+                                <tr style="border-top:2px solid var(--primary); font-weight:800; color:var(--primary);">
+                                    <td style="border:none; padding-top:15px;">TOTAL ASSETS</td>
+                                    <td class="text-right" style="border:none; padding-top:15px; font-size:1.1rem;">Rs. ${totalAssets.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div style="flex:1">
+                        <div style="background:var(--primary); color:white; padding:12px; font-weight:700; text-align:center; letter-spacing:1px;">LIABILITIES & EQUITY</div>
+                        <div style="padding:15px;">
+                            <table style="border:none">
+                                <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-bottom:5px; text-decoration:underline;">Liabilities</td></tr>
+                                ${liabilities.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name}</td><td class="text-right" style="border:none; font-weight:600;">${a.balance.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
+                                <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-top:15px; padding-bottom:5px; text-decoration:underline;">Equity & Profit</td></tr>
+                                ${equity.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name}</td><td class="text-right" style="border:none; font-weight:600;">${a.balance.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
+                                <tr><td style="border:none; padding:5px 0 5px 15px;">Net Profit / Loss (MTD)</td><td class="text-right" style="border:none; font-weight:600; color:${netProfit>=0?'var(--success)':'var(--danger)'}">${netProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
+                                <tr style="border-top:2px solid var(--primary); font-weight:800; color:var(--primary);">
+                                    <td style="border:none; padding-top:15px;">TOTAL LIAB. & EQUITY</td>
+                                    <td class="text-right" style="border:none; padding-top:15px; font-size:1.1rem;">Rs. ${totalLiabEquity.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:25px; text-align:center; font-weight:800; font-size:14px; color:${Math.abs(totalAssets - totalLiabEquity) < 1 ? 'var(--success)' : 'var(--danger)'}">
+                    ${Math.abs(totalAssets - totalLiabEquity) < 1 ? '<i class="fas fa-check-circle"></i> ACCOUNTING EQUITY MATCHED' : '<i class="fas fa-exclamation-triangle"></i> DIFFERENCE IN BALANCE SHEET: ' + (totalAssets - totalLiabEquity).toFixed(2)}
+                </div>
+            `;
         } else if (type === 'daybook') {
-            html = `<h3>Day Book - All Transactions</h3><table style="margin-top:20px"><thead><tr><th>Date</th><th>Narration</th><th>Particulars</th><th class="text-right">Amount</th></tr></thead><tbody>`;
+            html = `<h3>Day Book - All Transactions</h3><table style="margin-top:20px"><thead><tr><th>Date</th><th>Narration</th><th>Particulars</th><th class="text-right">Debit (Total)</th><th class="text-right">Credit (Total)</th></tr></thead><tbody>`;
             allTransactions.forEach(tx => {
+                const totalDr = tx.entries.reduce((s, e) => s + (e.debit || 0), 0);
+                const totalCr = tx.entries.reduce((s, e) => s + (e.credit || 0), 0);
                 html += `<tr>
                     <td>${tx.date}</td>
                     <td><b>${tx.description}</b></td>
                     <td><small>${tx.entries.map(e => e.account?.name || '??').join(', ')}</small></td>
-                    <td class="text-right">${tx.entries.find(e => e.debit > 0)?.debit.toLocaleString()}</td>
+                    <td class="text-right">${totalDr.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                    <td class="text-right">${totalCr.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 </tr>`;
             });
             html += `</tbody></table>`;
