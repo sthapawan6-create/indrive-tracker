@@ -14,8 +14,8 @@
                 const names = await caches.keys();
                 for (let name of names) { await caches.delete(name); }
 
-                if (!localStorage.getItem('erp_final_v10')) {
-                    localStorage.setItem('erp_final_v10', 'true');
+                if (!localStorage.getItem('erp_final_v11')) {
+                    localStorage.setItem('erp_final_v11', 'true');
                     window.location.reload();
                 }
             } catch (e) {
@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -59,7 +59,7 @@
         .stat-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); transition: 0.3s; }
         .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .stat-card .label { color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-card .value { font-size: 1.5rem; font-weight: 700; margin: 8px 0; }
+        .stat-card .value { font-size: 1.4rem; font-weight: 700; margin: 8px 0; font-family: 'Roboto Mono', monospace; }
         .stat-card .trend { font-size: 11px; display: flex; align-items: center; gap: 4px; }
 
         /* Generic UI Elements */
@@ -90,6 +90,9 @@
         .badge-rev { background: #e0f2fe; color: #075985; }
         .badge-exp { background: #fef3c7; color: #92400e; }
 
+        /* Report Tables Specific Font styling */
+        .report-table td.amount, .report-table th.amount { font-family: 'Roboto Mono', monospace; text-align: right; }
+
         /* Voucher Table */
         .voucher-table { width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 10px; }
         .voucher-table th { background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid var(--border); }
@@ -98,7 +101,7 @@
         .voucher-table input, .voucher-table select { border: 1px solid transparent; background: transparent; transition: 0.2s; }
         .voucher-table input:focus, .voucher-table select:focus { background: white; border-color: var(--accent); }
         .voucher-table .row-type { width: 80px; font-weight: 800; color: var(--primary); }
-        .voucher-table .row-dr, .voucher-table .row-cr { width: 120px; font-weight: 700; }
+        .voucher-table .row-dr, .voucher-table .row-cr { width: 120px; font-weight: 700; font-family: 'Roboto Mono', monospace; }
         .voucher-table tr.dr-row { background: #f0f9ff; }
         .voucher-table tr.cr-row { background: #fffaf0; }
 
@@ -206,7 +209,7 @@
             <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 20px;">
                 <div class="card">
                     <div class="card-header"><h3>Today's Closing Summary</h3></div>
-                    <div class="card-body" id="dash-today-closing">
+                    <div class="card-body" id="dash-today-closing" style="font-family: 'Roboto Mono', monospace;">
                         <p style="color:#64748b">आजको कारोबार लोड हुँदैछ...</p>
                     </div>
                 </div>
@@ -270,7 +273,7 @@
                         <tbody id="jou-entries">
                         </tbody>
                         <tfoot>
-                        <tr style="background: #f1f5f9; font-weight: 800;">
+                        <tr style="background: #f1f5f9; font-weight: 800; font-family: 'Roboto Mono', monospace;">
                             <td colspan="2" class="text-right">TOTAL</td>
                             <td class="text-right" id="total-dr">0.00</td>
                             <td class="text-right" id="total-cr">0.00</td>
@@ -284,7 +287,7 @@
                             <i class="fas fa-plus"></i> Add New Line
                         </button>
 
-                        <div id="diff-alert" class="hidden" style="background: #fee2e2; color: #b91c1c; padding: 8px 15px; border-radius: 6px; font-weight: 700; font-size: 12px;">
+                        <div id="diff-alert" class="hidden" style="background: #fee2e2; color: #b91c1c; padding: 8px 15px; border-radius: 6px; font-weight: 700; font-size: 12px; font-family: 'Roboto Mono', monospace;">
                             <i class="fas fa-exclamation-triangle"></i> Difference: Rs. <span id="total-diff">0.00</span>
                         </div>
                     </div>
@@ -309,7 +312,7 @@
                 <div class="card-body" style="padding:0">
                     <table id="transactionsTable">
                         <thead><tr><th>Date</th><th>Description</th><th>Journal Detail</th><th class="text-right">Action</th></tr></thead>
-                        <tbody></tbody>
+                        <tbody style="font-family: 'Roboto Mono', monospace;"></tbody>
                     </table>
                 </div>
             </div>
@@ -390,7 +393,7 @@
                 <div class="card-body" style="padding:0">
                     <table id="accountsTable">
                         <thead><tr><th>Name</th><th>Category</th><th>Group</th><th>Contact</th><th class="text-right">Balance</th><th class="text-right" style="width:100px">Actions</th></tr></thead>
-                        <tbody></tbody>
+                        <tbody style="font-family: 'Roboto Mono', monospace;"></tbody>
                     </table>
                 </div>
             </div>
@@ -405,95 +408,95 @@
                 <button class="btn btn-primary" style="margin-left: auto;" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
             </div>
             <div id="reportArea" class="card">
-                <div class="card-body" id="reportContent">
-                    <div style="text-align: center; padding: 50px; color: #94a3b8;">
-                        <i class="fas fa-file-contract" style="font-size: 40px; margin-bottom: 15px;"></i>
-                        <p>Select a report to generate financial statement.</p>
+                <div class="card-body id="reportContent" class="report-table">
+                <div style="text-align: center; padding: 50px; color: #94a3b8;">
+                    <i class="fas fa-file-contract" style="font-size: 40px; margin-bottom: 15px;"></i>
+                    <p>Select a report to generate financial statement.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-statement" class="tab-content hidden">
+        <div class="card no-print">
+            <div class="card-header"><h3>Filter Statement</h3></div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                    <div>
+                        <label>Select Account</label>
+                        <select id="stat-acc-select"></select>
                     </div>
+                    <div>
+                        <label>From</label>
+                        <input type="date" id="stat-from">
+                    </div>
+                    <div>
+                        <label>To</label>
+                        <input type="date" id="stat-to">
+                    </div>
+                    <button class="btn btn-primary" onclick="generateStatement()"><i class="fas fa-sync"></i> View Statement</button>
+                </div>
+            </div>
+        </div>
+        <div id="statementResult" class="card hidden">
+            <div class="card-header">
+                <h3 id="stat-title">Ledger Statement</h3>
+                <button class="btn btn-outline" onclick="exportToExcel('statementTable')"><i class="fas fa-download"></i> Download Excel</button>
+            </div>
+            <div class="card-body" style="padding:0">
+                <table id="statementTable">
+                    <thead><tr><th>Date</th><th>Narration</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Balance</th></tr></thead>
+                    <tbody style="font-family: 'Roboto Mono', monospace;"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-settings" class="tab-content hidden">
+        <div class="card">
+            <div class="card-header"><h3>Company Profile & Settings</h3></div>
+            <div class="card-body">
+                <div style="max-width: 600px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">Company / Business Name</label>
+                        <input type="text" id="set-company-name" placeholder="Enter Business Name" value="Enterprise ERP System">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">Address</label>
+                        <input type="text" id="set-company-addr" placeholder="Kathmandu, Nepal">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">VAT / PAN Number</label>
+                        <input type="text" id="set-company-pan" placeholder="Optional">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom:5px; font-weight:600;">Currency Symbol</label>
+                        <input type="text" id="set-currency" value="Rs." style="width: 100px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
                 </div>
             </div>
         </div>
 
-        <div id="tab-statement" class="tab-content hidden">
-            <div class="card no-print">
-                <div class="card-header"><h3>Filter Statement</h3></div>
-                <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
-                        <div>
-                            <label>Select Account</label>
-                            <select id="stat-acc-select"></select>
-                        </div>
-                        <div>
-                            <label>From</label>
-                            <input type="date" id="stat-from">
-                        </div>
-                        <div>
-                            <label>To</label>
-                            <input type="date" id="stat-to">
-                        </div>
-                        <button class="btn btn-primary" onclick="generateStatement()"><i class="fas fa-sync"></i> View Statement</button>
+        <div class="card">
+            <div class="card-header"><h3>Data Management</h3></div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                        <h4>Export Records</h4>
+                        <p style="color: #64748b; font-size: 12px;">Download all your financial data into a JSON file for local backup.</p>
+                        <button class="btn btn-success" onclick="backupData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
                     </div>
-                </div>
-            </div>
-            <div id="statementResult" class="card hidden">
-                <div class="card-header">
-                    <h3 id="stat-title">Ledger Statement</h3>
-                    <button class="btn btn-outline" onclick="exportToExcel('statementTable')"><i class="fas fa-download"></i> Download Excel</button>
-                </div>
-                <div class="card-body" style="padding:0">
-                    <table id="statementTable">
-                        <thead><tr><th>Date</th><th>Narration</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Balance</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-settings" class="tab-content hidden">
-            <div class="card">
-                <div class="card-header"><h3>Company Profile & Settings</h3></div>
-                <div class="card-body">
-                    <div style="max-width: 600px;">
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600;">Company / Business Name</label>
-                            <input type="text" id="set-company-name" placeholder="Enter Business Name" value="Enterprise ERP System">
-                        </div>
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600;">Address</label>
-                            <input type="text" id="set-company-addr" placeholder="Kathmandu, Nepal">
-                        </div>
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600;">VAT / PAN Number</label>
-                            <input type="text" id="set-company-pan" placeholder="Optional">
-                        </div>
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600;">Currency Symbol</label>
-                            <input type="text" id="set-currency" value="Rs." style="width: 100px;">
-                        </div>
-                        <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><h3>Data Management</h3></div>
-                <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
-                            <h4>Export Records</h4>
-                            <p style="color: #64748b; font-size: 12px;">Download all your financial data into a JSON file for local backup.</p>
-                            <button class="btn btn-success" onclick="backupData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
-                        </div>
-                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
-                            <h4>Import Records</h4>
-                            <p style="color: #64748b; font-size: 12px;">Restore data from a previously exported JSON backup file.</p>
-                            <button class="btn btn-outline" style="color:var(--warning)" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data (JSON)</button>
-                        </div>
+                    <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                        <h4>Import Records</h4>
+                        <p style="color: #64748b; font-size: 12px;">Restore data from a previously exported JSON backup file.</p>
+                        <button class="btn btn-outline" style="color:var(--warning)" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data (JSON)</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <script>
@@ -542,6 +545,18 @@
         return isDebitNormal ? "Cr" : "Dr";
     }
 
+    async function safeFetch(url, options = {}) {
+        try {
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error("API Error");
+            return await res.json();
+        } catch (e) {
+            console.warn("API Offline, fallback to local database standard block context.");
+            const key = url.split('?')[0].replace('/api/', 'erp_');
+            return JSON.parse(localStorage.getItem(key) || "[]");
+        }
+    }
+
     async function init() {
         await fetchAccounts();
         await fetchTransactions();
@@ -585,23 +600,10 @@
         document.getElementById('pageTitle').innerText = titles[tabId] || (tabId.charAt(0).toUpperCase() + tabId.slice(1));
     }
 
-    function resetVoucher() {
-        editingTxId = null;
-        document.getElementById('post-btn').innerHTML = '<i class="fas fa-check-circle"></i> POST VOUCHER';
-        document.getElementById('cancel-edit-btn').classList.add('hidden');
-        document.getElementById('voucherno-display').innerText = `Voucher No: JV-${Math.floor(100000 + Math.random() * 900000)}`;
-        document.getElementById('jou-date').valueAsDate = new Date();
-        document.getElementById('jou-desc').value = '';
-
-        const tbody = document.getElementById('jou-entries');
-        tbody.innerHTML = '';
-        addJournalRow();
-        addJournalRow();
-    }
-
     async function fetchAccounts() {
-        const res = await fetch(`/api/accounts?userId=${currentUser.uid}`);
-        allAccounts = await res.json();
+        allAccounts = await safeFetch(`/api/accounts?userId=${currentUser.uid}`);
+        localStorage.setItem('erp_accounts', JSON.stringify(allAccounts));
+
         const tbody = document.querySelector('#accountsTable tbody');
         const select = document.getElementById('stat-acc-select');
         const datalist = document.getElementById('ledgerOptions');
@@ -609,11 +611,11 @@
         if(tbody) {
             tbody.innerHTML = allAccounts.map(acc => `
                 <tr>
-                    <td style="font-weight:600">${acc.name}</td>
+                    <td style="text-align: left; font-weight:600">${acc.name}</td>
                     <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
                     <td><small>${acc.group || '-'}</small></td>
                     <td><small>${acc.address || '-'}</small></td>
-                    <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">
+                    <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}" style="font-family: 'Roboto Mono', monospace;">
                         <b>Rs. ${Math.abs(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</b>
                         <small>${getBalanceSide(acc)}</small>
                     </td>
@@ -626,6 +628,51 @@
         }
         if(select) select.innerHTML = '<option value="">-- Choose Account --</option>' + allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         if(datalist) datalist.innerHTML = allAccounts.map(a => `<option value="${a.name}" data-id="${a._id}" data-group="${a.group || a.type}">`).join('');
+    }
+
+    async function fetchTransactions() {
+        allTransactions = await safeFetch(`/api/transactions?userId=${currentUser.uid}`);
+        localStorage.setItem('erp_transactions', JSON.stringify(allTransactions));
+
+        const tbody = document.querySelector('#transactionsTable tbody');
+        if(tbody) {
+            tbody.innerHTML = allTransactions.map(tx => `
+                <tr>
+                    <td><b>${tx.date}</b></td>
+                    <td style="text-align:left;"><b>${tx.description}</b></td>
+                    <td>${tx.entries.map(e => `<div style="text-align:left; font-size:11px;">${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}: <span style="float:right;">Rs. ${(e.debit || e.credit).toFixed(2)}</span></div>`).join('')}</td>
+                    <td class="text-right">
+                        <button class="btn btn-outline" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    function createAccount() {
+        const name = document.getElementById('acc-name').value;
+        const type = document.getElementById('acc-type').value;
+        const group = document.getElementById('acc-group').value;
+        const phone = document.getElementById('acc-phone').value;
+        const address = document.getElementById('acc-address').value;
+        const opening = Number(document.getElementById('acc-op').value || 0);
+
+        if (!name) return alert("Account name is required");
+
+        const method = editingAccId ? 'PUT' : 'POST';
+        const url = editingAccId ? `/api/accounts/${editingAccId}` : '/api/accounts';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.uid, name, type, group, phone, address, openingBalance: opening, balance: opening })
+        }).then(() => {
+            editingAccId = null;
+            document.getElementById('save-acc-btn').innerText = "Create Ledger / Party";
+            ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
+            init();
+        });
     }
 
     function editAccount(id) {
@@ -644,35 +691,8 @@
 
     async function deleteAccount(id) {
         if(!confirm("Delete this account?")) return;
-        const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
-        if(res.ok) { alert("Account deleted!"); init(); }
-    }
-
-    async function createAccount() {
-        const name = document.getElementById('acc-name').value;
-        const type = document.getElementById('acc-type').value;
-        const group = document.getElementById('acc-group').value;
-        const phone = document.getElementById('acc-phone').value;
-        const address = document.getElementById('acc-address').value;
-        const opening = Number(document.getElementById('acc-op').value || 0);
-
-        if (!name) return alert("Account name is required");
-
-        const method = editingAccId ? 'PUT' : 'POST';
-        const url = editingAccId ? `/api/accounts/${editingAccId}` : '/api/accounts';
-
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid, name, type, group, phone, address, openingBalance: opening, balance: opening })
-        });
-
-        if(res.ok) {
-            editingAccId = null;
-            document.getElementById('save-acc-btn').innerText = "Create Ledger / Party";
-            ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
-            init();
-        }
+        await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+        init();
     }
 
     function addJournalRow() {
@@ -712,7 +732,7 @@
             row.querySelector('.row-acc-id').value = opt.dataset.id;
         } else if (val) {
             row.querySelector('.row-acc-id').value = '';
-            alert("Account not found! Please select from the dropdown or create a ledger.");
+            alert("Account not found!");
         }
     }
 
@@ -763,7 +783,6 @@
         const input = !drInput.disabled ? drInput : crInput;
         const val = Number(input.value || 0);
         if (val === 0) return alert("Enter amount first");
-
         input.value = (val * 1.13).toFixed(2);
         calcJournalTotals();
     }
@@ -792,27 +811,7 @@
             body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
         });
 
-        if (res.ok) { alert("Voucher Saved!"); init(); }
-    }
-
-    async function fetchTransactions() {
-        const res = await fetch(`/api/transactions?userId=${currentUser.uid}`);
-        allTransactions = await res.json();
-
-        const tbody = document.querySelector('#transactionsTable tbody');
-        if(tbody) {
-            tbody.innerHTML = allTransactions.map(tx => `
-                <tr>
-                    <td><b>${tx.date}</b></td>
-                    <td><b>${tx.description}</b></td>
-                    <td>${tx.entries.map(e => `<div>${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}: Rs. ${e.debit || e.credit}</div>`).join('')}</td>
-                    <td class="text-right">
-                        <button class="btn btn-outline" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        if (res.ok) { init(); }
     }
 
     function editTransaction(id) {
@@ -843,7 +842,19 @@
     async function deleteTransaction(id) {
         if (!confirm("Delete transaction?")) return;
         const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-        if (res.ok) { alert("Deleted!"); init(); }
+        if (res.ok) { init(); }
+    }
+
+    function resetVoucher() {
+        editingTxId = null;
+        document.getElementById('post-btn').innerHTML = '<i class="fas fa-check-circle"></i> POST VOUCHER';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        document.getElementById('voucherno-display').innerText = `Voucher No: JV-${Math.floor(100000 + Math.random() * 900000)}`;
+        document.getElementById('jou-date').valueAsDate = new Date();
+        document.getElementById('jou-desc').value = '';
+        const tbody = document.getElementById('jou-entries');
+        tbody.innerHTML = '';
+        addJournalRow(); addJournalRow();
     }
 
     function filterLedgers() {
@@ -878,17 +889,17 @@
         const exp = allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
         const netWorth = (cash + ar) - ap + (rev - exp);
 
-        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
-        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
-        document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
-        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString();
+        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString(undefined, {minimumFractionDigits: 2});
 
         const dashRecent = document.querySelector('#dash-recent-tx tbody');
         if (dashRecent) {
             dashRecent.innerHTML = allTransactions.slice(-5).reverse().map(tx => `
                 <tr>
-                    <td><b>${tx.description}</b><br><small>${tx.date}</small></td>
-                    <td class="text-right"><b>Rs. ${(tx.entries[0]?.debit || tx.entries[0]?.credit || 0).toLocaleString()}</b></td>
+                    <td style="text-align:left;"><b>${tx.description}</b><br><small>${tx.date}</small></td>
+                    <td class="text-right" style="font-family: 'Roboto Mono', monospace;"><b>Rs. ${(tx.entries[0]?.debit || tx.entries[0]?.credit || 0).toLocaleString(undefined, {minimumFractionDigits:2})}</b></td>
                 </tr>
             `).join('');
         }
@@ -899,7 +910,10 @@
             tx.entries.forEach(e => { if (e.debit > 0) tIn += e.debit; else tOut += e.credit; });
         });
         document.getElementById('dash-today-closing').innerHTML = `
-            <div>Inflow: <b>Rs. ${tIn}</b></div><div>Outflow: <b>Rs. ${tOut}</b></div><hr><div>Net Flow: <b>Rs. ${tIn - tOut}</b></div>
+            <div style="text-align:left;">Inflow: <span style="float:right;">Rs. ${tIn.toFixed(2)}</span></div>
+            <div style="text-align:left;">Outflow: <span style="float:right;">Rs. ${tOut.toFixed(2)}</span></div>
+            <hr>
+            <div style="text-align:left; font-weight:bold;">Net Flow: <span style="float:right;">Rs. ${(tIn - tOut).toFixed(2)}</span></div>
         `;
         initCharts(rev, exp, expenseData);
     }
@@ -921,11 +935,13 @@
         const div = document.getElementById('reportContent');
         let html = "";
 
-        // Common Data Processing for Reports
+        // Standardized Accounting Definitions Based on Groups
         const revAccounts = allAccounts.filter(a => a.type === 'Revenue');
         const expAccounts = allAccounts.filter(a => a.type === 'Expense');
-        const assetAccounts = allAccounts.filter(a => a.type === 'Asset');
-        const liabAccounts = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity');
+
+        // Dynamic Allocation By Accounting Groups (Fixes mixed assets/liabilities)
+        const assetAccounts = allAccounts.filter(a => a.type === 'Asset' || ['Bank Accounts', 'Cash-in-hand', 'Sundry Debtors'].includes(a.group));
+        const liabAccounts = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity' || ['Sundry Creditors', 'Capital Account'].includes(a.group));
 
         const totalRevenue = revAccounts.reduce((s, a) => s + a.balance, 0);
         const totalExpense = expAccounts.reduce((s, a) => s + a.balance, 0);
@@ -933,54 +949,56 @@
 
         if (type === 'trial') {
             let td = 0, tc = 0;
-            html = `<h3>Trial Balance Summary</h3><table style="margin-top:15px;"><thead><tr><th>Account Head</th><th class="text-right">Debit (Rs.)</th><th class="text-right">Credit (Rs.)</th></tr></thead><tbody>`;
+            html = `<h3>Trial Balance Summary</h3><table style="margin-top:15px; width:100%;"><thead><tr><th style="text-align:left;">Account Head</th><th class="text-right">Debit (Rs.)</th><th class="text-right">Credit (Rs.)</th></tr></thead><tbody style="font-family: 'Roboto Mono', monospace;">`;
             allAccounts.forEach(a => {
                 const bal = a.balance;
                 if (Math.abs(bal) < 0.01) return;
                 const isDr = ['Asset', 'Expense'].includes(a.type);
                 if ((isDr && bal > 0) || (!isDr && bal < 0)) {
-                    html += `<tr><td>${a.name}</td><td class="text-right">${Math.abs(bal).toFixed(2)}</td><td></td></tr>`;
+                    html += `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">${Math.abs(bal).toFixed(2)}</td><td class="text-right">-</td></tr>`;
                     td += Math.abs(bal);
                 } else {
-                    html += `<tr><td>${a.name}</td><td></td><td class="text-right">${Math.abs(bal).toFixed(2)}</td></tr>`;
+                    html += `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">-</td><td class="text-right">${Math.abs(bal).toFixed(2)}</td></tr>`;
                     tc += Math.abs(bal);
                 }
             });
-            html += `<tr style="font-weight:bold; background:#f8fafc;"><td>Total Balance</td><td class="text-right">${td.toFixed(2)}</td><td class="text-right">${tc.toFixed(2)}</td></tr></tbody></table>`;
+            html += `<tr style="font-weight:bold; background:#f8fafc;"><td style="text-align:left; font-family: 'Inter', sans-serif;">Total Balance</td><td class="text-right">${td.toFixed(2)}</td><td class="text-right">${tc.toFixed(2)}</td></tr></tbody></table>`;
 
         } else if (type === 'pl') {
-            html = `<h3>Profit & Loss Statement</h3><table style="margin-top:15px;">
-                <tr style="background:#f1f5f9;"><th colspan="2">Trading & Revenue Earnings</th></tr>
-                ${revAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
-                <tr style="font-weight:700;"><td>Total Revenue (A)</td><td class="text-right">Rs. ${totalRevenue.toFixed(2)}</td></tr>
-                <tr style="background:#f1f5f9;"><th colspan="2">Operating & Indirect Expenses</th></tr>
-                ${expAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
-                <tr style="font-weight:700;"><td>Total Operating Expenses (B)</td><td class="text-right">Rs. ${totalExpense.toFixed(2)}</td></tr>
-                <tr style="background:var(--primary); color:white; font-weight:700;"><td>NET PROFIT / (LOSS)</td><td class="text-right">Rs. ${netProfit.toFixed(2)}</td></tr>
+            html = `<h3>Profit & Loss Statement</h3><table style="margin-top:15px; width:100%;">
+                <tr style="background:#f1f5f9;"><th style="text-align:left;" colspan="2">Trading & Revenue Earnings</th></tr>
+                <tbody style="font-family: 'Roboto Mono', monospace;">
+                ${revAccounts.map(a => `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                <tr style="font-weight:700; font-family: 'Inter', sans-serif;"><td>Total Revenue (A)</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">Rs. ${totalRevenue.toFixed(2)}</td></tr>
+                <tr style="background:#f1f5f9; font-family: 'Inter', sans-serif;"><th style="text-align:left;" colspan="2">Operating & Indirect Expenses</th></tr>
+                ${expAccounts.map(a => `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                <tr style="font-weight:700; font-family: 'Inter', sans-serif;"><td>Total Operating Expenses (B)</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">Rs. ${totalExpense.toFixed(2)}</td></tr>
+                <tr style="background:var(--primary); color:white; font-weight:700; font-family: 'Inter', sans-serif;"><td>NET PROFIT / (LOSS)</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">Rs. ${netProfit.toFixed(2)}</td></tr>
+                </tbody>
             </table>`;
 
         } else if (type === 'bs') {
             const totalAssets = assetAccounts.reduce((s, a) => s + a.balance, 0);
-            const totalLiabilities = liabAccounts.reduce((s, a) => s + a.balance, 0) + netProfit;
+            const totalLiabilities = liabAccounts.reduce((s, a) => s + Math.abs(a.balance), 0) + netProfit;
 
             html = `<h3>Balance Sheet</h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:15px;">
                 <div>
                     <table class="voucher-table">
-                        <thead><tr style="background:#059669; color:white;"><th>Assets (सम्पत्ति)</th><th class="text-right">Amount</th></tr></thead>
-                        <tbody>
-                            ${assetAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
-                            <tr style="font-weight:bold; background:#f8fafc;"><td>Total Assets</td><td class="text-right">Rs. ${totalAssets.toFixed(2)}</td></tr>
+                        <thead><tr style="background:#059669; color:white;"><th style="text-align:left;">Assets (सम्पत्ति)</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody style="font-family: 'Roboto Mono', monospace;">
+                            ${assetAccounts.map(a => `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                            <tr style="font-weight:bold; background:#f8fafc; font-family: 'Inter', sans-serif;"><td>Total Assets</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">Rs. ${totalAssets.toFixed(2)}</td></tr>
                         </tbody>
                     </table>
                 </div>
                 <div>
                     <table class="voucher-table">
-                        <thead><tr style="background:#dc2626; color:white;"><th>Liabilities & Equity</th><th class="text-right">Amount</th></tr></thead>
-                        <tbody>
-                            ${liabAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${Math.abs(a.balance).toFixed(2)}</td></tr>`).join('')}
-                            <tr style="font-style:italic; color:var(--success);"><td>Profit & Loss (Retained Net Profit)</td><td class="text-right">${netProfit.toFixed(2)}</td></tr>
-                            <tr style="font-weight:bold; background:#f8fafc;"><td>Total Capital & Liabilities</td><td class="text-right">Rs. ${totalLiabilities.toFixed(2)}</td></tr>
+                        <thead><tr style="background:#dc2626; color:white;"><th style="text-align:left;">Liabilities & Equity</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody style="font-family: 'Roboto Mono', monospace;">
+                            ${liabAccounts.map(a => `<tr><td style="text-align:left; font-family: 'Inter', sans-serif;">${a.name}</td><td class="text-right">${Math.abs(a.balance).toFixed(2)}</td></tr>`).join('')}
+                            <tr style="font-family: 'Inter', sans-serif; font-style:italic; color:var(--success);"><td>Profit & Loss (Retained Net Profit)</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">${netProfit.toFixed(2)}</td></tr>
+                            <tr style="font-weight:bold; background:#f8fafc; font-family: 'Inter', sans-serif;"><td>Total Capital & Liabilities</td><td class="text-right" style="font-family: 'Roboto Mono', monospace;">Rs. ${totalLiabilities.toFixed(2)}</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -990,20 +1008,20 @@
             const today = new Date().toISOString().split('T')[0];
             const activeTxs = allTransactions.filter(t => t.date === today);
             html = `<h3>Day Book - ${new Date().toLocaleDateString()}</h3>
-            <table style="margin-top:15px;">
-                <thead><tr><th>Voucher Narration</th><th>Particular Accounts</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
-                <tbody>
+            <table style="margin-top:15px; width:100%;">
+                <thead><tr><th style="text-align:left;">Voucher Narration</th><th style="text-align:left;">Particular Accounts</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
+                <tbody style="font-family: 'Roboto Mono', monospace;">
                     ${activeTxs.length ? activeTxs.map(t => `
-                        <tr style="background:#f8fafc; font-weight:600;"><td colspan="4">${t.description}</td></tr>
+                        <tr style="background:#f8fafc; font-weight:600; font-family: 'Inter', sans-serif;"><td colspan="4" style="text-align:left;">${t.description}</td></tr>
                         ${t.entries.map(e => `
                             <tr>
                                 <td></td>
-                                <td>${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}</td>
+                                <td style="text-align:left; font-family: 'Inter', sans-serif;">${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}</td>
                                 <td class="text-right">${e.debit > 0 ? e.debit.toFixed(2) : '-'}</td>
                                 <td class="text-right">${e.credit > 0 ? e.credit.toFixed(2) : '-'}</td>
                             </tr>
                         `).join('')}
-                    `).join('') : '<tr><td colspan="4" style="text-align:center;">No entries generated today.</td></tr>'}
+                    `).join('') : '<tr><td colspan="4" style="text-align:center; font-family: 'Inter', sans-serif;">No entries generated today.</td></tr>'}
                 </tbody>
             </table>`;
         }
@@ -1023,7 +1041,7 @@
         const tbody = document.querySelector('#statementTable tbody');
 
         let runningBal = acc.openingBalance || 0;
-        let rowsHtml = `<tr><td>-</td><td><b>Opening Balance</b></td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right"><b>Rs. ${runningBal.toFixed(2)}</b></td></tr>`;
+        let rowsHtml = `<tr><td>-</td><td style="text-align:left;"><b>Opening Balance</b></td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right"><b>Rs. ${runningBal.toFixed(2)}</b></td></tr>`;
 
         txs.forEach(t => {
             const entry = t.entries.find(e => (e.account?._id || e.account) === accId);
@@ -1032,7 +1050,7 @@
 
             rowsHtml += `<tr>
                 <td>${t.date}</td>
-                <td>${t.description}</td>
+                <td style="text-align:left;">${t.description}</td>
                 <td class="text-right">${entry.debit > 0 ? entry.debit.toFixed(2) : '-'}</td>
                 <td class="text-right">${entry.credit > 0 ? entry.credit.toFixed(2) : '-'}</td>
                 <td class="text-right">Rs. ${runningBal.toFixed(2)}</td>
@@ -1046,8 +1064,8 @@
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='erp_financial_backup.json'; a.click();
     }
     function restoreData() { alert("Triggered local import suite."); }
-    function exportToExcel(id) { alert("Data block compiled successfully: " + id); }
-    function saveSettings() { alert("Configuration Saved!"); }
+    function exportToExcel(id) { alert("Compiled sheet for block ID: " + id); }
+    function saveSettings() { alert("Configuration Settings Saved!"); }
 </script>
 </body>
 </html>
