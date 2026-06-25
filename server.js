@@ -161,16 +161,25 @@ app.delete('/api/transactions/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "असफल" }); }
 });
 
-// ३. सबै खाताको ब्यालेन्स पुन: गणना (Recalculate) गर्ने
+// ३. सबै खाताको ब्यालेन्स पुन: गणना (Recalculate) र डेटा रिकभरी गर्ने
 app.post('/api/recalculate', async (req, res) => {
     try {
         const { userId } = req.body;
+        if (!userId) return res.status(400).json({ error: "User ID missing" });
 
-        // यदि यो pawanthapa6@gmail.com हो भने, पहिलेका अनाथ (orphan) डाटाहरूलाई यसमा सार्ने
-        await Account.updateMany({ userId: { $exists: false } }, { $set: { userId: userId } });
-        await Transaction.updateMany({ userId: { $exists: false } }, { $set: { userId: userId } });
+        // १. डेटा रिकभरी: सबै अनाथ वा पुराना डाटाहरूलाई यो नयाँ ईमेल आईडीमा सार्ने
+        const totalA = await Account.countDocuments({});
+        const totalT = await Transaction.countDocuments({});
 
+        await Account.updateMany({}, { $set: { userId: userId } });
+        await Transaction.updateMany({}, { $set: { userId: userId } });
+
+        // २. ब्यालेन्स पुन: गणना गर्ने
         const accounts = await Account.find({ userId });
+        if (accounts.length === 0) {
+            return res.json({ message: "डेटाबेसमा कुनै डाटा फेला परेन। कृपया नयाँ खाता बनाउनुहोस्।" });
+        }
+
         for (const acc of accounts) {
             const txs = await Transaction.find({ "entries.account": acc._id });
             let bal = Number(acc.openingBalance || 0);
@@ -186,10 +195,10 @@ app.post('/api/recalculate', async (req, res) => {
             acc.balance = bal;
             await acc.save();
         }
-        res.json({ message: "Data Synced & Recalculated Successfully!" });
+        res.json({ message: `सफलतापूर्वक डेटा रिकभर र सिंक गरियो! (${totalA} खाताहरू र ${totalT} कारोबारहरू फेला पर्यो।)` });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Sync Failed" });
+        res.status(500).json({ error: "Sync Failed: " + err.message });
     }
 });
 

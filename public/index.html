@@ -196,19 +196,44 @@
                 </div>
             </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Top Debtors & Creditors</h3>
+            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:25px; margin-bottom:40px;">
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Real-time Transaction Feed</h3>
+                        <div style="position:relative; width:250px;">
+                            <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
+                            <input type="text" id="txSearch" placeholder="Search transactions..." onkeyup="filterRecentTx()" style="padding:10px 15px 10px 40px; font-size:12px; border-radius:12px;">
+                        </div>
                     </div>
-                    <div class="card-body" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                        <div style="background:rgba(16,185,129,0.05); padding:15px; border-radius:15px; border:1px solid rgba(16,185,129,0.1);">
-                            <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--success);">TOP RECEIVABLES</h4>
-                            <div id="top-debtors" style="font-size:13px; font-weight:600;"></div>
-                        </div>
-                        <div style="background:rgba(244,63,94,0.05); padding:15px; border-radius:15px; border:1px solid rgba(244,63,94,0.1);">
-                            <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--danger);">TOP PAYABLES</h4>
-                            <div id="top-creditors" style="font-size:13px; font-weight:600;"></div>
-                        </div>
+                    <div class="card-body" style="padding:0; max-height:400px; overflow-y:auto;">
+                        <table id="recentTxTable" style="margin:0;">
+                            <thead>
+                                <tr><th>Date</th><th>Description</th><th class="text-right">Action</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><h3>Financial Performance</h3></div>
+                    <div class="card-body" style="display:flex; align-items:center; justify-content:center; height:350px;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Top Debtors & Creditors</h3>
+                </div>
+                <div class="card-body" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                    <div style="background:rgba(16,185,129,0.05); padding:15px; border-radius:15px; border:1px solid rgba(16,185,129,0.1);">
+                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--success);">TOP RECEIVABLES</h4>
+                        <div id="top-debtors" style="font-size:13px; font-weight:600;"></div>
+                    </div>
+                    <div style="background:rgba(244,63,94,0.05); padding:15px; border-radius:15px; border:1px solid rgba(244,63,94,0.1);">
+                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--danger);">TOP PAYABLES</h4>
+                        <div id="top-creditors" style="font-size:13px; font-weight:600;"></div>
                     </div>
                 </div>
             </div>
@@ -285,7 +310,7 @@
                     <div style="display:flex; gap:20px; align-items:center;">
                         <select id="sAcc" style="flex:1"></select>
                         <button class="btn btn-primary" onclick="genStat()">View Statement</button>
-                        <button class="btn btn-outline" onclick="window.print()" style="border-color:var(--accent); color:var(--accent);"><i class="fas fa-print"></i> Print</button>
+                        <button class="btn btn-outline" onclick="printStatement()" style="border-color:var(--accent); color:var(--accent);"><i class="fas fa-print"></i> Print Statement</button>
                     </div>
                 </div>
             </div>
@@ -294,11 +319,11 @@
 
         <div id="tab-settings" class="tab-content hidden">
             <div class="grid-stats">
-                <div class="stat-card" style="border-bottom:4px solid var(--accent)">
-                    <h3>Accounting Sync Engine</h3>
-                    <p style="color:#94a3b8; margin:10px 0;">यदि बाहिर र भित्रको ब्यालेन्स फरक देखिएमा यहाँबाट सच्याउनुहोस्।</p>
-                    <button class="btn btn-primary" onclick="recalculateBalances()">
-                        <i class="fas fa-sync-alt"></i> Recalculate & Sync Balances
+                <div class="stat-card" style="border-bottom:4px solid var(--accent); background:rgba(255,193,7,0.05);">
+                    <h3 style="color:var(--accent)">Master Sync & Recovery</h3>
+                    <p style="color:#94a3b8; margin:10px 0;">यदि डेटा ०.०० देखिएमा वा पुरानो डेटा फिर्ता ल्याउनु परेमा यहाँ क्लिक गर्नुहोस्।</p>
+                    <button class="btn btn-warning" onclick="recalculateBalances(event)" style="width:100%; font-weight:800; padding:15px;">
+                        <i class="fas fa-sync-alt"></i> RECALCULATE & RESTORE DATA
                     </button>
                 </div>
                 <div class="stat-card" style="border-bottom:4px solid var(--success)"><h3>Secure Encryption Cloud Backup</h3><p style="color:#94a3b8; margin:10px 0;">Download full ERP financial ledger transaction backup archive.</p><button class="btn btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Export Data Backup</button></div>
@@ -325,6 +350,11 @@
 
     auth.onAuthStateChanged(user => {
         if (user) {
+            if (user.email !== 'sthapawan6@gmail.com') {
+                alert("Unauthorized Access: Only sthapawan6@gmail.com is allowed.");
+                auth.signOut();
+                return;
+            }
             currentUser = user;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('mainSection').classList.remove('hidden');
@@ -684,6 +714,8 @@
 
     function genStat() {
         const id = document.getElementById('sAcc').value, acc = accounts.find(a => a._id===id);
+        if(!acc) return;
+
         // Sort transactions by date ascending for correct running balance
         const txs = transactions
             .filter(t => t.entries.some(e => (e.account?._id||e.account)===id))
@@ -691,7 +723,10 @@
 
         let bal = Number(acc.openingBalance || 0);
         document.getElementById('sRes').classList.remove('hidden');
-        document.getElementById('sTitle').innerText = "Statement: " + acc.name;
+        document.getElementById('sTitle').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Statement: ${acc.name}</span>
+            <span style="font-size:12px; color:#94a3b8;">${acc.group}</span>
+        </div>`;
 
         let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`;
 
@@ -700,20 +735,31 @@
             const dr = Number(e.debit || 0);
             const cr = Number(e.credit || 0);
 
-            // Asset/Expense accounts: Bal = Bal + Dr - Cr
-            // Liability/Revenue/Equity: Bal = Bal + Cr - Dr
             const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
             bal += isDebitInc ? (dr - cr) : (cr - dr);
 
             html += `<tr>
                 <td><small style="font-family:'JetBrains Mono'">${t.date}</small></td>
                 <td>${t.description}</td>
-                <td class="text-right text-success">${dr > 0 ? dr.toLocaleString() : ''}</td>
-                <td class="text-right text-danger">${cr > 0 ? cr.toLocaleString() : ''}</td>
+                <td class="text-right text-success">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
+                <td class="text-right text-danger">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
                 <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             </tr>`;
         });
         document.querySelector('#sTable tbody').innerHTML = html;
+    }
+
+    function printStatement() {
+        const content = document.getElementById('sRes').innerHTML;
+        const win = window.open('', '', 'height=700,width=900');
+        win.document.write('<html><head><title>Account Statement</title>');
+        win.document.write('<style>body{font-family:sans-serif; padding:40px; color:#333;} table{width:100%; border-collapse:collapse; margin-top:20px;} th,td{border:1px solid #ddd; padding:12px; text-align:left;} .text-right{text-align:right;} th{background:#f4f4f4;} .header{text-align:center; margin-bottom:30px; border-bottom:2px solid #333; padding-bottom:20px;}</style>');
+        win.document.write('</head><body>');
+        win.document.write('<div class="header"><h1>ERP GOLD EXTREME</h1><p>Financial Statement Archive</p></div>');
+        win.document.write(content);
+        win.document.write('</body></html>');
+        win.document.close();
+        win.print();
     }
 
     function resetJ() {
@@ -752,12 +798,15 @@
         i.click();
     }
 
-    async function recalculateBalances() {
-        if(!confirm("के तपाईं सबै खाताको ब्यालेन्स पुन: गणना गर्न चाहनुहुन्छ?")) return;
+    async function recalculateBalances(ev) {
+        if(!confirm("के तपाईं सबै खाताको ब्यालेन्स र पुरानो डेटा रिकभर गर्न चाहनुहुन्छ?")) return;
 
-        const btn = event.target.closest('button');
+        // Use ev.target if available, otherwise fallback to finding the button by class
+        const btn = (ev && ev.target) ? ev.target.closest('button') : document.querySelector('.btn-warning');
+        if (!btn) return;
+
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> RECOVERING...';
         btn.disabled = true;
 
         try {
@@ -767,10 +816,16 @@
                 body: JSON.stringify({ userId: currentUser.uid })
             });
             const data = await res.json();
-            alert(data.message || "हिसाब मिलान गरियो!");
-            init(); // Refresh data
+            alert(data.message || "डेटा सफलतापूर्वक रिकभर गरियो!");
+
+            // डेटा तुरुन्तै लोड गर्ने
+            await fetchAcc();
+            await fetchTx();
+            updateDash();
+
+            showTab('dashboard', document.querySelector('.nav-item'));
         } catch (err) {
-            alert("Error syncing balances.");
+            alert("Error: " + err.message);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
