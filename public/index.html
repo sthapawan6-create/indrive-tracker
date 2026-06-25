@@ -1123,30 +1123,32 @@
         let cash = 0, ar = 0, ap = 0, hold = 0, revenue = 0, expense = 0;
         let expenseData = {};
 
+        const assetTypes = ['Asset', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
+        const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
+
         allAccounts.forEach(acc => {
             const grp = acc.group || '';
             const type = acc.type;
             const bal = acc.balance;
             const name = acc.name.toLowerCase();
 
-            // 1. Cash & Bank
+            // 1. Cash & Bank (Liquidity)
             if (grp === 'Bank Accounts' || grp === 'Cash-in-hand' || name.includes('cash')) {
                 cash += bal;
             }
-
             // 2. Handle "Hold" accounts specifically
-            if (name.includes('hold')) {
+            else if (name.includes('hold')) {
                 hold += Math.abs(bal);
             }
-            // 3. Sundry Debtors (excluding hold for clarity)
-            else if (grp === 'Sundry Debtors') {
+            // 3. To Receive (Other Assets / Debtors)
+            else if (assetTypes.includes(type) || grp === 'Sundry Debtors') {
                 if (bal > 0) ar += bal;
-                else ap += Math.abs(bal);
+                else ap += Math.abs(bal); // Advance from customer (Liability)
             }
-            // 4. Sundry Creditors
-            else if (grp === 'Sundry Creditors') {
-                if (bal < 0) ap += Math.abs(bal);
-                else ar += bal;
+            // 4. Dina Baaki (Liabilities / Creditors)
+            else if (liabilityTypes.includes(type) || grp === 'Sundry Creditors') {
+                if (bal < 0) ap += Math.abs(bal); // Normal credit balance (Payable)
+                else ar += Math.abs(bal); // Advance to supplier (Asset)
             }
 
             if (type === 'Revenue') {
