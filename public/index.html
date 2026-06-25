@@ -1125,23 +1125,36 @@
     }
 
     function updateDashboard() {
-        let cash = 0, ar = 0, ap = 0, revenue = 0, expense = 0;
+        let cash = 0, ar = 0, ap = 0, hold = 0, revenue = 0, expense = 0;
         let expenseData = {};
 
         allAccounts.forEach(acc => {
-            const grp = acc.group?.toLowerCase() || '';
+            const grp = acc.group || '';
             const type = acc.type;
             const bal = acc.balance;
+            const name = acc.name.toLowerCase();
 
-            if (type === 'Asset') {
-                if (grp.includes('cash') || grp.includes('bank')) {
-                    cash += bal;
-                } else {
-                    ar += bal;
-                }
-            } else if (type === 'Liability') {
-                ap += bal;
-            } else if (type === 'Revenue') {
+            // 1. Cash & Bank
+            if (grp === 'Bank Accounts' || grp === 'Cash-in-hand' || name.includes('cash')) {
+                cash += bal;
+            }
+
+            // 2. Handle "Hold" accounts specifically
+            if (name.includes('hold')) {
+                hold += Math.abs(bal);
+            }
+            // 3. Sundry Debtors (excluding hold for clarity)
+            else if (grp === 'Sundry Debtors') {
+                if (bal > 0) ar += bal;
+                else ap += Math.abs(bal);
+            }
+            // 4. Sundry Creditors
+            else if (grp === 'Sundry Creditors') {
+                if (bal < 0) ap += Math.abs(bal);
+                else ar += bal;
+            }
+
+            if (type === 'Revenue') {
                 revenue += bal;
             } else if (type === 'Expense') {
                 expense += bal;
@@ -1152,7 +1165,17 @@
         document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
-        document.getElementById('dash-networth').innerText = "Rs. " + (cash + ar - ap).toLocaleString();
+
+        // Update Net Worth (including Hold amounts)
+        document.getElementById('dash-networth').innerText = "Rs. " + (cash + ar + hold - ap).toLocaleString();
+
+        // Optional: Show Hold amount in AR label if exists
+        if (hold > 0) {
+            document.querySelector('#dash-ar').parentElement.querySelector('.label').innerHTML =
+                `To Receive <small style="color:var(--accent)">(+ Rs. ${hold.toLocaleString()} Hold)</small>`;
+        } else {
+            document.querySelector('#dash-ar').parentElement.querySelector('.label').innerText = "Amount to Receive (Debtors)";
+        }
 
         // Calculate Accounting Health
         const totalRevenue = allAccounts.filter(a => ['Revenue', 'Income', 'Sales'].some(t => a.type.includes(t))).reduce((s,a) => s+a.balance, 0);
@@ -1356,99 +1379,27 @@
                 <tr style="background:var(--primary); color:white"><td>NET PROFIT / LOSS</td><td class="text-right">${(tr-te).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
             </table>`;
         } else if (type === 'daybook') {
-            const date = prompt("Enter Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
-            if(!date) return;
-            showTab('reports');
+            const today = new Date().toISOString().split('T')[0];
 
-            const dayTxs = allTransactions.filter(tx => tx.date === date);
-            const targetDate = new Date(date);
-            targetDate.setHours(0,0,0,0);
-
-            html = `<div style="text-align:center; margin-bottom:20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
-                        <h2 style="margin:0; color:var(--primary);">DAILY DAY BOOK & CLOSING</h2>
-                        <p style="font-weight:700;">Statement Date: ${date}</p>
-                    </div>`;
-            html += `<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:20px;">`;
-
-            const monetaryAccs = allAccounts.filter(a =>
-                (a.group && (a.group.includes('Cash') || a.group.includes('Bank'))) ||
-                a.name.toLowerCase().includes('cash') ||
-                a.name.toLowerCase().includes('bank')
-            );
-
-            let totalDayIn = 0;
-            let totalDayOut = 0;
-
-            let accountsSummaryHtml = `<table style="margin-top:20px"><thead><tr><th>Account</th><th class="text-right">Opening</th><th class="text-right">Inflow</th><th class="text-right">Outflow</th><th class="text-right">Closing</th></tr></thead><tbody>`;
-
-            monetaryAccs.forEach(acc => {
-                let opening = acc.openingBalance || 0;
-                let inflow = 0;
-                let outflow = 0;
-                const isDrInc = ['Asset', 'Expense'].includes(acc.type);
-
-                allTransactions.forEach(tx => {
-                    const txDate = new Date(tx.date);
-                    tx.entries.forEach(e => {
-                        if ((e.account?._id || e.account) === acc._id) {
-                            if (txDate < targetDate) {
-                                opening += isDrInc ? (e.debit - e.credit) : (e.credit - e.debit);
-                            } else if (tx.date === date) {
-                                inflow += e.debit;
-                                outflow += e.credit;
-                            }
-                        }
-                    });
-                });
-
-                const closing = isDrInc ? (opening + inflow - outflow) : (opening + outflow - inflow);
-                totalDayIn += inflow;
-                totalDayOut += outflow;
-
-                accountsSummaryHtml += `<tr>
-                    <td><b>${acc.name}</b></td>
-                    <td class="text-right">${opening.toLocaleString()}</td>
-                    <td class="text-right text-success">${inflow > 0 ? '+' + inflow.toLocaleString() : '-'}</td>
-                    <td class="text-right text-danger">${outflow > 0 ? '-' + outflow.toLocaleString() : '-'}</td>
-                    <td class="text-right" style="background:#f8fafc; font-weight:700;">${closing.toLocaleString()}</td>
-                </tr>`;
-            });
-
-            accountsSummaryHtml += `</tbody></table>`;
-
-            html += `
-                <div class="stat-card" style="border-left:4px solid var(--success)">
-                    <div class="label">Total Inflow (Today)</div>
-                    <div class="value text-success">Rs. ${totalDayIn.toLocaleString()}</div>
+            html = `
+                <div class="card" style="margin-bottom:20px; border-top:4px solid var(--primary);">
+                    <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <label style="font-weight:600;">Select Report Date:</label>
+                        </div>
+                        <input type="date" id="db-date-input" class="input" value="${today}" style="width:auto; height:38px;">
+                        <button class="btn btn-primary" onclick="generateDaybookFromUI()">
+                            <i class="fas fa-sync"></i> Load Report
+                        </button>
+                    </div>
                 </div>
-                <div class="stat-card" style="border-left:4px solid var(--danger)">
-                    <div class="label">Total Outflow (Today)</div>
-                    <div class="value text-danger">Rs. ${totalDayOut.toLocaleString()}</div>
-                </div>
-                <div class="stat-card" style="border-left:4px solid var(--accent)">
-                    <div class="label">Net Movement</div>
-                    <div class="value">Rs. ${(totalDayIn - totalDayOut).toLocaleString()}</div>
-                </div>
-            </div>`;
-
-            html += `<h4>Account-wise Day Summary</h4>` + accountsSummaryHtml;
-
-            html += `<h4 style="margin-top:30px">Today's Detailed Transactions</h4>
-                <table style="margin-top:10px">
-                    <thead><tr><th>Voucher</th><th>Particulars</th><th class="text-right">Dr Amount</th><th class="text-right">Cr Amount</th></tr></thead>
-                    <tbody>`;
-
-            dayTxs.forEach(tx => {
-                tx.entries.forEach(e => {
-                    html += `<tr>
-                        <td><small>${tx._id.slice(-6).toUpperCase()}</small></td>
-                        <td><b>${e.account?.name || 'Unknown'}</b><br><small>${tx.description}</small></td>
-                        <td class="text-right">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
-                        <td class="text-right">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
-                    </tr>`;
-                });
-            });
-            html += `</tbody></table>`;
+                <div id="daybook-result-area"></div>
+            `;
+            div.innerHTML = html;
+            generateDaybookFromUI(today);
+            return;
+        }
         } else if (type === 'bs') {
             const assetTypes = ['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
             const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
@@ -1588,6 +1539,112 @@
                 document.getElementById('set-currency').value = s.currency || 'Rs.';
             }
         }
+    }
+
+    function generateDaybookFromUI(initialDate) {
+        const date = initialDate || document.getElementById('db-date-input').value;
+        const targetArea = document.getElementById('daybook-result-area');
+        if(!date) return;
+
+        const dayTxs = allTransactions.filter(tx => tx.date === date);
+        const targetDate = new Date(date);
+        targetDate.setHours(0,0,0,0);
+
+        let html = `<div style="text-align:center; margin-bottom:20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
+                        <h2 style="margin:0; color:var(--primary);">DAILY DAY BOOK & CLOSING</h2>
+                        <p style="font-weight:700;">Statement Date: ${date}</p>
+                    </div>`;
+        html += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;">`;
+
+        const monetaryAccs = allAccounts.filter(a =>
+            (a.group && (a.group.includes('Cash') || a.group.includes('Bank'))) ||
+            a.name.toLowerCase().includes('cash') ||
+            a.name.toLowerCase().includes('bank')
+        );
+
+        let totalDayIn = 0;
+        let totalDayOut = 0;
+
+        let accountsSummaryHtml = `<div class="card"><table style="margin-top:10px"><thead><tr><th>Account</th><th class="text-right">Opening</th><th class="text-right">Inflow</th><th class="text-right">Outflow</th><th class="text-right">Closing Balance</th></tr></thead><tbody>`;
+
+        monetaryAccs.forEach(acc => {
+            let opening = acc.openingBalance || 0;
+            let inflow = 0;
+            let outflow = 0;
+            const isDrInc = ['Asset', 'Expense'].includes(acc.type);
+
+            allTransactions.forEach(tx => {
+                const txDate = new Date(tx.date);
+                tx.entries.forEach(e => {
+                    const entryAccId = e.account?._id || e.account;
+                    if (entryAccId === acc._id) {
+                        if (txDate < targetDate) {
+                            opening += isDrInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                        } else if (tx.date === date) {
+                            inflow += e.debit;
+                            outflow += e.credit;
+                        }
+                    }
+                });
+            });
+
+            const closing = isDrInc ? (opening + inflow - outflow) : (opening + outflow - inflow);
+            totalDayIn += inflow;
+            totalDayOut += outflow;
+
+            accountsSummaryHtml += `<tr>
+                <td><b>${acc.name}</b></td>
+                <td class="text-right text-muted">${opening.toLocaleString()}</td>
+                <td class="text-right text-success">${inflow > 0 ? '+' + inflow.toLocaleString() : '-'}</td>
+                <td class="text-right text-danger">${outflow > 0 ? '-' + outflow.toLocaleString() : '-'}</td>
+                <td class="text-right" style="background:#f1f5f9; font-weight:700;">${closing.toLocaleString()}</td>
+            </tr>`;
+        });
+
+        accountsSummaryHtml += `</tbody></table></div>`;
+
+        html += `
+            <div class="stat-card" style="border-left:4px solid var(--success)">
+                <div class="label">Total Inflow (Today)</div>
+                <div class="value text-success">Rs. ${totalDayIn.toLocaleString()}</div>
+            </div>
+            <div class="stat-card" style="border-left:4px solid var(--danger)">
+                <div class="label">Total Outflow (Today)</div>
+                <div class="value text-danger">Rs. ${totalDayOut.toLocaleString()}</div>
+            </div>
+            <div class="stat-card" style="border-left:4px solid var(--accent)">
+                <div class="label">Net Cash Movement</div>
+                <div class="value">Rs. ${(totalDayIn - totalDayOut).toLocaleString()}</div>
+            </div>
+        </div>`;
+
+        html += `<h4 style="margin:20px 0 10px 0;">Account-wise Closing Summary</h4>` + accountsSummaryHtml;
+
+        html += `<h4 style="margin:30px 0 10px 0;">Today's Detailed Vouchers</h4>
+            <div class="card">
+            <table style="margin-top:10px">
+                <thead><tr><th>Voucher #</th><th>Ledger / Particulars</th><th class="text-right">Debit (In)</th><th class="text-right">Credit (Out)</th></tr></thead>
+                <tbody>`;
+
+        if (dayTxs.length === 0) {
+            html += `<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No transactions recorded for this date.</td></tr>`;
+        } else {
+            dayTxs.forEach(tx => {
+                tx.entries.forEach(e => {
+                    html += `<tr>
+                        <td><small class="text-muted">${tx._id.slice(-6).toUpperCase()}</small></td>
+                        <td>
+                            <div style="font-weight:600;">${e.account?.name || 'Unknown'}</div>
+                            <div style="font-size:11px; color:#64748b;">${tx.description}</div>
+                        </td>
+                        <td class="text-right text-success">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
+                        <td class="text-right text-danger">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
+                    </tr>`;
+                });
+            });
+        }
+        html += `</tbody></table></div>`;
+        targetArea.innerHTML = html;
 
         // --- THEME TOGGLE ---
         function toggleTheme() {
