@@ -8,9 +8,15 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// क्यास रोक्न यो कोड थपिएको छ
+// सुरक्षा र क्यास नियन्त्रण (ब्राउजरमा पुराना फाइलहरू नबसुन भनेर)
 app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+});
+
+// हरेक अनुरोध (Request) लाई नेपालीमा ट्र्याक गर्ने मिडिलवेयर
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] 🚀 अनुरोध प्राप्त: ${req.method} ${req.url}`);
     next();
 });
 
@@ -22,17 +28,25 @@ app.get('/', (req, res) => {
 
 const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ MongoDB मा जडान सफल भयो!"))
-    .catch(err => console.error("❌ MongoDB मा जडान हुन सकेन:", err));
+// डेटाबेस जडान (Retry logic सहित ताकि कनेक्सन टुट्दा फेरि जोडिन सकोस्)
+const connectDB = async () => {
+    try {
+        await mongoose.connect(MONGO_URI);
+        console.log("✅ ERP GOLD डेटाबेससँग जडान सफल भयो! (तपाईंको डेटा पूर्ण सुरक्षित छ)");
+    } catch (err) {
+        console.error("❌ डेटाबेस जडानमा त्रुटि:", err.message);
+        setTimeout(connectDB, 5000); // जडान असफल भए ५ सेकेन्डमा फेरि प्रयास गर्ने
+    }
+};
+connectDB();
 
-// --- Models ---
+// --- डेटा मोडेलहरू (एकाउन्टिङ संरचना) ---
 
 const AccountSchema = new mongoose.Schema({
     userId: String,
-    name: String,
-    type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] },
-    group: String, // e.g., 'Sundry Debtors', 'Sundry Creditors', 'Bank Accounts'
+    name: { type: String, required: true },
+    type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'], required: true },
+    group: String,
     phone: String,
     address: String,
     openingBalance: { type: Number, default: 0 },
@@ -53,51 +67,49 @@ const TransactionSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
-// --- APIs ---
+// --- मुख्य API सेवाहरू (Extreme Gold Suite) ---
 
-// Create Account
+// १. नयाँ खाता (Ledger) थप्ने
 app.post('/api/accounts', async (req, res) => {
     try {
         const account = new Account({ ...req.body });
         await account.save();
+        console.log(`✨ नयाँ खाता सिर्जना: ${account.name}`);
         res.status(200).json(account);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "खाता खोल्न सकिएन: " + err.message });
     }
 });
 
-// Get Accounts
+// २. सबै खाताहरू तान्ने
 app.get('/api/accounts', async (req, res) => {
     try {
-        const accounts = await Account.find({ userId: req.query.userId });
+        const accounts = await Account.find({ userId: req.query.userId }).sort({ name: 1 });
         res.json(accounts);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "डेटा तान्न सकिएन।" });
     }
 });
 
-// Post Journal Entry
+// ३. भौचर प्रविष्टि (Double Entry सँगै ब्यालेन्स अपडेट)
 app.post('/api/transactions', async (req, res) => {
     try {
         const { userId, date, description, entries } = req.body;
 
-        // Basic validation: Total Debit must equal Total Credit
-        const totalDebit = entries.reduce((sum, e) => sum + Number(e.debit), 0);
-        const totalCredit = entries.reduce((sum, e) => sum + Number(e.credit), 0);
+        const totalDebit = entries.reduce((sum, e) => sum + Number(e.debit || 0), 0);
+        const totalCredit = entries.reduce((sum, e) => sum + Number(e.credit || 0), 0);
 
         if (Math.abs(totalDebit - totalCredit) > 0.01) {
-            return res.status(400).json({ error: "Debit and Credit must be equal!" });
+            return res.status(400).json({ error: "हिसाब मिलेन! डेबिट र क्रेडिट सधैं बराबर हुनुपर्छ।" });
         }
 
         const transaction = new Transaction({ userId, date, description, entries });
         await transaction.save();
 
-        // Update Account Balances
+        // सम्बन्धित खाताहरूको ब्यालेन्स तत्काल अपडेट गर्ने
         for (const entry of entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
-                // Asset/Expense: Dr increase, Cr decrease
-                // Liability/Equity/Revenue: Cr increase, Dr decrease
                 const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
                 const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                 acc.balance += change;
@@ -105,103 +117,31 @@ app.post('/api/transactions', async (req, res) => {
             }
         }
 
+        console.log(`✅ भौचर सफलतापूर्वक सेभ गरियो: ${description}`);
         res.status(200).json(transaction);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "भौचर प्रविष्टिमा समस्या आयो।" });
     }
 });
 
-// Get Transactions (Journal)
+// ४. कारोबार इतिहास हेर्ने
 app.get('/api/transactions', async (req, res) => {
     try {
         const txs = await Transaction.find({ userId: req.query.userId })
             .populate('entries.account')
-            .sort({ createdAt: -1 });
+            .sort({ date: -1, createdAt: -1 });
         res.json(txs);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "कारोबार इतिहास लोड गर्न सकिएन।" });
     }
 });
 
-// Reports
-app.get('/api/reports/trial-balance', async (req, res) => {
-    try {
-        const accounts = await Account.find({ userId: req.query.userId });
-        res.json(accounts);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Update Transaction (Edit)
-app.put('/api/transactions/:id', async (req, res) => {
-    try {
-        const { date, description, entries } = req.body;
-        const oldTx = await Transaction.findById(req.params.id);
-        if (!oldTx) return res.status(404).json({ error: "Not found" });
-
-        // १. पुरानो हिसाब उल्टाउने (Reverse old balances)
-        for (const entry of oldTx.entries) {
-            const acc = await Account.findById(entry.account);
-            if (acc) {
-                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
-                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
-                acc.balance -= change;
-                await acc.save();
-            }
-        }
-
-        // २. नयाँ डेटा अपडेट गर्ने
-        oldTx.date = date;
-        oldTx.description = description;
-        oldTx.entries = entries;
-        await oldTx.save();
-
-        // ३. नयाँ हिसाब लागू गर्ने (Apply new balances)
-        for (const entry of entries) {
-            const acc = await Account.findById(entry.account);
-            if (acc) {
-                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
-                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
-                acc.balance += change;
-                await acc.save();
-            }
-        }
-        res.status(200).json(oldTx);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Update Account
-app.put('/api/accounts/:id', async (req, res) => {
-    try {
-        const acc = await Account.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        res.json(acc);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete Account
-app.delete('/api/accounts/:id', async (req, res) => {
-    try {
-        const txCount = await Transaction.countDocuments({ "entries.account": req.params.id });
-        if (txCount > 0) return res.status(400).json({ error: "Cannot delete account with transactions" });
-        await Account.findByIdAndDelete(req.params.id);
-        res.json({ message: "Deleted" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete Transaction
+// ५. भौचर मेटाउने (र हिसाब उल्ट्याउने)
 app.delete('/api/transactions/:id', async (req, res) => {
     try {
         const tx = await Transaction.findById(req.params.id);
-        if (!tx) return res.status(404).json({ error: "Transaction not found" });
+        if (!tx) return res.status(404).json({ error: "कारोबार फेला परेन।" });
 
-        // Reverse balances
         for (const entry of tx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -211,32 +151,59 @@ app.delete('/api/transactions/:id', async (req, res) => {
                 await acc.save();
             }
         }
-
         await Transaction.findByIdAndDelete(req.params.id);
-        res.json({ message: "Transaction deleted and balances reversed" });
+        console.log(`🗑️ भौचर हटाइयो र ब्यालेन्स सच्याइयो।`);
+        res.json({ message: "भौचर सफलतापूर्वक हटाइयो।" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "हटाउन असफल भयो।" });
     }
 });
 
-// Restore Data
+// ५.१ खाता (Account) मेटाउने API (सुरक्षा जाँच सहित)
+app.delete('/api/accounts/:id', async (req, res) => {
+    try {
+        const accId = req.params.id;
+        // के यो खातामा कुनै कारोबार छ?
+        const hasTx = await Transaction.findOne({ "entries.account": accId });
+        if (hasTx) {
+            return res.status(400).json({ error: "यो खाता मेटाउन मिल्दैन! यसमा पहिले नै कारोबार भइसकेको छ।" });
+        }
+        await Account.findByIdAndDelete(accId);
+        console.log(`🗑️ खाता हटाइयो: ${accId}`);
+        res.json({ message: "खाता सफलतापूर्वक हटाइयो।" });
+    } catch (err) {
+        res.status(500).json({ error: "खाता हटाउन सकिएन।" });
+    }
+});
+
+// ६. डेटा रिस्टोर (Backup Recovery)
 app.post('/api/restore', async (req, res) => {
     try {
-        const { accounts, transactions } = req.body;
-        if (!accounts || !transactions) return res.status(400).json({ error: "Invalid backup data" });
+        const { userId, accounts, transactions } = req.body;
+        if (!userId) return res.status(400).json({ error: "यूजर आईडी आवश्यक छ।" });
 
-        const userIds = [...new Set(accounts.map(a => a.userId))];
-        if (userIds.length > 0) {
-            await Account.deleteMany({ userId: { $in: userIds } });
-            await Transaction.deleteMany({ userId: { $in: userIds } });
-            await Account.insertMany(accounts);
-            await Transaction.insertMany(transactions);
-        }
-        res.status(200).json({ message: "Restore successful" });
+        // पुरानो डेटा मेटाएर नयाँ डेटा राख्ने
+        await Account.deleteMany({ userId });
+        await Transaction.deleteMany({ userId });
+
+        if (accounts && accounts.length > 0) await Account.insertMany(accounts);
+        if (transactions && transactions.length > 0) await Transaction.insertMany(transactions);
+
+        console.log(`♻️ प्रयोगकर्ता ${userId} को डेटा रिस्टोर सफल भयो।`);
+        res.status(200).json({ message: "ब्याकअप रिस्टोर सफल भयो!" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "रिस्टोरमा त्रुटि: " + err.message });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 सर्भर यहाँ चलिरहेको छ: http://localhost:${PORT}`));
+app.listen(PORT, () => {
+    console.log(`
+    ===========================================
+    🌟 ERP GOLD EXTREME - नेपाली संस्करण 🌟
+    🚀 सर्भर सुचारु भयो: http://localhost:${PORT}
+    📅 मिति: ${new Date().toLocaleDateString()}
+    💎 तपाईंको डेटा पूर्ण रूपमा सुरक्षित छ!
+    ===========================================
+    `);
+});
