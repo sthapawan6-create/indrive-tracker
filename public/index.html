@@ -595,15 +595,34 @@
 
     function genStat() {
         const id = document.getElementById('sAcc').value, acc = accounts.find(a => a._id===id);
-        const txs = transactions.filter(t => t.entries.some(e => (e.account?._id||e.account)===id));
+        // Sort transactions by date ascending for correct running balance
+        const txs = transactions
+            .filter(t => t.entries.some(e => (e.account?._id||e.account)===id))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
         let bal = Number(acc.openingBalance || 0);
         document.getElementById('sRes').classList.remove('hidden');
         document.getElementById('sTitle').innerText = "Statement: " + acc.name;
-        let html = `<tr><td>-</td><td>OPENING BALANCE</td><td>-</td><td>-</td><td class="text-right">Rs. ${bal.toLocaleString()}</td></tr>`;
+
+        let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`;
+
         txs.forEach(t => {
             const e = t.entries.find(en => (en.account?._id||en.account)===id);
-            bal += (Number(e.debit || 0) - Number(e.credit || 0));
-            html += `<tr><td>${t.date}</td><td>${t.description}</td><td class="text-right text-success">${e.debit?e.debit.toLocaleString():''}</td><td class="text-right text-danger">${e.credit?e.credit.toLocaleString():''}</td><td class="text-right">${bal.toLocaleString()}</td></tr>`;
+            const dr = Number(e.debit || 0);
+            const cr = Number(e.credit || 0);
+
+            // Asset/Expense accounts: Bal = Bal + Dr - Cr
+            // Liability/Revenue/Equity: Bal = Bal + Cr - Dr
+            const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+            bal += isDebitInc ? (dr - cr) : (cr - dr);
+
+            html += `<tr>
+                <td><small style="font-family:'JetBrains Mono'">${t.date}</small></td>
+                <td>${t.description}</td>
+                <td class="text-right text-success">${dr > 0 ? dr.toLocaleString() : ''}</td>
+                <td class="text-right text-danger">${cr > 0 ? cr.toLocaleString() : ''}</td>
+                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            </tr>`;
         });
         document.querySelector('#sTable tbody').innerHTML = html;
     }
