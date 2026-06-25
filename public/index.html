@@ -34,19 +34,19 @@
         * { box-sizing: border-box; outline: none; transition: all 0.2s ease-in-out; }
         body { font-family: 'Outfit', sans-serif; background: var(--bg); margin: 0; color: var(--text); font-size: 14px; line-height: 1.6; overflow-x: hidden; }
 
-        .sidebar { width: 280px; background: var(--primary); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 30px 0; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.5); border-right: 1px solid var(--border); }
-        .main { margin-left: 280px; padding: 40px; min-height: 100vh; }
-        @media (max-width: 1100px) { .sidebar { width: 85px; } .main { margin-left: 85px; } .nav-text, .logo-text { display: none; } }
+        .sidebar { width: 260px; background: var(--primary); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 25px 0; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.5); border-right: 1px solid var(--border); }
+        .main { margin-left: 260px; padding: 25px 40px; min-height: 100vh; }
+        @media (max-width: 1100px) { .sidebar { width: 80px; } .main { margin-left: 80px; } .nav-text, .logo-text { display: none; } }
 
-        .logo { padding: 0 35px 50px 35px; display: flex; align-items: center; gap: 15px; }
-        .logo-icon { width: 45px; height: 45px; background: linear-gradient(135deg, #d4af37, #aa7c11); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #0a0f1d; box-shadow: 0 8px 20px var(--accent-glow); font-weight: 800; }
-        .logo-text { font-weight: 800; font-size: 1.6rem; letter-spacing: -1px; background: linear-gradient(135deg, #fff, #d4af37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo { padding: 0 30px 40px 30px; display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #d4af37, #aa7c11); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #0a0f1d; box-shadow: 0 8px 20px var(--accent-glow); font-weight: 800; }
+        .logo-text { font-weight: 800; font-size: 1.4rem; letter-spacing: -1px; background: linear-gradient(135deg, #fff, #d4af37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .nav-item { padding: 18px 35px; display: flex; align-items: center; gap: 20px; cursor: pointer; color: #94a3b8; border-left: 4px solid transparent; margin-bottom: 10px; font-weight: 600; }
+        .nav-item { padding: 15px 30px; display: flex; align-items: center; gap: 18px; cursor: pointer; color: #94a3b8; border-left: 4px solid transparent; margin-bottom: 5px; font-weight: 600; font-size: 13px; }
         .nav-item:hover { background: rgba(255,255,255,0.03); color: white; }
         .nav-item.active { background: rgba(212, 175, 55, 0.1); color: var(--accent); border-left-color: var(--accent); }
 
-        .header { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 20px 40px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.3); position: sticky; top: 25px; z-index: 900; }
+        .header { background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 15px 35px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.3); position: sticky; top: 15px; z-index: 900; }
 
         .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; margin-bottom: 40px; }
         .stat-card { background: var(--white); padding: 30px; border-radius: 28px; border: 1px solid var(--border); position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -132,7 +132,6 @@
         </div>
     </div>
 
-
     <!-- Edit Voucher Modal -->
     <div id="editVoucherModal" class="modal-overlay hidden">
         <div class="modal-content">
@@ -154,33 +153,19 @@
             </div>
         </div>
     </div>
-        <div class="logo">
-            <div class="logo-icon">👑</div>
-            <div class="logo-text">ERP GOLD</div>
-        </div>
-        <div class="nav-item active" onclick="showTab('dashboard', this)"><i class="fas fa-th-large"></i> <span class="nav-text">Command Center</span></div>
-        <div class="nav-item" onclick="showTab('journal', this)"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Voucher Posting</span></div>
-        <div class="nav-item" onclick="showTab('accounts', this)"><i class="fas fa-book"></i> <span class="nav-text">Ledger Master</span></div>
-        <div class="nav-item" onclick="showTab('reports', this)"><i class="fas fa-chart-bar"></i> <span class="nav-text">Financial Reports</span></div>
-        <div class="nav-item" onclick="showTab('statement', this)"><i class="fas fa-history"></i> <span class="nav-text">Statements</span></div>
-        <div class="nav-item" onclick="showTab('settings', this)"><i class="fas fa-cog"></i> <span class="nav-text">System Settings</span></div>
-        <div style="position: absolute; bottom: 30px; width: 100%; padding: 0 35px;">
-            <div class="nav-item" onclick="logout()" style="border-radius:16px; color:#f43f5e; background: rgba(244, 63, 94, 0.1);"><i class="fas fa-power-off"></i> <span class="nav-text">Exit Workspace</span></div>
-        </div>
-    </div>
 
     <div class="main">
         <div class="header">
             <div>
                 <h2 id="pageTitle" style="margin:0; font-size: 1.7rem; font-weight: 800; color:white; letter-spacing: -0.5px;">Command Center</h2>
-                <div id="currentDateDisp" style="color:var(--accent); font-weight: 700; font-size: 12px; margin-top:6px; text-transform: uppercase; letter-spacing: 1px;"></div>
+                <div id="currentDateDisp" style="color:var(--accent); font-weight: 700; font-size: 11px; margin-top:2px; text-transform: uppercase; letter-spacing: 1px;"></div>
             </div>
-            <div style="display: flex; gap: 20px; align-items: center;">
+            <div style="display: flex; gap: 15px; align-items: center;">
                 <div style="text-align: right;">
-                    <div style="font-weight: 800; font-size: 15px; color:white" id="userName">User</div>
-                    <small style="color:var(--accent); font-weight:700; font-size:11px;" id="userEmail"></small>
+                    <div style="font-weight: 800; font-size: 14px; color:white" id="userName">User</div>
+                    <small style="color:var(--accent); font-weight:700; font-size:10px;" id="userEmail"></small>
                 </div>
-                <img id="userImg" src="" style="width: 50px; height: 50px; border-radius: 16px; border: 2px solid var(--accent); object-fit: cover;">
+                <img id="userImg" src="" style="width: 42px; height: 42px; border-radius: 12px; border: 2px solid var(--accent); object-fit: cover;">
             </div>
         </div>
 
@@ -541,50 +526,50 @@
         let html = '';
 
         if(type==='daybook') {
-            // Get selected date or default to today
             const selDate = document.getElementById('repDate')?.value || new Date().toISOString().split('T')[0];
             const txs = transactions.filter(t => t.date === selDate);
 
-            html = `<div class="card-body">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; background:rgba(0,0,0,0.2); padding:20px; border-radius:20px; border:1px solid var(--border);">
-                    <div>
-                        <h2 style="margin:0; font-weight:800; color:var(--accent); letter-spacing:-1px;">DAILY DAY BOOK</h2>
-                        <p style="margin:0; color:#94a3b8; font-size:12px;">Real-time transaction journal for the selected period.</p>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <label style="font-weight:700; font-size:11px; color:var(--accent);">SELECT DATE:</label>
-                        <input type="date" id="repDate" value="${selDate}" onchange="renderRep('daybook')" style="width:180px; padding:10px; border-radius:12px;">
+            html = `<div class="card-body" style="padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.1); padding:12px 20px; border-radius:16px; border:1px solid var(--border);">
+                    <h3 style="margin:0; font-weight:800; color:var(--accent); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Journal Feed</h3>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-weight:700; font-size:10px; color:#94a3b8;">FILTER DATE:</span>
+                        <input type="date" id="repDate" value="${selDate}" onchange="renderRep('daybook')" style="background:var(--primary); border:1px solid var(--border); color:var(--accent); font-weight:bold; font-family:'JetBrains Mono'; padding:5px 10px; border-radius:8px; font-size:12px; cursor:pointer;">
                     </div>
                 </div>
 
-                <table>
+                <table style="border-spacing: 0 4px;">
                     <thead>
-                        <tr style="background:rgba(212,175,55,0.1); color:var(--accent);">
-                            <th style="border-radius:12px 0 0 12px;">Voucher Particulars / Narration</th>
-                            <th class="text-right">Debit (Dr)</th>
-                            <th class="text-right" style="border-radius:0 12px 12px 0;">Credit (Cr)</th>
+                        <tr style="color:var(--accent); font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                            <th style="padding:10px 20px; text-align:left;">Voucher / Ledger Details</th>
+                            <th class="text-right" style="padding:10px 20px;">Debit (Dr)</th>
+                            <th class="text-right" style="padding:10px 20px;">Credit (Cr)</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${txs.length ? txs.map(t => {
-                            let rows = `<tr style="background:rgba(255,255,255,0.03);"><td colspan="3" style="padding:15px 25px; border-left:4px solid var(--accent);">
-                                <div style="display:flex; justify-content:space-between;">
-                                    <b style="color:white; font-size:15px;">${t.description}</b>
-                                    <span style="font-family:'JetBrains Mono'; font-size:11px; color:var(--accent); background:rgba(212,175,55,0.1); padding:2px 10px; border-radius:8px;">JV-${t._id.slice(-4).toUpperCase()}</span>
+                            let rows = `<tr style="background:rgba(212,175,55,0.08);"><td colspan="3" style="padding:10px 20px; border-radius:12px 12px 0 0;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <b style="color:white; font-size:14px;">${t.description}</b>
+                                    <span style="font-family:'JetBrains Mono'; font-size:10px; color:var(--accent); background:rgba(0,0,0,0.2); padding:2px 8px; border-radius:6px; border:1px solid rgba(212,175,55,0.2);">JV-${t._id.slice(-4).toUpperCase()}</span>
                                 </div>
                             </td></tr>`;
-                            rows += t.entries.map(e => {
+                            rows += t.entries.map((e, idx) => {
                                 const acc = accounts.find(a => a._id === (e.account?._id || e.account));
-                                return `<tr style="border:none;">
-                                    <td style="padding-left:60px; color:#cbd5e1; border:none;">${e.debit > 0 ? '<span style="color:var(--accent); font-weight:800; margin-right:10px;">By</span>' : '<span style="color:#94a3b8; font-weight:800; margin-right:10px;">To</span>'} ${acc ? acc.name : 'Unknown Ledger'}</td>
-                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none;">${e.debit > 0 ? e.debit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
-                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none;">${e.credit > 0 ? e.credit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
+                                const isLast = idx === t.entries.length - 1;
+                                return `<tr style="background:rgba(255,255,255,0.02);">
+                                    <td style="padding-left:45px; border:none; ${isLast?'border-radius:0 0 0 12px;':''}">
+                                        <span style="color:${e.debit > 0 ? 'var(--accent)' : '#94a3b8'}; font-weight:800; margin-right:8px; font-size:11px;">${e.debit > 0 ? 'BY' : 'TO'}</span>
+                                        <span style="color:#e2e8f0; font-weight:500;">${acc ? acc.name : 'Unknown Ledger'}</span>
+                                    </td>
+                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none; color:var(--success); font-size:13px;">${e.debit > 0 ? e.debit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
+                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none; ${isLast?'border-radius:0 0 12px 0;':''} color:var(--danger); font-size:13px;">${e.credit > 0 ? e.credit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
                                 </tr>`;
                             }).join('');
-                            return rows + `<tr><td colspan="3" style="height:10px; border:none;"></td></tr>`; // Spacer
+                            return rows + `<tr><td colspan="3" style="height:12px; border:none;"></td></tr>`;
                         }).join('') : `<tr><td colspan="3" style="text-align:center; padding:100px; opacity:0.3;">
-                            <i class="fas fa-calendar-times" style="font-size:60px; margin-bottom:20px; color:var(--accent);"></i>
-                            <p style="font-size:16px; font-weight:600;">यो मितिमा कुनै पनि कारोबार भेटिएन।</p>
+                            <i class="fas fa-search" style="font-size:40px; margin-bottom:15px; color:var(--accent);"></i>
+                            <p style="font-size:14px;">No transactions recorded on this date.</p>
                         </td></tr>`}
                     </tbody>
                 </table>
