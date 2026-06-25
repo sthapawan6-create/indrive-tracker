@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise ERP - Perfect Accounting</title>
     <script>
-        // पुरानो Service Worker र Cache लाई पूर्ण रूपमा खत्तम पार्ने कडा कोड
+        // Service Worker र Cache सफा गर्ने, तर इन्फिनिट रिलोड लुप रोक्ने सुरक्षित कोड
         async function forceUpdateERP() {
-            // १. सबै Service Workers हटाउने
-            if ('serviceWorker' in navigator) {
-                const regs = await navigator.serviceWorker.getRegistrations();
-                for (let reg of regs) { await reg.unregister(); }
-            }
-            // २. सबै Cache सफा गर्ने
-            const names = await caches.keys();
-            for (let name of names) { await caches.delete(name); }
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (let reg of regs) { await reg.unregister(); }
+                }
+                const names = await caches.keys();
+                for (let name of names) { await caches.delete(name); }
 
-            // ३. यदि पहिलो पटक आएको हो भने LocalStorage सफा गरेर कडा रिफ्रेस गर्ने
-            if (!localStorage.getItem('erp_final_v7')) {
-                localStorage.clear();
-                localStorage.setItem('erp_final_v7', 'true');
-                // Browser लाई 'Hard Reload' गर्न लगाउने
-                window.location.reload(true);
+                if (!localStorage.getItem('erp_final_v8')) {
+                    localStorage.setItem('erp_final_v8', 'true');
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.error("Cache clear error:", e);
             }
         }
         forceUpdateERP();
@@ -39,7 +38,7 @@
         .container { max-width: 1400px; margin: auto; padding: 20px; }
 
         /* Layout */
-        .sidebar-nav { width: 220px; background: var(--primary); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 20px 0; }
+        .sidebar-nav { width: 220px; background: var(--primary); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 20px 0; z-index: 100; }
         .main-content { margin-left: 220px; padding: 20px; }
         @media (max-width: 900px) {
             .sidebar-nav { width: 60px; }
@@ -92,6 +91,18 @@
         .badge-rev { background: #e0f2fe; color: #075985; }
         .badge-exp { background: #fef3c7; color: #92400e; }
 
+        /* Professional Voucher Table */
+        .voucher-table { width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 10px; }
+        .voucher-table th { background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid var(--border); }
+        .voucher-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; background: white; }
+        .voucher-table tr:hover { background: #f8fafc; }
+        .voucher-table input, .voucher-table select { border: 1px solid transparent; background: transparent; transition: 0.2s; }
+        .voucher-table input:focus, .voucher-table select:focus { background: white; border-color: var(--accent); }
+        .voucher-table .row-type { width: 70px; font-weight: 800; color: var(--primary); }
+        .voucher-table .row-dr, .voucher-table .row-cr { width: 120px; font-weight: 700; }
+        .voucher-table tr.dr-row { background: #f0f9ff; }
+        .voucher-table tr.cr-row { background: #fffaf0; }
+
         /* Dark Mode Support */
         body.dark-mode { --bg: #0f172a; --white: #1e293b; --border: #334155; color: #f1f5f9; }
         body.dark-mode .card, body.dark-mode .top-header, body.dark-mode .stat-card { background: #1e293b; color: #f1f5f9; }
@@ -110,19 +121,6 @@
         .text-success { color: var(--success); }
         .text-danger { color: var(--danger); }
 
-        /* Professional Voucher Table */
-        .voucher-table { width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-top: 10px; }
-        .voucher-table th { background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid var(--border); }
-        .voucher-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; background: white; }
-        .voucher-table tr:hover { background: #f8fafc; }
-        .voucher-table input, .voucher-table select { border: 1px solid transparent; background: transparent; transition: 0.2s; }
-        .voucher-table input:focus, .voucher-table select:focus { background: white; border-color: var(--accent); }
-        .voucher-table .row-type { width: 70px; font-weight: 800; color: var(--primary); }
-        .voucher-table .row-dr, .voucher-table .row-cr { width: 120px; font-weight: 700; }
-        .voucher-table tr.dr-row { background: #f0f9ff; }
-        .voucher-table tr.cr-row { background: #fffaf0; }
-
-        /* Print Styles */
         @media print {
             .sidebar-nav, .top-header, .btn, .no-print { display: none !important; }
             .main-content { margin: 0; padding: 0; }
@@ -174,7 +172,6 @@
             </div>
         </div>
 
-        <!-- Dashboard -->
         <div id="tab-dashboard" class="tab-content">
             <div style="display: flex; gap: 15px; margin-bottom: 25px;" class="no-print">
                 <button class="btn btn-primary" onclick="showTab('journal')"><i class="fas fa-plus"></i> New Voucher</button>
@@ -191,7 +188,7 @@
                     <div class="trend text-success"><i class="fas fa-wallet"></i> Total Liquidity</div>
                 </div>
                 <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                    <div class="label">Lina Baaki (Receivables)</div>
+                    <div class="label" id="ar-label">Amount to Receive (Debtors)</div>
                     <div class="value" id="dash-ar">Rs. 0</div>
                     <div class="trend text-warning">Other Assets</div>
                 </div>
@@ -207,7 +204,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 20px;">
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 20px;">
                 <div class="card">
                     <div class="card-header"><h3>Today's Closing Summary</h3></div>
                     <div class="card-body" id="dash-today-closing">
@@ -215,19 +212,23 @@
                     </div>
                 </div>
                 <div class="card">
+                    <div class="card-header"><h3>Business Performance</h3></div>
+                    <div class="card-body"><canvas id="performanceChart" height="200"></canvas></div>
+                </div>
+                <div class="card">
                     <div class="card-header"><h3>Expense Distribution</h3></div>
                     <div class="card-body"><canvas id="expensePieChart" height="200"></canvas></div>
                 </div>
-                <div class="card">
-                    <div class="card-header"><h3>Recent Vouchers</h3></div>
-                    <div class="card-body" style="padding:0">
-                        <table id="dash-recent-tx"><tbody></tbody></table>
-                    </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header"><h3>Recent Vouchers</h3></div>
+                <div class="card-body" style="padding:0">
+                    <table id="dash-recent-tx"><tbody></tbody></table>
                 </div>
             </div>
         </div>
 
-        <!-- Journal Voucher -->
         <div id="tab-journal" class="tab-content hidden">
             <div class="card no-print" style="margin-bottom: 15px;">
                 <div class="card-body" style="padding: 10px; display: flex; gap: 10px; background: #f8fafc;">
@@ -245,7 +246,6 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Voucher Header -->
                     <div style="display: grid; grid-template-columns: 200px 1fr; gap: 30px; margin-bottom: 25px; background: #f8fafc; padding: 20px; border-radius: 8px;">
                         <div>
                             <label style="font-weight: 700; font-size: 11px;">VOUCHER DATE</label>
@@ -257,28 +257,26 @@
                         </div>
                     </div>
 
-                    <!-- Voucher Table -->
                     <datalist id="ledgerOptions"></datalist>
                     <table class="voucher-table" id="voucherTable">
                         <thead>
-                            <tr>
-                                <th style="width: 80px;">Type</th>
-                                <th>Particulars (Ledger Name)</th>
-                                <th style="width: 150px;" class="text-right">Debit (Rs.)</th>
-                                <th style="width: 150px;" class="text-right">Credit (Rs.)</th>
-                                <th style="width: 50px;"></th>
-                            </tr>
+                        <tr>
+                            <th style="width: 80px;">Type</th>
+                            <th>Particulars (Ledger Name)</th>
+                            <th style="width: 150px;" class="text-right">Debit (Rs.)</th>
+                            <th style="width: 150px;" class="text-right">Credit (Rs.)</th>
+                            <th style="width: 50px;"></th>
+                        </tr>
                         </thead>
                         <tbody id="jou-entries">
-                            <!-- Rows will be added here -->
                         </tbody>
                         <tfoot>
-                            <tr style="background: #f1f5f9; font-weight: 800;">
-                                <td colspan="2" class="text-right">TOTAL</td>
-                                <td class="text-right" id="total-dr">0.00</td>
-                                <td class="text-right" id="total-cr">0.00</td>
-                                <td></td>
-                            </tr>
+                        <tr style="background: #f1f5f9; font-weight: 800;">
+                            <td colspan="2" class="text-right">TOTAL</td>
+                            <td class="text-right" id="total-dr">0.00</td>
+                            <td class="text-right" id="total-cr">0.00</td>
+                            <td></td>
+                        </tr>
                         </tfoot>
                     </table>
 
@@ -318,7 +316,6 @@
             </div>
         </div>
 
-        <!-- Ledgers -->
         <div id="tab-accounts" class="tab-content hidden">
             <div class="card">
                 <div class="card-header"><h3>Master Ledger / Party Creation</h3></div>
@@ -346,7 +343,7 @@
                                 <option value="Sundry Debtors">Sundry Debtors (Customer - Paisa Linu Parne)</option>
                                 <option value="Sundry Creditors">Sundry Creditors (Supplier - Paisa Tirnu Parne)</option>
                                 <option value="Capital Account">Capital Account (Owner's Investment)</option>
-                                <option value="Sales Accounts">Sales Accounts (Main Income / InDrive Earning)</option>
+                                <option value="Sales Accounts">Sales Accounts (Main Income / Earning)</option>
                                 <option value="Indirect Income">Indirect Income (Bonus / Other Income)</option>
                                 <option value="Direct Expenses">Direct Expenses (Fuel / Oil / Repair)</option>
                                 <option value="Indirect Expenses">Indirect Expenses (Salary Paid / Rent / Food)</option>
@@ -388,6 +385,7 @@
                             <option value="Sales Accounts">Income/Sales (आम्दानी)</option>
                         </select>
                         <input type="text" id="searchLedger" placeholder="Search name..." onkeyup="filterLedgers()" style="width: 200px;">
+                        <button class="btn btn-success" onclick="exportToExcel('accountsTable')"><i class="fas fa-file-excel"></i> Export Excel</button>
                     </div>
                 </div>
                 <div class="card-body" style="padding:0">
@@ -399,7 +397,6 @@
             </div>
         </div>
 
-        <!-- Reports -->
         <div id="tab-reports" class="tab-content hidden">
             <div style="display: flex; gap: 10px; margin-bottom: 25px;" class="no-print">
                 <button class="btn btn-outline" onclick="renderReport('trial')">Trial Balance</button>
@@ -407,7 +404,6 @@
                 <button class="btn btn-outline" onclick="renderReport('bs')">Balance Sheet</button>
                 <button class="btn btn-outline" onclick="renderReport('daybook')">Day Book</button>
                 <button class="btn btn-primary" style="margin-left: auto;" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
-                <button class="btn btn-outline" style="background:#16a34a; color:white; border:none;" onclick="exportToExcel('accountsTable')"><i class="fas fa-file-excel"></i> Export All Ledgers</button>
             </div>
             <div id="reportArea" class="card">
                 <div class="card-body" id="reportContent">
@@ -419,7 +415,6 @@
             </div>
         </div>
 
-        <!-- Statement -->
         <div id="tab-statement" class="tab-content hidden">
             <div class="card no-print">
                 <div class="card-header"><h3>Filter Statement</h3></div>
@@ -455,7 +450,6 @@
             </div>
         </div>
 
-        <!-- Settings -->
         <div id="tab-settings" class="tab-content hidden">
             <div class="card">
                 <div class="card-header"><h3>Company Profile & Settings</h3></div>
@@ -555,12 +549,10 @@
         const prevMonth = new Date(); prevMonth.setMonth(prevMonth.getMonth() - 1);
         document.getElementById('stat-from').valueAsDate = prevMonth;
 
-        // Auto-refresh Dashboard every 5 minutes
         setInterval(() => {
             if (currentUser) init();
         }, 300000);
 
-        // Auto-select Type based on Group (Add listener only once)
         const groupEl = document.getElementById('acc-group');
         if (groupEl && !groupEl.getAttribute('data-listener')) {
             groupEl.addEventListener('change', function() {
@@ -617,39 +609,44 @@
         const select = document.getElementById('stat-acc-select');
         const datalist = document.getElementById('ledgerOptions');
 
-        tbody.innerHTML = allAccounts.map(acc => `
-            <tr>
-                <td style="font-weight:600">
-                    ${acc.name}<br>
-                    <small style="color:#64748b">${acc.phone || ''}</small>
-                </td>
-                <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
-                <td><small>${acc.group || '-'}</small></td>
-                <td><small>${acc.address || '-'}</small></td>
-                <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">
-                    <b>Rs. ${Math.abs(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</b>
-                    <small>${getBalanceSide(acc)}</small>
-                </td>
-                <td class="text-right">
-                    <button class="btn btn-outline" style="color:var(--accent); border:none; padding:5px;" onclick="editAccount('${acc._id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-outline" style="color:var(--danger); border:none; padding:5px;" onclick="deleteAccount('${acc._id}')"><i class="fas fa-trash-alt"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        if(tbody) {
+            tbody.innerHTML = allAccounts.map(acc => `
+                <tr>
+                    <td style="font-weight:600">
+                        ${acc.name}<br>
+                        <small style="color:#64748b">${acc.phone || ''}</small>
+                    </td>
+                    <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
+                    <td><small>${acc.group || '-'}</small></td>
+                    <td><small>${acc.address || '-'}</small></td>
+                    <td class="text-right ${acc.balance < 0 ? 'text-danger' : 'text-success'}">
+                        <b>Rs. ${Math.abs(acc.balance).toLocaleString(undefined, {minimumFractionDigits: 2})}</b>
+                        <small>${getBalanceSide(acc)}</small>
+                    </td>
+                    <td class="text-right">
+                        <button class="btn btn-outline" style="color:var(--accent); border:none; padding:5px;" onclick="editAccount('${acc._id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline" style="color:var(--danger); border:none; padding:5px;" onclick="deleteAccount('${acc._id}')"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
-        select.innerHTML = '<option value="">-- Choose Account --</option>' +
-            allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        if(select) {
+            select.innerHTML = '<option value="">-- Choose Account --</option>' +
+                allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        }
 
-        // Update datalist with Category Prefixes for easy search
-        datalist.innerHTML = allAccounts.map(a => {
-            let prefix = a.group || a.type;
-            if (prefix.includes('Bank')) prefix = 'Bank';
-            else if (prefix.includes('Debtors')) prefix = 'Customer';
-            else if (prefix.includes('Creditors')) prefix = 'Supplier';
-            else if (prefix.includes('Cash')) prefix = 'Cash';
+        if(datalist) {
+            datalist.innerHTML = allAccounts.map(a => {
+                let prefix = a.group || a.type;
+                if (prefix.includes('Bank')) prefix = 'Bank';
+                else if (prefix.includes('Debtors')) prefix = 'Customer';
+                else if (prefix.includes('Creditors')) prefix = 'Supplier';
+                else if (prefix.includes('Cash')) prefix = 'Cash';
 
-            return `<option value="${prefix}: ${a.name}" data-id="${a._id}" data-name="${a.name}" data-group="${prefix}">`;
-        }).join('');
+                return `<option value="${prefix}: ${a.name}" data-id="${a._id}" data-name="${a.name}" data-group="${prefix}">`;
+            }).join('');
+        }
     }
 
     let editingAccId = null;
@@ -664,6 +661,7 @@
         document.getElementById('acc-address').value = acc.address;
         document.getElementById('acc-op').value = acc.openingBalance;
         document.getElementById('save-acc-btn').innerText = "Update Ledger";
+        showTab('accounts');
     }
 
     async function deleteAccount(id) {
@@ -781,7 +779,7 @@
 
         if (found) {
             idInput.value = id;
-            el.value = cleanName; // Show clean name after selection
+            el.value = cleanName;
             grpBadge.innerText = group;
             grpBadge.style.display = 'inline-block';
             el.style.borderColor = "var(--border)";
@@ -817,7 +815,7 @@
         });
         if(res.ok) {
             const newAcc = await res.json();
-            await fetchAccounts(); // Refresh datalist
+            await fetchAccounts();
             inputEl.value = newAcc.name;
             inputEl.parentElement.querySelector('.row-acc-id').value = newAcc._id;
             focusAmount(inputEl);
@@ -842,7 +840,7 @@
         if (el.value === 'dr') {
             row.classList.add('dr-row');
             row.classList.remove('cr-row');
-            row.style.background = ""; // Clear inline style to let CSS take over
+            row.style.background = "";
             crInput.disabled = true;
             if (!skipClear) crInput.value = '';
             crInput.style.background = "#f1f5f9";
@@ -878,15 +876,16 @@
 
         const diff = Math.abs(dr - cr);
         const alertBox = document.getElementById('diff-alert');
+        const postBtn = document.getElementById('post-btn');
         if (diff > 0.01) {
             alertBox.classList.remove('hidden');
             document.getElementById('total-diff').innerText = diff.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('post-btn').disabled = true;
-            document.getElementById('post-btn').style.opacity = 0.5;
+            postBtn.disabled = true;
+            postBtn.style.opacity = 0.5;
         } else {
             alertBox.classList.add('hidden');
-            document.getElementById('post-btn').disabled = false;
-            document.getElementById('post-btn').style.opacity = 1;
+            postBtn.disabled = false;
+            postBtn.style.opacity = 1;
         }
     }
 
@@ -932,7 +931,7 @@
                 </td>
             `;
             tbody.appendChild(tr);
-            updateRowColor(tr.querySelector('.row-type'), true); // true to skip clearing values
+            updateRowColor(tr.querySelector('.row-type'), true);
             validateAccount(tr.querySelector('.row-acc-input'));
         });
         showTab('journal');
@@ -1015,30 +1014,31 @@
         const tbody = document.querySelector('#transactionsTable tbody');
         const dashRecent = document.querySelector('#dash-recent-tx tbody');
 
-        tbody.innerHTML = txs.map(tx => `
-            <tr>
-                <td><b>${new Date(tx.date).toLocaleDateString()}</b></td>
-                <td>
-                    <div style="font-weight:600">${tx.description}</div>
-                    <small style="color:#64748b">ID: ${tx._id.slice(-6).toUpperCase()}</small>
-                </td>
-                <td>
-                    <div style="font-size:11px">
-                        ${tx.entries.map(e => `
-                            <div style="display:flex; justify-content:space-between; margin-bottom:2px; padding:2px 5px; border-radius:3px; background:${e.debit > 0 ? '#f0f9ff' : '#fffaf0'}">
-                                <span>${e.debit > 0 ? 'By' : 'To'} <b>${e.account?.name || 'Unknown'}</b></span>
-                                <span>${(e.debit || e.credit).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </td>
-                <td class="text-right">
-                    <button class="btn btn-outline" style="color:var(--primary); border:none; margin-right:5px;" onclick="printVoucher('${tx._id}')" title="Print Voucher"><i class="fas fa-print"></i></button>
-                    <button class="btn btn-outline" style="color:var(--accent); border:none; margin-right:5px;" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-outline" style="color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
-                </td>
-            </tr>
-        `).join('');
+        if(tbody) {
+            tbody.innerHTML = txs.map(tx => `
+                <tr>
+                    <td><b>${new Date(tx.date).toLocaleDateString()}</b></td>
+                    <td>
+                        <div style="font-weight:600">${tx.description}</div>
+                        <small style="color:#64748b">ID: ${tx._id.slice(-6).toUpperCase()}</small>
+                    </td>
+                    <td>
+                        <div style="font-size:11px">
+                            ${tx.entries.map(e => `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:2px; padding:2px 5px; border-radius:3px; background:${e.debit > 0 ? '#f0f9ff' : '#fffaf0'}">
+                                    <span>${e.debit > 0 ? 'By' : 'To'} <b>${e.account?.name || 'Unknown'}</b></span>
+                                    <span>${(e.debit || e.credit).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </td>
+                    <td class="text-right">
+                        <button class="btn btn-outline" style="color:var(--accent); border:none; margin-right:5px;" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline" style="color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
         if (dashRecent) {
             dashRecent.innerHTML = txs.slice(0, 8).map(tx => `
@@ -1062,7 +1062,7 @@
 
         rows.forEach(row => {
             const rowText = row.innerText.toLowerCase();
-            const rowGroup = row.cells[2].innerText; // Group column is at index 2
+            const rowGroup = row.cells[2].innerText;
 
             const matchesTerm = rowText.includes(term);
             const matchesGroup = (groupFilter === "All") || (rowGroup === groupFilter);
@@ -1074,12 +1074,12 @@
     function quickEntry(type) {
         resetVoucher();
         const tbody = document.getElementById('jou-entries');
-        tbody.innerHTML = ''; // Clear defaults
+        tbody.innerHTML = '';
 
         if (type === 'payment') {
             document.getElementById('jou-desc').value = "Cash/Bank Payment to ";
-            addJournalRow(); // Dr Row
-            addJournalRow(); // Cr Row
+            addJournalRow();
+            addJournalRow();
             const rows = tbody.querySelectorAll('tr');
             rows[0].querySelector('.row-type').value = 'dr';
             rows[1].querySelector('.row-type').value = 'cr';
@@ -1087,8 +1087,8 @@
             updateRowColor(rows[1].querySelector('.row-type'));
         } else if (type === 'receipt') {
             document.getElementById('jou-desc').value = "Cash/Bank Receipt from ";
-            addJournalRow(); // Dr Row
-            addJournalRow(); // Cr Row
+            addJournalRow();
+            addJournalRow();
             const rows = tbody.querySelectorAll('tr');
             rows[0].querySelector('.row-type').value = 'dr';
             rows[1].querySelector('.row-type').value = 'cr';
@@ -1102,7 +1102,7 @@
     }
 
     function applyVat(el) {
-        const row = el.parentElement.parentElement;
+        const row = el.closest('tr');
         const drInput = row.querySelector('.row-dr');
         const crInput = row.querySelector('.row-cr');
         const val = Number(drInput.value || crInput.value || 0);
@@ -1112,47 +1112,53 @@
         const total = val + vat;
 
         if (confirm(`Add 13% VAT (Rs. ${vat.toFixed(2)})?\nTotal: Rs. ${total.toFixed(2)}`)) {
-            if (drInput.value) drInput.value = total.toFixed(2);
+            if (!drInput.disabled) drInput.value = total.toFixed(2);
             else crInput.value = total.toFixed(2);
             calcJournalTotals();
         }
     }
 
-
     function updateDashboard() {
-        let cash = 0, ar = 0, ap = 0, hold = 0, netWorth = 0;
+        let cash = 0, ar = 0, ap = 0, hold = 0, totalAssets = 0, totalLiabs = 0;
         let expenseData = {};
+
+        const assetTypes = ['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
+        const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
 
         allAccounts.forEach(acc => {
             const grp = acc.group || '';
             const type = acc.type;
-            const bal = acc.balance;
+            const bal = acc.balance || 0;
             const name = acc.name.toLowerCase();
 
-            // Total Net Worth (All Assets + Liabilities/Equity)
-            if (['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments',
-                 'Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions',
-                 'Equity', 'Capital'].includes(type)) {
-                netWorth += bal;
-            }
-
-            // 1. Cash & Bank
+            // १. नगद र बैंक (Liquidity)
             if (grp === 'Bank Accounts' || grp === 'Cash-in-hand' || name.includes('cash')) {
                 cash += bal;
+                totalAssets += bal;
             }
-            // 2. Hold
+            // २. होल्ड रकम
             else if (name.includes('hold')) {
                 hold += Math.abs(bal);
+                totalAssets += bal;
             }
-            // 3. To Receive (Only Sundry Debtors)
+            // ३. पाउनुपर्ने (AR) - ग्राहकहरू मात्र
             else if (grp === 'Sundry Debtors') {
                 if (bal > 0) ar += bal;
-                else ap += Math.abs(bal); // Advance from customer
+                else ap += Math.abs(bal); // ग्राहकबाट अग्रिम (Liability)
+                totalAssets += (bal > 0 ? bal : 0);
+                if (bal < 0) totalLiabs += Math.abs(bal);
             }
-            // 4. Dina Baaki (Sundry Creditors / Loans / Liabilities)
-            else if (grp === 'Sundry Creditors' || type === 'Liability' || grp.includes('Loan')) {
-                if (bal < 0) ap += Math.abs(bal);
-                else ar += Math.abs(bal); // Advance to supplier
+            // ४. तिर्नुपर्ने (AP) - साहु र ऋणहरू
+            else if (grp === 'Sundry Creditors' || liabilityTypes.includes(type) || grp.toLowerCase().includes('loan')) {
+                if (bal > 0) ap += bal; // साहुलाई तिर्नुपर्ने (Credit Balance)
+                else if (bal < 0) ar += Math.abs(bal); // साहुलाई अग्रिम दिएको (Debit Balance)
+
+                if (bal > 0) totalLiabs += bal;
+                else if (bal < 0) totalAssets += Math.abs(bal);
+            }
+            // अन्य सम्पत्तिहरू (Fixed Assets etc.)
+            else if (assetTypes.includes(type)) {
+                totalAssets += bal;
             }
 
             if (type === 'Expense') {
@@ -1160,27 +1166,24 @@
             }
         });
 
-        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
-        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
-        document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
-
-        // Net Worth is now accurately calculated from total assets/liabilities
-        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString();
-
-        // Optional: Show Hold amount in AR label if exists
-        if (hold > 0) {
-            document.querySelector('#dash-ar').parentElement.querySelector('.label').innerHTML =
-                `To Receive <small style="color:var(--accent)">(+ Rs. ${hold.toLocaleString()} Hold)</small>`;
-        } else {
-            document.querySelector('#dash-ar').parentElement.querySelector('.label').innerText = "Amount to Receive (Debtors)";
-        }
-
-        // Calculate Accounting Health
         const totalRevenue = allAccounts.filter(a => ['Revenue', 'Income', 'Sales'].some(t => a.type.includes(t))).reduce((s,a) => s+a.balance, 0);
         const totalExpense = allAccounts.filter(a => ['Expense', 'Purchase'].some(t => a.type.includes(t))).reduce((s,a) => s+a.balance, 0);
         const netProfit = totalRevenue - totalExpense;
 
-        // Today's Summary for Dashboard
+        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        // Net Worth = Assets - Liabilities + Current Profit
+        document.getElementById('dash-networth').innerText = "Rs. " + (totalAssets - totalLiabs + netProfit).toLocaleString(undefined, {minimumFractionDigits: 2});
+
+        const arLabel = document.getElementById('ar-label');
+        if (hold > 0) {
+            arLabel.innerHTML = `To Receive <small style="color:var(--accent)">(+ Rs. ${hold.toLocaleString()} Hold)</small>`;
+        } else {
+            arLabel.innerText = "Amount to Receive (Debtors)";
+        }
+
         const today = new Date().toISOString().split('T')[0];
         const todayTxs = allTransactions.filter(t => t.date === today);
         let todayIn = 0, todayOut = 0;
@@ -1214,38 +1217,44 @@
     }
 
     function initCharts(rev, exp, expenseData) {
-        const ctx = document.getElementById('performanceChart').getContext('2d');
-        if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Revenue', 'Expenses', 'Net Profit'],
-                datasets: [{
-                    data: [rev, exp, rev - exp],
-                    backgroundColor: ['#2563eb', '#dc2626', '#059669'],
-                    borderRadius: 5
-                }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
+        const perfChartEl = document.getElementById('performanceChart');
+        if (perfChartEl) {
+            const ctx = perfChartEl.getContext('2d');
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Revenue', 'Expenses', 'Net Profit'],
+                    datasets: [{
+                        data: [rev, exp, rev - exp],
+                        backgroundColor: ['#2563eb', '#dc2626', '#059669'],
+                        borderRadius: 5
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
 
-        const ctx2 = document.getElementById('expensePieChart').getContext('2d');
-        if (expensePie) expensePie.destroy();
+        const pieChartEl = document.getElementById('expensePieChart');
+        if (pieChartEl) {
+            const ctx2 = pieChartEl.getContext('2d');
+            if (expensePie) expensePie.destroy();
 
-        const labels = Object.keys(expenseData);
-        const values = Object.values(expenseData);
+            const labels = Object.keys(expenseData);
+            const values = Object.values(expenseData);
 
-        expensePie = new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: labels.length ? labels : ['No Data'],
-                datasets: [{
-                    data: values.length ? values : [1],
-                    backgroundColor: ['#f43f5e', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
-                }]
-            },
-            options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
-        });
+            expensePie = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['No Data'],
+                    datasets: [{
+                        data: values.length ? values : [1],
+                        backgroundColor: ['#f43f5e', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+            });
+        }
     }
 
     function generateStatement() {
@@ -1267,7 +1276,6 @@
 
         const isDrInc = ['Asset', 'Expense'].includes(acc.type);
 
-        // Collect all entries for this account and sort them
         const allFiltered = [];
         allTransactions.forEach(tx => {
             tx.entries.forEach(e => {
@@ -1279,13 +1287,12 @@
                         desc: tx.description,
                         dr: e.debit,
                         cr: e.credit,
-                        ts: new Date(tx.createdAt)
+                        ts: new Date(tx.createdAt || 0)
                     });
                 }
             });
         });
 
-        // Sort by user-entered date, then by system creation time
         allFiltered.sort((a, b) => a.dateObj - b.dateObj || a.ts - b.ts);
 
         let openingForPeriod = acc.openingBalance || 0;
@@ -1378,332 +1385,190 @@
             </table>`;
         } else if (type === 'daybook') {
             const today = new Date().toISOString().split('T')[0];
-
-            html = `
-                <div class="card" style="margin-bottom:20px; border-top:4px solid var(--primary);">
-                    <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <i class="fas fa-calendar-alt text-primary"></i>
-                            <label style="font-weight:600;">Select Report Date:</label>
-                        </div>
-                        <input type="date" id="db-date-input" class="input" value="${today}" style="width:auto; height:38px;">
-                        <button class="btn btn-primary" onclick="generateDaybookFromUI()">
-                            <i class="fas fa-sync"></i> Load Report
-                        </button>
-                    </div>
-                </div>
-                <div id="daybook-result-area"></div>
-            `;
-            div.innerHTML = html;
-            generateDaybookFromUI(today);
-            return;
-        } else if (type === 'bs') {
-            const assetTypes = ['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
-            const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
-            const equityTypes = ['Equity', 'Capital', 'Retained Earnings', 'Reserves'];
-
-            const assets = allAccounts.filter(a => assetTypes.includes(a.type));
-            const liabilities = allAccounts.filter(a => liabilityTypes.includes(a.type));
-            const equity = allAccounts.filter(a => equityTypes.includes(a.type));
-
-            const totalRevenue = allAccounts.filter(a => ['Revenue', 'Income', 'Sales', 'Direct Income', 'Indirect Income'].includes(a.type)).reduce((s,a) => s+a.balance, 0);
-            const totalExpense = allAccounts.filter(a => ['Expense', 'Purchase', 'Direct Expense', 'Indirect Expense'].includes(a.type)).reduce((s,a) => s+a.balance, 0);
-            const netProfit = totalRevenue - totalExpense;
-
-            const totalAssets = assets.reduce((s,a) => s+a.balance, 0);
-            const totalLiabilities = liabilities.reduce((s,a) => s+a.balance, 0);
-            const totalEquity = equity.reduce((s,a) => s+a.balance, 0);
-            const totalLiabEquity = totalLiabilities + totalEquity + netProfit;
-            const diff = totalAssets - totalLiabEquity;
-
-            html = `
-                <div style="text-align:center; margin-bottom:25px;">
-                    <h2 style="margin:0; color:var(--primary);">BALANCE SHEET</h2>
-                    <p style="margin:5px 0; color:#64748b; font-weight:600;">As on ${new Date().toLocaleDateString()}</p>
-                </div>
-                <div style="display:flex; border:2px solid var(--primary); border-radius:8px; overflow:hidden; background:white; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:300px; border-right:1px solid var(--border);">
-                        <div style="background:var(--primary); color:white; padding:12px; font-weight:700; text-align:center; letter-spacing:1px;">ASSETS</div>
-                        <div style="padding:15px;">
-                            <table style="border:none">
-                                ${assets.map(a => `<tr><td style="border:none; padding:8px 0;">${a.name} <small style="color:#94a3b8">(${a.type})</small></td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
-                                <tr style="border-top:2px solid var(--primary); font-weight:800; color:var(--primary);">
-                                    <td style="border:none; padding-top:15px;">TOTAL ASSETS</td>
-                                    <td class="text-right" style="border:none; padding-top:15px; font-size:1.1rem;">Rs. ${totalAssets.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-            <div style="flex:1; min-width:300px;">
-                        <div style="background:var(--primary); color:white; padding:12px; font-weight:700; text-align:center; letter-spacing:1px;">LIABILITIES & EQUITY</div>
-                        <div style="padding:15px;">
-                            <table style="border:none">
-                                <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-bottom:5px; text-decoration:underline;">Liabilities</td></tr>
-                                ${liabilities.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name} <small style="color:#94a3b8">(${a.type})</small></td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
-                                <tr><td colspan="2" style="font-weight:700; color:var(--accent); border:none; padding-top:15px; padding-bottom:5px; text-decoration:underline;">Equity & Profit</td></tr>
-                                ${equity.map(a => `<tr><td style="border:none; padding:5px 0 5px 15px;">${a.name} <small style="color:#94a3b8">(${a.type})</small></td><td class="text-right" style="border:none; font-weight:600;">${Math.abs(a.balance).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`).join('')}
-                                <tr><td style="border:none; padding:5px 0 5px 15px;">Net Profit / Loss (MTD)</td><td class="text-right" style="border:none; font-weight:600; color:${netProfit>=0?'var(--success)':'var(--danger)'}">${netProfit.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
-                                <tr style="border-top:2px solid var(--primary); font-weight:800; color:var(--primary);">
-                                    <td style="border:none; padding-top:15px;">TOTAL LIAB. & EQUITY</td>
-                                    <td class="text-right" style="border:none; padding-top:15px; font-size:1.1rem;">Rs. ${totalLiabEquity.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>`;
+            const txs = allTransactions.filter(t => t.date === today);
+            html = `<h3>Today's Day Book (${today})</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Voucher</th><th>Particulars</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr>
+                        </thead>
+                        <tbody>
+                            ${txs.length ? txs.map(t => `
+                                <tr style="background:#f8fafc"><td colspan="4"><b>${t.description}</b> <small>(${t.date})</small></td></tr>
+                                ${t.entries.map(e => {
+                                    const acc = allAccounts.find(a => a._id === (e.account?._id || e.account));
+                                    return `<tr>
+                                        <td style="padding-left:20px">${e.debit > 0 ? 'By' : 'To'} ${acc ? acc.name : 'Unknown'}</td>
+                                        <td></td>
+                                        <td class="text-right">${e.debit > 0 ? e.debit.toLocaleString() : ''}</td>
+                                        <td class="text-right">${e.credit > 0 ? e.credit.toLocaleString() : ''}</td>
+                                    </tr>`;
+                                }).join('')}
+                            `).join('') : '<tr><td colspan="4">No transactions found for today.</td></tr>'}
+                        </tbody>
+                    </table>`;
         }
         div.innerHTML = html;
+        showTab('reports');
     }
 
-    function exportToExcel(tableId) {
-        const table = document.getElementById(tableId);
-        if (!table) return alert("Table not found. Please open the tab first.");
-        const wb = XLSX.utils.table_to_book(table);
-        const fileName = `${tableId}_${new Date().toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
+        const nav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.innerText.toLowerCase().includes(tabId.toLowerCase().slice(0,3)));
+        if(nav) nav.classList.add('active');
+        document.getElementById('pageTitle').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
     }
 
-    function quickEntry(type) {
-        resetVoucher();
-        const tbody = document.getElementById('jou-entries');
-        tbody.innerHTML = ''; // Clear defaults
-
-        if (type === 'payment') {
-            document.getElementById('jou-desc').value = "Cash/Bank Payment to ";
-            addJournalRow(); // Dr Row
-            addJournalRow(); // Cr Row
-            const rows = tbody.querySelectorAll('tr');
-            rows[0].querySelector('.row-type').value = 'dr';
-            rows[1].querySelector('.row-type').value = 'cr';
-            updateRowColor(rows[0].querySelector('.row-type'));
-            updateRowColor(rows[1].querySelector('.row-type'));
-        } else if (type === 'receipt') {
-            document.getElementById('jou-desc').value = "Cash/Bank Receipt from ";
-            addJournalRow(); // Dr Row
-            addJournalRow(); // Cr Row
-            const rows = tbody.querySelectorAll('tr');
-            rows[0].querySelector('.row-type').value = 'dr';
-            rows[1].querySelector('.row-type').value = 'cr';
-            updateRowColor(rows[0].querySelector('.row-type'));
-            updateRowColor(rows[1].querySelector('.row-type'));
-        } else if (type === 'contra') {
-            document.getElementById('jou-desc').value = "Cash/Bank Transfer";
-            addJournalRow();
-            addJournalRow();
-        }
-    }
-
-    function applyVat(el) {
-        const row = el.parentElement.parentElement;
-        const drInput = row.querySelector('.row-dr');
-        const crInput = row.querySelector('.row-cr');
-        const val = Number(drInput.value || crInput.value || 0);
-        if (val === 0) return alert("Enter amount first");
-
-        const vat = val * 0.13;
-        const total = val + vat;
-
-        if (confirm(`Add 13% VAT (Rs. ${vat.toFixed(2)})?\nTotal: Rs. ${total.toFixed(2)}`)) {
-            if (drInput.value) drInput.value = total.toFixed(2);
-            else crInput.value = total.toFixed(2);
-            calcJournalTotals();
-        }
-    }
-
-    // --- SETTINGS ---
-    function saveSettings() {
-        const settings = {
-            companyName: document.getElementById('set-company-name').value,
-            address: document.getElementById('set-company-addr').value,
-            pan: document.getElementById('set-company-pan').value,
-            currency: document.getElementById('set-currency').value
-        };
-        localStorage.setItem('erp_settings', JSON.stringify(settings));
-        alert("Settings saved successfully!");
-    }
-
-    function loadSettings() {
-        const saved = localStorage.getItem('erp_settings');
-        if (saved) {
-            const s = JSON.parse(saved);
-            if(document.getElementById('set-company-name')) document.getElementById('set-company-name').value = s.companyName || '';
-            if(document.getElementById('set-company-addr')) document.getElementById('set-company-addr').value = s.address || '';
-            if(document.getElementById('set-company-pan')) document.getElementById('set-company-pan').value = s.pan || '';
-            if(document.getElementById('set-currency')) document.getElementById('set-currency').value = s.currency || 'Rs.';
-        }
-    }
-
-    function generateDaybookFromUI(initialDate) {
-        const date = initialDate || document.getElementById('db-date-input').value;
-        const targetArea = document.getElementById('daybook-result-area');
-        if(!date) return;
-
-        const dayTxs = allTransactions.filter(tx => tx.date === date);
-        const targetDate = new Date(date);
-        targetDate.setHours(0,0,0,0);
-
-        let html = `<div style="text-align:center; margin-bottom:20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
-                        <h2 style="margin:0; color:var(--primary);">DAILY DAY BOOK & CLOSING</h2>
-                        <p style="font-weight:700;">Statement Date: ${date}</p>
-                    </div>`;
-        html += `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;">`;
-
-        const monetaryAccs = allAccounts.filter(a =>
-            (a.group && (a.group.includes('Cash') || a.group.includes('Bank'))) ||
-            a.name.toLowerCase().includes('cash') ||
-            a.name.toLowerCase().includes('bank')
-        );
-
-        let totalDayIn = 0;
-        let totalDayOut = 0;
-
-        let accountsSummaryHtml = `<div class="card"><table style="margin-top:10px"><thead><tr><th>Account</th><th class="text-right">Opening</th><th class="text-right">Inflow</th><th class="text-right">Outflow</th><th class="text-right">Closing Balance</th></tr></thead><tbody>`;
-
-        monetaryAccs.forEach(acc => {
-            let opening = acc.openingBalance || 0;
-            let inflow = 0;
-            let outflow = 0;
-            const isDrInc = ['Asset', 'Expense'].includes(acc.type);
-
-            allTransactions.forEach(tx => {
-                const txDate = new Date(tx.date);
-                tx.entries.forEach(e => {
-                    const entryAccId = e.account?._id || e.account;
-                    if (entryAccId === acc._id) {
-                        if (txDate < targetDate) {
-                            opening += isDrInc ? (e.debit - e.credit) : (e.credit - e.debit);
-                        } else if (tx.date === date) {
-                            inflow += e.debit;
-                            outflow += e.credit;
-                        }
-                    }
-                });
-            });
-
-            const closing = isDrInc ? (opening + inflow - outflow) : (opening + outflow - inflow);
-            totalDayIn += inflow;
-            totalDayOut += outflow;
-
-            accountsSummaryHtml += `<tr>
-                <td><b>${acc.name}</b></td>
-                <td class="text-right text-muted">${opening.toLocaleString()}</td>
-                <td class="text-right text-success">${inflow > 0 ? '+' + inflow.toLocaleString() : '-'}</td>
-                <td class="text-right text-danger">${outflow > 0 ? '-' + outflow.toLocaleString() : '-'}</td>
-                <td class="text-right" style="background:#f1f5f9; font-weight:700;">${closing.toLocaleString()}</td>
-            </tr>`;
-        });
-
-        accountsSummaryHtml += `</tbody></table></div>`;
-
-        html += `
-            <div class="stat-card" style="border-left:4px solid var(--success)">
-                <div class="label">Total Inflow (Today)</div>
-                <div class="value text-success">Rs. ${totalDayIn.toLocaleString()}</div>
-            </div>
-            <div class="stat-card" style="border-left:4px solid var(--danger)">
-                <div class="label">Total Outflow (Today)</div>
-                <div class="value text-danger">Rs. ${totalDayOut.toLocaleString()}</div>
-            </div>
-            <div class="stat-card" style="border-left:4px solid var(--accent)">
-                <div class="label">Net Cash Movement</div>
-                <div class="value">Rs. ${(totalDayIn - totalDayOut).toLocaleString()}</div>
-            </div>
-        </div>`;
-
-        html += `<h4 style="margin:20px 0 10px 0;">Account-wise Closing Summary</h4>` + accountsSummaryHtml;
-
-        html += `<h4 style="margin:30px 0 10px 0;">Today's Detailed Vouchers</h4>
-            <div class="card">
-            <table style="margin-top:10px">
-                <thead><tr><th>Voucher #</th><th>Ledger / Particulars</th><th class="text-right">Debit (In)</th><th class="text-right">Credit (Out)</th></tr></thead>
-                <tbody>`;
-
-        if (dayTxs.length === 0) {
-            html += `<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">No transactions recorded for this date.</td></tr>`;
-        } else {
-            dayTxs.forEach(tx => {
-                tx.entries.forEach(e => {
-                    html += `<tr>
-                        <td><small class="text-muted">${tx._id.slice(-6).toUpperCase()}</small></td>
-                        <td>
-                            <div style="font-weight:600;">${e.account?.name || 'Unknown'}</div>
-                            <div style="font-size:11px; color:#64748b;">${tx.description}</div>
-                        </td>
-                        <td class="text-right text-success">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
-                        <td class="text-right text-danger">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
-                    </tr>`;
-                });
-            });
-        }
-        html += `</tbody></table></div>`;
-        targetArea.innerHTML = html;
-    }
-
-    // --- THEME TOGGLE ---
-    function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
-        localStorage.setItem('erp_theme', isDark ? 'dark' : 'light');
-    }
-
-    // Apply theme on load
-    if (localStorage.getItem('erp_theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-    loadSettings();
-
-    // --- ADVANCED ERP FEATURES: BACKUP & RESTORE ---
-    function backupData() {
-        const data = {
-            accounts: allAccounts,
-            transactions: allTransactions,
-            backupDate: new Date().toISOString(),
-            system: "InDrive Tracker ERP"
-        };
+    async function backupData() {
+        const data = { accounts: allAccounts, transactions: allTransactions, version: '2.0', backupDate: new Date() };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `ERP_Backup_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
+        a.download = `ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        alert("Backup file downloaded! Keep this file safe.");
     }
 
-    function restoreData() {
+    async function restoreData() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
-        input.onchange = e => {
+        input.onchange = async (e) => {
             const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    if (!data.accounts || !data.transactions) throw new Error("Invalid Backup File");
-
-                    if (confirm("WARNING: This will replace all current data with the backup. Proceed?")) {
-                        const res = await fetch('/api/restore', {
+                    if(confirm("This will overwrite current data. Proceed?")) {
+                        await fetch('/api/restore', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ userId: currentUser.uid, data: data })
                         });
-                        if (res.ok) {
-                            alert("Data Restored Successfully!");
-                            location.reload();
-                        } else {
-                            alert("Server error during restore.");
-                        }
+                        alert("Data restored successfully!");
+                        location.reload();
                     }
-                } catch (err) {
-                    alert("Error: " + err.message);
-                }
+                } catch(err) { alert("Invalid backup file."); }
             };
             reader.readAsText(file);
         };
         input.click();
+    }
+
+    async function fetchTransactions() {
+        const res = await fetch(`/api/transactions?userId=${currentUser.uid}`);
+        allTransactions = await res.json();
+        renderVouchers();
+    }
+
+    function renderVouchers() {
+        const list = document.getElementById('voucher-list');
+        if(!list) return;
+        list.innerHTML = allTransactions.slice().reverse().map(tx => `
+            <div class="card" style="margin-bottom:15px; border-left:4px solid var(--primary);">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                    <div>
+                        <span class="badge badge-asset" style="font-size:10px;">VOUCHER</span>
+                        <h4 style="margin:5px 0;">${tx.description}</h4>
+                        <small style="color:#64748b"><i class="far fa-calendar-alt"></i> ${tx.date}</small>
+                    </div>
+                    <div class="text-right">
+                        <button class="btn btn-outline" style="padding:5px 10px; color:var(--danger); border:none;" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <table style="font-size:12px; background:#f8fafc; border-radius:6px;">
+                    ${tx.entries.map(e => {
+                        const acc = allAccounts.find(a => a._id === (e.account?._id || e.account));
+                        return `<tr>
+                            <td style="padding:5px;">${e.debit > 0 ? '<b>By</b>' : '&nbsp;&nbsp;<b>To</b>'} ${acc ? acc.name : 'Unknown'}</td>
+                            <td class="text-right" style="padding:5px; width:80px;">${e.debit > 0 ? '<b>' + e.debit.toLocaleString() + '</b>' : ''}</td>
+                            <td class="text-right" style="padding:5px; width:80px;">${e.credit > 0 ? '<b>' + e.credit.toLocaleString() + '</b>' : ''}</td>
+                        </tr>`;
+                    }).join('')}
+                </table>
+            </div>
+        `).join('');
+    }
+
+    async function deleteTransaction(id) {
+        if(!confirm("Delete this transaction?")) return;
+        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        init();
+    }
+
+    function validateAccount(input) {
+        const val = input.value;
+        const opt = document.querySelector(`#ledgerOptions option[value="${val}"]`);
+        const row = input.closest('tr');
+        if (opt) {
+            row.querySelector('.row-acc-id').value = opt.dataset.id;
+            const badge = row.querySelector('.row-grp-badge');
+            badge.innerText = opt.dataset.group;
+            badge.style.display = 'inline-block';
+            input.style.borderColor = 'var(--border)';
+        } else {
+            row.querySelector('.row-acc-id').value = '';
+            row.querySelector('.row-grp-badge').style.display = 'none';
+            if(val) input.style.borderColor = 'var(--danger)';
+        }
+    }
+
+    function syncEntry(el, side) {
+        const row = el.closest('tr');
+        if (side === 'dr' && el.value > 0) row.querySelector('.row-cr').value = '';
+        if (side === 'cr' && el.value > 0) row.querySelector('.row-dr').value = '';
+        updateVoucherTotal();
+    }
+
+    function updateVoucherTotal() {
+        let drTotal = 0, crTotal = 0;
+        document.querySelectorAll('.row-dr').forEach(i => drTotal += Number(i.value || 0));
+        document.querySelectorAll('.row-cr').forEach(i => crTotal += Number(i.value || 0));
+        document.getElementById('total-dr-disp').innerText = drTotal.toLocaleString();
+        document.getElementById('total-cr-disp').innerText = crTotal.toLocaleString();
+        const diff = Math.abs(drTotal - crTotal);
+        const status = document.getElementById('voucher-status');
+        if (diff < 0.01 && drTotal > 0) {
+            status.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Balanced</span>';
+        } else {
+            status.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle"></i> Out of balance: ${diff.toLocaleString()}</span>`;
+        }
+    }
+
+    async function saveJournal() {
+        const desc = document.getElementById('jou-desc').value;
+        const date = document.getElementById('jou-date').value;
+        const entries = [];
+        let totalDr = 0, totalCr = 0;
+
+        document.querySelectorAll('#jou-entries tr').forEach(row => {
+            const accId = row.querySelector('.row-acc-id').value;
+            const dr = Number(row.querySelector('.row-dr').value || 0);
+            const cr = Number(row.querySelector('.row-cr').value || 0);
+            if (accId && (dr > 0 || cr > 0)) {
+                entries.push({ account: accId, debit: dr, credit: cr });
+                totalDr += dr; totalCr += cr;
+            }
+        });
+
+        if (Math.abs(totalDr - totalCr) > 0.01) return alert("Debit and Credit must be equal!");
+        if (entries.length < 2) return alert("At least two entries required!");
+
+        const res = await fetch('/api/transactions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, description: desc, date, entries })
+        });
+
+        if(res.ok) {
+            alert("Voucher Saved!");
+            document.getElementById('jou-desc').value = '';
+            document.getElementById('jou-entries').innerHTML = '';
+            addJournalRow(); addJournalRow();
+            updateVoucherTotal();
+            init();
+        }
     }
 </script>
 </body>
