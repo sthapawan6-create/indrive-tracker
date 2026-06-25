@@ -1120,11 +1120,8 @@
 
 
     function updateDashboard() {
-        let cash = 0, ar = 0, ap = 0, hold = 0, revenue = 0, expense = 0;
+        let cash = 0, ar = 0, ap = 0, hold = 0, netWorth = 0;
         let expenseData = {};
-
-        const assetTypes = ['Asset', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
-        const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
 
         allAccounts.forEach(acc => {
             const grp = acc.group || '';
@@ -1132,29 +1129,33 @@
             const bal = acc.balance;
             const name = acc.name.toLowerCase();
 
-            // 1. Cash & Bank (Liquidity)
+            // Total Net Worth (All Assets + Liabilities/Equity)
+            if (['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments',
+                 'Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions',
+                 'Equity', 'Capital'].includes(type)) {
+                netWorth += bal;
+            }
+
+            // 1. Cash & Bank
             if (grp === 'Bank Accounts' || grp === 'Cash-in-hand' || name.includes('cash')) {
                 cash += bal;
             }
-            // 2. Handle "Hold" accounts specifically
+            // 2. Hold
             else if (name.includes('hold')) {
                 hold += Math.abs(bal);
             }
-            // 3. To Receive (Other Assets / Debtors)
-            else if (assetTypes.includes(type) || grp === 'Sundry Debtors') {
+            // 3. To Receive (Only Sundry Debtors)
+            else if (grp === 'Sundry Debtors') {
                 if (bal > 0) ar += bal;
-                else ap += Math.abs(bal); // Advance from customer (Liability)
+                else ap += Math.abs(bal); // Advance from customer
             }
-            // 4. Dina Baaki (Liabilities / Creditors)
-            else if (liabilityTypes.includes(type) || grp === 'Sundry Creditors') {
-                if (bal < 0) ap += Math.abs(bal); // Normal credit balance (Payable)
-                else ar += Math.abs(bal); // Advance to supplier (Asset)
+            // 4. Dina Baaki (Sundry Creditors / Loans / Liabilities)
+            else if (grp === 'Sundry Creditors' || type === 'Liability' || grp.includes('Loan')) {
+                if (bal < 0) ap += Math.abs(bal);
+                else ar += Math.abs(bal); // Advance to supplier
             }
 
-            if (type === 'Revenue') {
-                revenue += bal;
-            } else if (type === 'Expense') {
-                expense += bal;
+            if (type === 'Expense') {
                 expenseData[acc.name] = (expenseData[acc.name] || 0) + bal;
             }
         });
@@ -1163,8 +1164,8 @@
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
 
-        // Update Net Worth (including Hold amounts)
-        document.getElementById('dash-networth').innerText = "Rs. " + (cash + ar + hold - ap).toLocaleString();
+        // Net Worth is now accurately calculated from total assets/liabilities
+        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString();
 
         // Optional: Show Hold amount in AR label if exists
         if (hold > 0) {
