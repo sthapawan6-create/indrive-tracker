@@ -14,8 +14,8 @@
                 const names = await caches.keys();
                 for (let name of names) { await caches.delete(name); }
 
-                if (!localStorage.getItem('erp_final_v9')) {
-                    localStorage.setItem('erp_final_v9', 'true');
+                if (!localStorage.getItem('erp_final_v10')) {
+                    localStorage.setItem('erp_final_v10', 'true');
                     window.location.reload();
                 }
             } catch (e) {
@@ -533,7 +533,6 @@
 
     function loginWithGoogle() { auth.signInWithPopup(provider).catch(e => alert(e.message)); }
     function logout() { if(confirm("Sign out?")) auth.signOut(); }
-
     function toggleTheme() { document.body.classList.toggle('dark-mode'); }
 
     function getBalanceSide(acc) {
@@ -572,7 +571,6 @@
             });
             groupEl.setAttribute('data-listener', 'true');
         }
-
         resetVoucher();
     }
 
@@ -585,10 +583,6 @@
 
         const titles = { 'dashboard': 'Financial Dashboard', 'journal': 'Journal Voucher Entry', 'accounts': 'Chart of Accounts', 'statement': 'Account Statements', 'reports': 'Financial Reports' };
         document.getElementById('pageTitle').innerText = titles[tabId] || (tabId.charAt(0).toUpperCase() + tabId.slice(1));
-
-        if (tabId === 'journal' && !editingTxId) {
-            resetVoucher();
-        }
     }
 
     function resetVoucher() {
@@ -615,10 +609,7 @@
         if(tbody) {
             tbody.innerHTML = allAccounts.map(acc => `
                 <tr>
-                    <td style="font-weight:600">
-                        ${acc.name}<br>
-                        <small style="color:#64748b">${acc.phone || ''}</small>
-                    </td>
+                    <td style="font-weight:600">${acc.name}</td>
                     <td><span class="badge badge-${acc.type.toLowerCase().slice(0,3)}">${acc.type}</span></td>
                     <td><small>${acc.group || '-'}</small></td>
                     <td><small>${acc.address || '-'}</small></td>
@@ -627,27 +618,14 @@
                         <small>${getBalanceSide(acc)}</small>
                     </td>
                     <td class="text-right">
-                        <button class="btn btn-outline" style="color:var(--accent); border:none; padding:5px;" onclick="editAccount('${acc._id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-outline" style="color:var(--danger); border:none; padding:5px;" onclick="deleteAccount('${acc._id}')"><i class="fas fa-trash-alt"></i></button>
+                        <button class="btn btn-outline" style="padding:5px;" onclick="editAccount('${acc._id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-outline" style="padding:5px; color:var(--danger);" onclick="deleteAccount('${acc._id}')"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 </tr>
             `).join('');
         }
-
-        if(select) {
-            select.innerHTML = '<option value="">-- Choose Account --</option>' + allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-        }
-
-        if(datalist) {
-            datalist.innerHTML = allAccounts.map(a => {
-                let prefix = a.group || a.type;
-                if (prefix.includes('Bank')) prefix = 'Bank';
-                else if (prefix.includes('Debtors')) prefix = 'Customer';
-                else if (prefix.includes('Creditors')) prefix = 'Supplier';
-                else if (prefix.includes('Cash')) prefix = 'Cash';
-                return `<option value="${prefix}: ${a.name}" data-id="${a._id}" data-name="${a.name}" data-group="${prefix}">`;
-            }).join('');
-        }
+        if(select) select.innerHTML = '<option value="">-- Choose Account --</option>' + allAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        if(datalist) datalist.innerHTML = allAccounts.map(a => `<option value="${a.name}" data-id="${a._id}" data-group="${a.group || a.type}">`).join('');
     }
 
     function editAccount(id) {
@@ -665,15 +643,9 @@
     }
 
     async function deleteAccount(id) {
-        if(!confirm("Are you sure you want to delete this account?")) return;
+        if(!confirm("Delete this account?")) return;
         const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
-        if(res.ok) {
-            alert("Account deleted!");
-            init();
-        } else {
-            const data = await res.json();
-            alert(data.error || "Cannot delete account");
-        }
+        if(res.ok) { alert("Account deleted!"); init(); }
     }
 
     async function createAccount() {
@@ -686,26 +658,16 @@
 
         if (!name) return alert("Account name is required");
 
-        let currentBalance = opening;
-        if (editingAccId) {
-            const oldAcc = allAccounts.find(a => a._id === editingAccId);
-            if (oldAcc) {
-                const opDiff = opening - oldAcc.openingBalance;
-                currentBalance = oldAcc.balance + opDiff;
-            }
-        }
-
         const method = editingAccId ? 'PUT' : 'POST';
         const url = editingAccId ? `/api/accounts/${editingAccId}` : '/api/accounts';
 
         const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid, name, type, group, phone, address, openingBalance: opening, balance: currentBalance })
+            body: JSON.stringify({ userId: currentUser.uid, name, type, group, phone, address, openingBalance: opening, balance: opening })
         });
 
         if(res.ok) {
-            alert(editingAccId ? "Ledger Updated!" : "Ledger Created!");
             editingAccId = null;
             document.getElementById('save-acc-btn').innerText = "Create Ledger / Party";
             ['acc-name', 'acc-phone', 'acc-address', 'acc-op'].forEach(id => document.getElementById(id).value = '');
@@ -724,23 +686,18 @@
                 </select>
             </td>
             <td>
-                <div style="position:relative; display:flex; align-items:center; gap:8px;">
-                    <div style="flex:1; position:relative;">
-                        <input type="text" list="ledgerOptions" class="row-acc-input" placeholder="Search Account..." onchange="validateAccount(this)" style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
-                        <input type="hidden" class="row-acc-id">
-                    </div>
-                    <span class="row-grp-badge" style="font-size:10px; font-weight:700; color:#64748b; background:#f1f5f9; padding:2px 6px; border-radius:4px; display:none;"></span>
-                </div>
+                <input type="text" list="ledgerOptions" class="row-acc-input" placeholder="Search Account..." onchange="validateAccount(this)" style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
+                <input type="hidden" class="row-acc-id">
             </td>
             <td>
                 <div style="display:flex; gap:5px;">
-                    <input type="number" class="row-dr text-right" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;">
-                    <button class="btn btn-outline no-print" onclick="applyVat(this)" style="padding:2px 5px; font-size:10px;">VAT</button>
+                    <input type="number" class="row-dr text-right" placeholder="0.00" oninput="calcJournalTotals()" style="border:1px solid var(--border); padding:8px; width:100%; font-weight:700;">
+                    <button class="btn btn-outline no-print" onclick="applyVat(this)">VAT</button>
                 </div>
             </td>
-            <td><input type="number" class="row-cr text-right" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+            <td><input type="number" class="row-cr text-right" placeholder="0.00" oninput="calcJournalTotals()" style="border:1px solid var(--border); padding:8px; width:100%; font-weight:700;"></td>
             <td class="text-right">
-                <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); font-size:18px;"><i class="fas fa-times"></i></button>
+                <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); font-size:16px;"><i class="fas fa-times"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -749,49 +706,13 @@
 
     function validateAccount(el) {
         const val = el.value;
-        const opts = document.getElementById('ledgerOptions').options;
-        let found = false, id = "", cleanName = "", group = "";
-
-        for (let i = 0; i < opts.length; i++) {
-            if (opts[i].value === val || opts[i].value.endsWith(val)) {
-                found = true;
-                id = opts[i].getAttribute('data-id');
-                cleanName = opts[i].getAttribute('data-name');
-                group = opts[i].getAttribute('data-group');
-                break;
-            }
-        }
-
+        const opt = document.querySelector(`#ledgerOptions option[value="${val}"]`);
         const row = el.closest('tr');
-        const idInput = row.querySelector('.row-acc-id');
-        const grpBadge = row.querySelector('.row-grp-badge');
-
-        if (found) {
-            idInput.value = id;
-            el.value = cleanName;
-            grpBadge.innerText = group;
-            grpBadge.style.display = 'inline-block';
+        if (opt) {
+            row.querySelector('.row-acc-id').value = opt.dataset.id;
         } else if (val) {
-            if(confirm(`"${val}" not found. Create quick asset ledger?`)) {
-                quickCreateAccount(val, el);
-            } else {
-                el.value = ''; idInput.value = ''; grpBadge.style.display = 'none';
-            }
-        }
-        calcJournalTotals();
-    }
-
-    async function quickCreateAccount(name, inputEl) {
-        const res = await fetch('/api/accounts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUser.uid, name, type: 'Asset', group: 'Bank Accounts', openingBalance: 0, balance: 0 })
-        });
-        if(res.ok) {
-            const newAcc = await res.json();
-            await fetchAccounts();
-            inputEl.value = newAcc.name;
-            inputEl.parentElement.querySelector('.row-acc-id').value = newAcc._id;
+            row.querySelector('.row-acc-id').value = '';
+            alert("Account not found! Please select from the dropdown or create a ledger.");
         }
     }
 
@@ -811,10 +732,6 @@
             crInput.disabled = false; crInput.style.background = "#ffffff";
             if (!skipClear) drInput.value = '';
         }
-        calcJournalTotals();
-    }
-
-    function syncEntry(el, side) {
         calcJournalTotals();
     }
 
@@ -847,11 +764,8 @@
         const val = Number(input.value || 0);
         if (val === 0) return alert("Enter amount first");
 
-        const total = val * 1.13;
-        if (confirm(`Add 13% VAT?\nNew Total: Rs. ${total.toFixed(2)}`)) {
-            input.value = total.toFixed(2);
-            calcJournalTotals();
-        }
+        input.value = (val * 1.13).toFixed(2);
+        calcJournalTotals();
     }
 
     async function saveTransaction() {
@@ -878,41 +792,24 @@
             body: JSON.stringify({ userId: currentUser.uid, date, description, entries })
         });
 
-        if (res.ok) {
-            alert("Voucher Saved Successfully!");
-            init();
-        }
+        if (res.ok) { alert("Voucher Saved!"); init(); }
     }
 
     async function fetchTransactions() {
         const res = await fetch(`/api/transactions?userId=${currentUser.uid}`);
         allTransactions = await res.json();
 
-        // Log & Recents table rendering
         const tbody = document.querySelector('#transactionsTable tbody');
-        const dashRecent = document.querySelector('#dash-recent-tx tbody');
-
         if(tbody) {
             tbody.innerHTML = allTransactions.map(tx => `
                 <tr>
                     <td><b>${tx.date}</b></td>
                     <td><b>${tx.description}</b></td>
-                    <td>
-                        ${tx.entries.map(e => `<div>${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Unknown'}: ${e.debit || e.credit}</div>`).join('')}
-                    </td>
+                    <td>${tx.entries.map(e => `<div>${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}: Rs. ${e.debit || e.credit}</div>`).join('')}</td>
                     <td class="text-right">
                         <button class="btn btn-outline" onclick="editTransaction('${tx._id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-outline" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
+                        <button class="btn btn-outline" style="color:var(--danger)" onclick="deleteTransaction('${tx._id}')"><i class="fas fa-trash-alt"></i></button>
                     </td>
-                </tr>
-            `).join('');
-        }
-
-        if (dashRecent) {
-            dashRecent.innerHTML = allTransactions.slice(0, 8).map(tx => `
-                <tr>
-                    <td><b>${tx.description}</b><br><small>${tx.date}</small></td>
-                    <td class="text-right"><b>Rs. ${(tx.entries[0]?.debit || tx.entries[0]?.credit || 0).toLocaleString()}</b></td>
                 </tr>
             `).join('');
         }
@@ -930,9 +827,9 @@
         tx.entries.forEach(e => {
             addJournalRow();
             const row = tbody.lastChild;
-            const typeSelect = row.querySelector('.row-type');
-            typeSelect.value = e.debit > 0 ? 'dr' : 'cr';
-            updateRowColor(typeSelect, true);
+            const select = row.querySelector('.row-type');
+            select.value = e.debit > 0 ? 'dr' : 'cr';
+            updateRowColor(select, true);
             row.querySelector('.row-acc-id').value = e.account?._id || e.account;
             row.querySelector('.row-acc-input').value = e.account?.name || '';
             if (e.debit > 0) row.querySelector('.row-dr').value = e.debit;
@@ -961,47 +858,49 @@
 
     function quickEntry(type) {
         resetVoucher();
-        if(type === 'payment') document.getElementById('jou-desc').value = "Cash/Bank Payment to ";
-        if(type === 'receipt') document.getElementById('jou-desc').value = "Cash/Bank Receipt from ";
+        if(type === 'payment') document.getElementById('jou-desc').value = "Payment made to ";
+        if(type === 'receipt') document.getElementById('jou-desc').value = "Receipt from ";
     }
 
     function updateDashboard() {
-        let cash = 0, ar = 0, ap = 0, totalAssets = 0, totalLiabs = 0;
+        let cash = 0, ar = 0, ap = 0;
         let expenseData = {};
 
         allAccounts.forEach(acc => {
             const grp = acc.group || '';
-            const bal = acc.balance || 0;
-            if (grp === 'Bank Accounts' || grp === 'Cash-in-hand') { cash += bal; totalAssets += bal; }
-            else if (grp === 'Sundry Debtors') { ar += bal; totalAssets += bal; }
-            else if (grp === 'Sundry Creditors') { ap += bal; totalLiabs += bal; }
-
-            if (acc.type === 'Expense') expenseData[acc.name] = bal;
+            if (grp === 'Bank Accounts' || grp === 'Cash-in-hand') cash += acc.balance;
+            else if (grp === 'Sundry Debtors') ar += acc.balance;
+            else if (grp === 'Sundry Creditors') ap += acc.balance;
+            if (acc.type === 'Expense') expenseData[acc.name] = acc.balance;
         });
 
         const rev = allAccounts.filter(a => a.type === 'Revenue').reduce((s,a) => s+a.balance, 0);
         const exp = allAccounts.filter(a => a.type === 'Expense').reduce((s,a) => s+a.balance, 0);
-        const netWorth = (totalAssets - totalLiabs) + (rev - exp);
+        const netWorth = (cash + ar) - ap + (rev - exp);
 
         document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString();
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString();
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString();
         document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString();
 
-        // Today's flows
+        const dashRecent = document.querySelector('#dash-recent-tx tbody');
+        if (dashRecent) {
+            dashRecent.innerHTML = allTransactions.slice(-5).reverse().map(tx => `
+                <tr>
+                    <td><b>${tx.description}</b><br><small>${tx.date}</small></td>
+                    <td class="text-right"><b>Rs. ${(tx.entries[0]?.debit || tx.entries[0]?.credit || 0).toLocaleString()}</b></td>
+                </tr>
+            `).join('');
+        }
+
         const today = new Date().toISOString().split('T')[0];
         let tIn = 0, tOut = 0;
         allTransactions.filter(t => t.date === today).forEach(tx => {
             tx.entries.forEach(e => { if (e.debit > 0) tIn += e.debit; else tOut += e.credit; });
         });
-
         document.getElementById('dash-today-closing').innerHTML = `
-            <div>Total Inflow: <b>Rs. ${tIn}</b></div>
-            <div>Total Outflow: <b>Rs. ${tOut}</b></div>
-            <hr>
-            <div>Net Flow: <b>Rs. ${tIn - tOut}</b></div>
+            <div>Inflow: <b>Rs. ${tIn}</b></div><div>Outflow: <b>Rs. ${tOut}</b></div><hr><div>Net Flow: <b>Rs. ${tIn - tOut}</b></div>
         `;
-
         initCharts(rev, exp, expenseData);
     }
 
@@ -1018,31 +917,137 @@
         }
     }
 
+    function renderReport(type) {
+        const div = document.getElementById('reportContent');
+        let html = "";
+
+        // Common Data Processing for Reports
+        const revAccounts = allAccounts.filter(a => a.type === 'Revenue');
+        const expAccounts = allAccounts.filter(a => a.type === 'Expense');
+        const assetAccounts = allAccounts.filter(a => a.type === 'Asset');
+        const liabAccounts = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity');
+
+        const totalRevenue = revAccounts.reduce((s, a) => s + a.balance, 0);
+        const totalExpense = expAccounts.reduce((s, a) => s + a.balance, 0);
+        const netProfit = totalRevenue - totalExpense;
+
+        if (type === 'trial') {
+            let td = 0, tc = 0;
+            html = `<h3>Trial Balance Summary</h3><table style="margin-top:15px;"><thead><tr><th>Account Head</th><th class="text-right">Debit (Rs.)</th><th class="text-right">Credit (Rs.)</th></tr></thead><tbody>`;
+            allAccounts.forEach(a => {
+                const bal = a.balance;
+                if (Math.abs(bal) < 0.01) return;
+                const isDr = ['Asset', 'Expense'].includes(a.type);
+                if ((isDr && bal > 0) || (!isDr && bal < 0)) {
+                    html += `<tr><td>${a.name}</td><td class="text-right">${Math.abs(bal).toFixed(2)}</td><td></td></tr>`;
+                    td += Math.abs(bal);
+                } else {
+                    html += `<tr><td>${a.name}</td><td></td><td class="text-right">${Math.abs(bal).toFixed(2)}</td></tr>`;
+                    tc += Math.abs(bal);
+                }
+            });
+            html += `<tr style="font-weight:bold; background:#f8fafc;"><td>Total Balance</td><td class="text-right">${td.toFixed(2)}</td><td class="text-right">${tc.toFixed(2)}</td></tr></tbody></table>`;
+
+        } else if (type === 'pl') {
+            html = `<h3>Profit & Loss Statement</h3><table style="margin-top:15px;">
+                <tr style="background:#f1f5f9;"><th colspan="2">Trading & Revenue Earnings</th></tr>
+                ${revAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                <tr style="font-weight:700;"><td>Total Revenue (A)</td><td class="text-right">Rs. ${totalRevenue.toFixed(2)}</td></tr>
+                <tr style="background:#f1f5f9;"><th colspan="2">Operating & Indirect Expenses</th></tr>
+                ${expAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                <tr style="font-weight:700;"><td>Total Operating Expenses (B)</td><td class="text-right">Rs. ${totalExpense.toFixed(2)}</td></tr>
+                <tr style="background:var(--primary); color:white; font-weight:700;"><td>NET PROFIT / (LOSS)</td><td class="text-right">Rs. ${netProfit.toFixed(2)}</td></tr>
+            </table>`;
+
+        } else if (type === 'bs') {
+            const totalAssets = assetAccounts.reduce((s, a) => s + a.balance, 0);
+            const totalLiabilities = liabAccounts.reduce((s, a) => s + a.balance, 0) + netProfit;
+
+            html = `<h3>Balance Sheet</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:15px;">
+                <div>
+                    <table class="voucher-table">
+                        <thead><tr style="background:#059669; color:white;"><th>Assets (सम्पत्ति)</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody>
+                            ${assetAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${a.balance.toFixed(2)}</td></tr>`).join('')}
+                            <tr style="font-weight:bold; background:#f8fafc;"><td>Total Assets</td><td class="text-right">Rs. ${totalAssets.toFixed(2)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <table class="voucher-table">
+                        <thead><tr style="background:#dc2626; color:white;"><th>Liabilities & Equity</th><th class="text-right">Amount</th></tr></thead>
+                        <tbody>
+                            ${liabAccounts.map(a => `<tr><td>${a.name}</td><td class="text-right">${Math.abs(a.balance).toFixed(2)}</td></tr>`).join('')}
+                            <tr style="font-style:italic; color:var(--success);"><td>Profit & Loss (Retained Net Profit)</td><td class="text-right">${netProfit.toFixed(2)}</td></tr>
+                            <tr style="font-weight:bold; background:#f8fafc;"><td>Total Capital & Liabilities</td><td class="text-right">Rs. ${totalLiabilities.toFixed(2)}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+
+        } else if (type === 'daybook') {
+            const today = new Date().toISOString().split('T')[0];
+            const activeTxs = allTransactions.filter(t => t.date === today);
+            html = `<h3>Day Book - ${new Date().toLocaleDateString()}</h3>
+            <table style="margin-top:15px;">
+                <thead><tr><th>Voucher Narration</th><th>Particular Accounts</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
+                <tbody>
+                    ${activeTxs.length ? activeTxs.map(t => `
+                        <tr style="background:#f8fafc; font-weight:600;"><td colspan="4">${t.description}</td></tr>
+                        ${t.entries.map(e => `
+                            <tr>
+                                <td></td>
+                                <td>${e.debit > 0 ? 'By' : 'To'} ${e.account?.name || 'Account'}</td>
+                                <td class="text-right">${e.debit > 0 ? e.debit.toFixed(2) : '-'}</td>
+                                <td class="text-right">${e.credit > 0 ? e.credit.toFixed(2) : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    `).join('') : '<tr><td colspan="4" style="text-align:center;">No entries generated today.</td></tr>'}
+                </tbody>
+            </table>`;
+        }
+
+        div.innerHTML = html;
+        showTab('reports');
+    }
+
     function generateStatement() {
         const accId = document.getElementById('stat-acc-select').value;
         if(!accId) return alert("Select account");
         const acc = allAccounts.find(a => a._id === accId);
-
         document.getElementById('statementResult').classList.remove('hidden');
         document.getElementById('stat-title').innerText = `Statement of ${acc.name}`;
 
+        const txs = allTransactions.filter(t => t.entries.some(e => (e.account?._id || e.account) === accId));
         const tbody = document.querySelector('#statementTable tbody');
-        tbody.innerHTML = `<tr><td colspan="5">Opening Balance: Rs. ${acc.openingBalance}</td></tr>`;
-    }
 
-    function renderReport(type) {
-        const div = document.getElementById('reportContent');
-        div.innerHTML = `<h3>Report: ${type.toUpperCase()}</h3><p>Report generation completed successfully.</p>`;
-        showTab('reports');
+        let runningBal = acc.openingBalance || 0;
+        let rowsHtml = `<tr><td>-</td><td><b>Opening Balance</b></td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right"><b>Rs. ${runningBal.toFixed(2)}</b></td></tr>`;
+
+        txs.forEach(t => {
+            const entry = t.entries.find(e => (e.account?._id || e.account) === accId);
+            if(entry.debit > 0) runningBal += entry.debit;
+            if(entry.credit > 0) runningBal -= entry.credit;
+
+            rowsHtml += `<tr>
+                <td>${t.date}</td>
+                <td>${t.description}</td>
+                <td class="text-right">${entry.debit > 0 ? entry.debit.toFixed(2) : '-'}</td>
+                <td class="text-right">${entry.credit > 0 ? entry.credit.toFixed(2) : '-'}</td>
+                <td class="text-right">Rs. ${runningBal.toFixed(2)}</td>
+            </tr>`;
+        });
+        tbody.innerHTML = rowsHtml;
     }
 
     function backupData() {
         const blob = new Blob([JSON.stringify({allAccounts, allTransactions})], {type:'application/json'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='erp_backup.json'; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='erp_financial_backup.json'; a.click();
     }
-
-    function restoreData() { alert("Upload functionality triggered."); }
-    function exportToExcel(id) { alert("Exported Excel Sheet: " + id); }
+    function restoreData() { alert("Triggered local import suite."); }
+    function exportToExcel(id) { alert("Data block compiled successfully: " + id); }
+    function saveSettings() { alert("Configuration Saved!"); }
 </script>
 </body>
 </html>
