@@ -5,17 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise ERP - Perfect Accounting</title>
     <script>
+        // इन्फिनिट रिलोड लुप फिक्स गरिएको सुरक्षित क्यास क्लिनर
         async function forceUpdateERP() {
             try {
-                if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for (let reg of regs) { await reg.unregister(); }
-                }
-                const names = await caches.keys();
-                for (let name of names) { await caches.delete(name); }
+                const CURRENT_VERSION = 'erp_final_v12';
+                if (!localStorage.getItem(CURRENT_VERSION)) {
+                    if ('serviceWorker' in navigator) {
+                        const regs = await navigator.serviceWorker.getRegistrations();
+                        for (let reg of regs) { await reg.unregister(); }
+                    }
+                    const names = await caches.keys();
+                    for (let name of names) { await caches.delete(name); }
 
-                if (!localStorage.getItem('erp_final_v11')) {
-                    localStorage.setItem('erp_final_v11', 'true');
+                    localStorage.setItem(CURRENT_VERSION, 'true');
                     window.location.reload();
                 }
             } catch (e) {
@@ -90,7 +92,6 @@
         .badge-rev { background: #e0f2fe; color: #075985; }
         .badge-exp { background: #fef3c7; color: #92400e; }
 
-        /* Report Tables Specific Font styling */
         .report-table td.amount, .report-table th.amount { font-family: 'Roboto Mono', monospace; text-align: right; }
 
         /* Voucher Table */
@@ -408,95 +409,95 @@
                 <button class="btn btn-primary" style="margin-left: auto;" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
             </div>
             <div id="reportArea" class="card">
-                <div class="card-body id="reportContent" class="report-table">
-                <div style="text-align: center; padding: 50px; color: #94a3b8;">
-                    <i class="fas fa-file-contract" style="font-size: 40px; margin-bottom: 15px;"></i>
-                    <p>Select a report to generate financial statement.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="tab-statement" class="tab-content hidden">
-        <div class="card no-print">
-            <div class="card-header"><h3>Filter Statement</h3></div>
-            <div class="card-body">
-                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
-                    <div>
-                        <label>Select Account</label>
-                        <select id="stat-acc-select"></select>
+                <div class="card-body" id="reportContent">
+                    <div style="text-align: center; padding: 50px; color: #94a3b8;">
+                        <i class="fas fa-file-contract" style="font-size: 40px; margin-bottom: 15px;"></i>
+                        <p>Select a report to generate financial statement.</p>
                     </div>
-                    <div>
-                        <label>From</label>
-                        <input type="date" id="stat-from">
-                    </div>
-                    <div>
-                        <label>To</label>
-                        <input type="date" id="stat-to">
-                    </div>
-                    <button class="btn btn-primary" onclick="generateStatement()"><i class="fas fa-sync"></i> View Statement</button>
-                </div>
-            </div>
-        </div>
-        <div id="statementResult" class="card hidden">
-            <div class="card-header">
-                <h3 id="stat-title">Ledger Statement</h3>
-                <button class="btn btn-outline" onclick="exportToExcel('statementTable')"><i class="fas fa-download"></i> Download Excel</button>
-            </div>
-            <div class="card-body" style="padding:0">
-                <table id="statementTable">
-                    <thead><tr><th>Date</th><th>Narration</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Balance</th></tr></thead>
-                    <tbody style="font-family: 'Roboto Mono', monospace;"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="tab-settings" class="tab-content hidden">
-        <div class="card">
-            <div class="card-header"><h3>Company Profile & Settings</h3></div>
-            <div class="card-body">
-                <div style="max-width: 600px;">
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">Company / Business Name</label>
-                        <input type="text" id="set-company-name" placeholder="Enter Business Name" value="Enterprise ERP System">
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">Address</label>
-                        <input type="text" id="set-company-addr" placeholder="Kathmandu, Nepal">
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">VAT / PAN Number</label>
-                        <input type="text" id="set-company-pan" placeholder="Optional">
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom:5px; font-weight:600;">Currency Symbol</label>
-                        <input type="text" id="set-currency" value="Rs." style="width: 100px;">
-                    </div>
-                    <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
                 </div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header"><h3>Data Management</h3></div>
-            <div class="card-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
-                        <h4>Export Records</h4>
-                        <p style="color: #64748b; font-size: 12px;">Download all your financial data into a JSON file for local backup.</p>
-                        <button class="btn btn-success" onclick="backupData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
+        <div id="tab-statement" class="tab-content hidden">
+            <div class="card no-print">
+                <div class="card-header"><h3>Filter Statement</h3></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: flex-end;">
+                        <div>
+                            <label>Select Account</label>
+                            <select id="stat-acc-select"></select>
+                        </div>
+                        <div>
+                            <label>From</label>
+                            <input type="date" id="stat-from">
+                        </div>
+                        <div>
+                            <label>To</label>
+                            <input type="date" id="stat-to">
+                        </div>
+                        <button class="btn btn-primary" onclick="generateStatement()"><i class="fas fa-sync"></i> View Statement</button>
                     </div>
-                    <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
-                        <h4>Import Records</h4>
-                        <p style="color: #64748b; font-size: 12px;">Restore data from a previously exported JSON backup file.</p>
-                        <button class="btn btn-outline" style="color:var(--warning)" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data (JSON)</button>
+                </div>
+            </div>
+            <div id="statementResult" class="card hidden">
+                <div class="card-header">
+                    <h3 id="stat-title">Ledger Statement</h3>
+                    <button class="btn btn-outline" onclick="exportToExcel('statementTable')"><i class="fas fa-download"></i> Download Excel</button>
+                </div>
+                <div class="card-body" style="padding:0">
+                    <table id="statementTable">
+                        <thead><tr><th>Date</th><th>Narration</th><th class="text-right">Debit</th><th class="text-right">Credit</th><th class="text-right">Balance</th></tr></thead>
+                        <tbody style="font-family: 'Roboto Mono', monospace;"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-settings" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header"><h3>Company Profile & Settings</h3></div>
+                <div class="card-body">
+                    <div style="max-width: 600px;">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Company / Business Name</label>
+                            <input type="text" id="set-company-name" placeholder="Enter Business Name" value="Enterprise ERP System">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Address</label>
+                            <input type="text" id="set-company-addr" placeholder="Kathmandu, Nepal">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">VAT / PAN Number</label>
+                            <input type="text" id="set-company-pan" placeholder="Optional">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Currency Symbol</label>
+                            <input type="text" id="set-currency" value="Rs." style="width: 100px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>Data Management</h3></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                            <h4>Export Records</h4>
+                            <p style="color: #64748b; font-size: 12px;">Download all your financial data into a JSON file for local backup.</p>
+                            <button class="btn btn-success" onclick="backupData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
+                        </div>
+                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                            <h4>Import Records</h4>
+                            <p style="color: #64748b; font-size: 12px;">Restore data from a previously exported JSON backup file.</p>
+                            <button class="btn btn-outline" style="color:var(--warning)" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data (JSON)</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <script>
@@ -551,7 +552,7 @@
             if (!res.ok) throw new Error("API Error");
             return await res.json();
         } catch (e) {
-            console.warn("API Offline, fallback to local database standard block context.");
+            console.warn("Using offline localStorage fallback database.");
             const key = url.split('?')[0].replace('/api/', 'erp_');
             return JSON.parse(localStorage.getItem(key) || "[]");
         }
@@ -935,11 +936,9 @@
         const div = document.getElementById('reportContent');
         let html = "";
 
-        // Standardized Accounting Definitions Based on Groups
         const revAccounts = allAccounts.filter(a => a.type === 'Revenue');
         const expAccounts = allAccounts.filter(a => a.type === 'Expense');
 
-        // Dynamic Allocation By Accounting Groups (Fixes mixed assets/liabilities)
         const assetAccounts = allAccounts.filter(a => a.type === 'Asset' || ['Bank Accounts', 'Cash-in-hand', 'Sundry Debtors'].includes(a.group));
         const liabAccounts = allAccounts.filter(a => a.type === 'Liability' || a.type === 'Equity' || ['Sundry Creditors', 'Capital Account'].includes(a.group));
 
