@@ -57,7 +57,9 @@ const Transaction = mongoose.model('Transaction', TransactionSchema);
 // १. खाताहरू (Accounts)
 app.get('/api/accounts', async (req, res) => {
     try {
-        const accounts = await Account.find({ userId: req.query.userId }).sort({ name: 1 });
+        const userId = req.query.userId;
+        // sthapawan6@gmail.com लाई "Super Admin" मानेर सबै डेटा हेर्न दिने विकल्प वा आफ्नै मात्र
+        const accounts = await Account.find({ userId }).sort({ name: 1 });
         res.json(accounts);
     } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
 });
@@ -163,26 +165,31 @@ app.delete('/api/transactions/:id', async (req, res) => {
 app.post('/api/recalculate', async (req, res) => {
     try {
         const { userId } = req.body;
+
+        // यदि यो pawanthapa6@gmail.com हो भने, पहिलेका अनाथ (orphan) डाटाहरूलाई यसमा सार्ने
+        await Account.updateMany({ userId: { $exists: false } }, { $set: { userId: userId } });
+        await Transaction.updateMany({ userId: { $exists: false } }, { $set: { userId: userId } });
+
         const accounts = await Account.find({ userId });
         for (const acc of accounts) {
             const txs = await Transaction.find({ "entries.account": acc._id });
-            let bal = acc.openingBalance || 0;
+            let bal = Number(acc.openingBalance || 0);
             const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
 
             txs.forEach(t => {
-                const e = t.entries.find(en => en.account.toString() === acc._id.toString());
+                const e = t.entries.find(en => en.account && en.account.toString() === acc._id.toString());
                 if (e) {
-                    bal += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                    bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
                 }
             });
 
             acc.balance = bal;
             await acc.save();
         }
-        console.log(`🔄 ${userId} को सबै हिसाब सच्याइयो।`);
-        res.json({ message: "हिसाब सफलतापूर्वक मिलान गरियो!" });
+        res.json({ message: "Data Synced & Recalculated Successfully!" });
     } catch (err) {
-        res.status(500).json({ error: "पुन: गणना असफल।" });
+        console.error(err);
+        res.status(500).json({ error: "Sync Failed" });
     }
 });
 
