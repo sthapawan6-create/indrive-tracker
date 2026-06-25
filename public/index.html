@@ -181,11 +181,13 @@
                     <span class="label">Receivables (उठ्नुपर्ने)</span>
                     <div class="value" id="dash-ar">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div style="margin-top:15px; font-size:11px; font-weight:700; color:#94a3b8;" id="ar-breakdown"></div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Payables (तिर्नुपर्ने)</span>
                     <div class="value text-danger" id="dash-ap">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div style="margin-top:15px; font-size:11px; font-weight:700; color:#94a3b8;" id="ap-breakdown"></div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Net Profit/Loss (नाफा/नोक्सान)</span>
@@ -493,11 +495,30 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        let cash=0, ar=0, ap=0, rev=0, exp=0, cashList=[];
+        let cash=0, ar=0, ap=0, rev=0, exp=0, cashList=[], arList=[], apList=[];
         accounts.forEach(a => {
-            if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') { cash += a.balance; cashList.push(`${a.name}: ${a.balance.toLocaleString()}`); }
-            else if(a.group==='Sundry Debtors') { if(a.balance > 0) ar += a.balance; else ap += Math.abs(a.balance); }
-            else if(a.group==='Sundry Creditors') { if(a.balance > 0) ap += a.balance; else ar += Math.abs(a.balance); }
+            if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') {
+                cash += a.balance;
+                if(a.balance !== 0) cashList.push(`${a.name}: ${a.balance.toLocaleString()}`);
+            }
+            else if(a.group==='Sundry Debtors') {
+                if(a.balance > 0) {
+                    ar += a.balance;
+                    arList.push(`${a.name}: ${a.balance.toLocaleString()}`);
+                } else if(a.balance < 0) {
+                    ap += Math.abs(a.balance);
+                    apList.push(`${a.name}: ${Math.abs(a.balance).toLocaleString()}`);
+                }
+            }
+            else if(a.group==='Sundry Creditors') {
+                if(a.balance > 0) {
+                    ap += a.balance;
+                    apList.push(`${a.name}: ${a.balance.toLocaleString()}`);
+                } else if(a.balance < 0) {
+                    ar += Math.abs(a.balance);
+                    arList.push(`${a.name}: ${Math.abs(a.balance).toLocaleString()}`);
+                }
+            }
             if(a.type==='Revenue') rev += a.balance;
             if(a.type==='Expense') exp += a.balance;
         });
@@ -511,6 +532,8 @@
         pElem.className = netProfit >= 0 ? "value text-success" : "value text-danger";
 
         document.getElementById('cash-breakdown').innerHTML = cashList.join(' • ');
+        document.getElementById('ar-breakdown').innerHTML = arList.join(' • ');
+        document.getElementById('ap-breakdown').innerHTML = apList.join(' • ');
         renderChart(rev, exp);
     }
 
