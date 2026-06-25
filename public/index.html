@@ -1118,11 +1118,6 @@
         }
     }
 
-    async function deleteTransaction(id) {
-        if (!confirm("Delete transaction? This will automatically reverse ledger balances.")) return;
-        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-        init();
-    }
 
     function updateDashboard() {
         let cash = 0, ar = 0, ap = 0, hold = 0, revenue = 0, expense = 0;
@@ -1399,7 +1394,6 @@
             div.innerHTML = html;
             generateDaybookFromUI(today);
             return;
-        }
         } else if (type === 'bs') {
             const assetTypes = ['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
             const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
@@ -1453,11 +1447,7 @@
                             </table>
                         </div>
                     </div>
-                </div>
-                <div style="margin-top:25px; text-align:center; font-weight:800; padding:15px; border-radius:8px; background:${Math.abs(diff) < 1 ? '#f0fdf4' : '#fef2f2'}; color:${Math.abs(diff) < 1 ? 'var(--success)' : 'var(--danger)'}">
-                    ${Math.abs(diff) < 1 ? '<i class="fas fa-check-circle"></i> ACCOUNTING EQUITY MATCHED' : '<i class="fas fa-exclamation-triangle"></i> DIFFERENCE: Rs. ' + Math.abs(diff).toLocaleString(undefined, {minimumFractionDigits:2}) + '<br><small>Tip: Add this amount to your Capital (Equity) account to balance it.</small>'}
-                </div>
-            `;
+                </div>`;
         }
         div.innerHTML = html;
     }
@@ -1517,27 +1507,26 @@
         }
     }
 
-        // --- SETTINGS ---
-        function saveSettings() {
-            const settings = {
-                companyName: document.getElementById('set-company-name').value,
-                address: document.getElementById('set-company-addr').value,
-                pan: document.getElementById('set-company-pan').value,
-                currency: document.getElementById('set-currency').value
-            };
-            localStorage.setItem('erp_settings', JSON.stringify(settings));
-            alert("Settings saved successfully!");
-        }
+    // --- SETTINGS ---
+    function saveSettings() {
+        const settings = {
+            companyName: document.getElementById('set-company-name').value,
+            address: document.getElementById('set-company-addr').value,
+            pan: document.getElementById('set-company-pan').value,
+            currency: document.getElementById('set-currency').value
+        };
+        localStorage.setItem('erp_settings', JSON.stringify(settings));
+        alert("Settings saved successfully!");
+    }
 
-        function loadSettings() {
-            const saved = localStorage.getItem('erp_settings');
-            if (saved) {
-                const s = JSON.parse(saved);
-                document.getElementById('set-company-name').value = s.companyName || '';
-                document.getElementById('set-company-addr').value = s.address || '';
-                document.getElementById('set-company-pan').value = s.pan || '';
-                document.getElementById('set-currency').value = s.currency || 'Rs.';
-            }
+    function loadSettings() {
+        const saved = localStorage.getItem('erp_settings');
+        if (saved) {
+            const s = JSON.parse(saved);
+            if(document.getElementById('set-company-name')) document.getElementById('set-company-name').value = s.companyName || '';
+            if(document.getElementById('set-company-addr')) document.getElementById('set-company-addr').value = s.address || '';
+            if(document.getElementById('set-company-pan')) document.getElementById('set-company-pan').value = s.pan || '';
+            if(document.getElementById('set-currency')) document.getElementById('set-currency').value = s.currency || 'Rs.';
         }
     }
 
@@ -1645,21 +1634,22 @@
         }
         html += `</tbody></table></div>`;
         targetArea.innerHTML = html;
+    }
 
-        // --- THEME TOGGLE ---
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('erp_theme', isDark ? 'dark' : 'light');
-        }
+    // --- THEME TOGGLE ---
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('erp_theme', isDark ? 'dark' : 'light');
+    }
 
-        // Apply theme on load
-        if (localStorage.getItem('erp_theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-        }
-        loadSettings();
+    // Apply theme on load
+    if (localStorage.getItem('erp_theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    loadSettings();
 
-        // --- ADVANCED ERP FEATURES: BACKUP & RESTORE ---
+    // --- ADVANCED ERP FEATURES: BACKUP & RESTORE ---
     function backupData() {
         const data = {
             accounts: allAccounts,
