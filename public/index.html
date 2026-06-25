@@ -92,6 +92,19 @@
         .badge-rev { background: #e0f2fe; color: #075985; }
         .badge-exp { background: #fef3c7; color: #92400e; }
 
+        /* Dark Mode Support */
+        body.dark-mode { --bg: #0f172a; --white: #1e293b; --border: #334155; color: #f1f5f9; }
+        body.dark-mode .card, body.dark-mode .top-header, body.dark-mode .stat-card { background: #1e293b; color: #f1f5f9; }
+        body.dark-mode .card-header { background: #1e293b; border-bottom: 1px solid #334155; }
+        body.dark-mode th { background: #0f172a; color: #94a3b8; border-bottom: 1px solid #334155; }
+        body.dark-mode td { border-bottom: 1px solid #334155; }
+        body.dark-mode tr:hover { background: #0f172a; }
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+        body.dark-mode .voucher-table th { background: #0f172a; color: #94a3b8; }
+        body.dark-mode .voucher-table td { background: #1e293b; }
+        body.dark-mode tr.dr-row { background: #1e3a8a44; }
+        body.dark-mode tr.cr-row { background: #7c2d1244; }
+
         .hidden { display: none !important; }
         .text-right { text-align: right; }
         .text-success { color: var(--success); }
@@ -141,6 +154,8 @@
         <div class="nav-item" onclick="showTab('accounts', this)"><i class="fas fa-address-book"></i> <span class="nav-label">Ledgers</span></div>
         <div class="nav-item" onclick="showTab('statement', this)"><i class="fas fa-book-open"></i> <span class="nav-label">Statement</span></div>
         <div class="nav-item" onclick="showTab('reports', this)"><i class="fas fa-chart-pie"></i> <span class="nav-label">Reports</span></div>
+        <div class="nav-item" onclick="showTab('settings', this)"><i class="fas fa-cog"></i> <span class="nav-label">Settings</span></div>
+        <div class="nav-item" onclick="backupData()" style="color: #4ade80;"><i class="fas fa-download"></i> <span class="nav-label">Backup</span></div>
         <div style="position: absolute; bottom: 20px; width: 100%;">
             <div class="nav-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> <span class="nav-label">Logout</span></div>
         </div>
@@ -153,6 +168,7 @@
                 <small style="color:#64748b" id="currentDateDisp"></small>
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="btn btn-outline" onclick="toggleTheme()" style="padding: 5px 12px;"><i class="fas fa-moon"></i></button>
                 <div class="badge badge-asset" id="userName">User</div>
                 <img id="userImg" src="" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent);">
             </div>
@@ -163,7 +179,8 @@
             <div style="display: flex; gap: 15px; margin-bottom: 25px;" class="no-print">
                 <button class="btn btn-primary" onclick="showTab('journal')"><i class="fas fa-plus"></i> New Voucher</button>
                 <button class="btn btn-outline" onclick="showTab('accounts')"><i class="fas fa-user-plus"></i> Add Ledger</button>
-                <button class="btn btn-outline" onclick="renderReport('trial'); showTab('reports')"><i class="fas fa-list"></i> Trial Balance</button>
+                <button class="btn btn-outline" style="background:#f0fdf4; border-color:#bbf7d0; color:#16a34a" onclick="backupData()"><i class="fas fa-cloud-download-alt"></i> Safe Backup</button>
+                <button class="btn btn-outline" style="background:#fff7ed; border-color:#ffedd5; color:#c2410c" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data</button>
             </div>
 
             <div class="stat-grid">
@@ -422,6 +439,52 @@
                 </div>
             </div>
         </div>
+
+        <!-- Settings -->
+        <div id="tab-settings" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header"><h3>Company Profile & Settings</h3></div>
+                <div class="card-body">
+                    <div style="max-width: 600px;">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Company / Business Name</label>
+                            <input type="text" id="set-company-name" placeholder="Enter Business Name" value="Enterprise ERP System">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Address</label>
+                            <input type="text" id="set-company-addr" placeholder="Kathmandu, Nepal">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">VAT / PAN Number</label>
+                            <input type="text" id="set-company-pan" placeholder="Optional">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600;">Currency Symbol</label>
+                            <input type="text" id="set-currency" value="Rs." style="width: 100px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveSettings()">Save Configuration</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>Data Management</h3></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                            <h4>Export Records</h4>
+                            <p style="color: #64748b; font-size: 12px;">Download all your financial data into a JSON file for local backup.</p>
+                            <button class="btn btn-success" onclick="backupData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
+                        </div>
+                        <div style="border: 1px solid var(--border); padding: 20px; border-radius: 8px;">
+                            <h4>Import Records</h4>
+                            <p style="color: #64748b; font-size: 12px;">Restore data from a previously exported JSON backup file.</p>
+                            <button class="btn btn-outline" style="color:var(--warning)" onclick="restoreData()"><i class="fas fa-upload"></i> Restore Data (JSON)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -516,12 +579,15 @@
         const titles = { 'dashboard': 'Financial Dashboard', 'journal': 'Journal Voucher Entry', 'accounts': 'Chart of Accounts', 'statement': 'Account Statements', 'reports': 'Financial Reports' };
         document.getElementById('pageTitle').innerText = titles[tabId] || (tabId.charAt(0).toUpperCase() + tabId.slice(1));
 
-        if (tabId === 'journal') {
+        if (tabId === 'journal' && !editingTxId) {
             resetVoucher();
         }
     }
 
     function resetVoucher() {
+        editingTxId = null;
+        document.getElementById('post-btn').innerHTML = '<i class="fas fa-check-circle"></i> POST VOUCHER';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
         document.getElementById('voucherno-display').innerText = `Voucher No: JV-${Math.floor(100000 + Math.random() * 900000)}`;
         document.getElementById('jou-date').valueAsDate = new Date();
         document.getElementById('jou-entries').innerHTML = '';
@@ -753,25 +819,29 @@
         }
     }
 
-    function updateRowColor(el) {
-        const row = el.parentElement.parentElement;
+    function updateRowColor(el, skipClear = false) {
+        const row = el.closest('tr');
         const drInput = row.querySelector('.row-dr');
         const crInput = row.querySelector('.row-cr');
 
         if (el.value === 'dr') {
-            row.style.background = "#f0f9ff"; // Light blue for Debit
+            row.classList.add('dr-row');
+            row.classList.remove('cr-row');
+            row.style.background = ""; // Clear inline style to let CSS take over
             crInput.disabled = true;
-            crInput.value = '';
-            crInput.style.background = "#fee2e2"; // Light red to indicate disabled
+            if (!skipClear) crInput.value = '';
+            crInput.style.background = "#f1f5f9";
             crInput.style.cursor = "not-allowed";
             drInput.disabled = false;
             drInput.style.background = "#ffffff";
             drInput.style.cursor = "text";
         } else {
-            row.style.background = "#fffaf0"; // Light orange for Credit
+            row.classList.add('cr-row');
+            row.classList.remove('dr-row');
+            row.style.background = "";
             drInput.disabled = true;
-            drInput.value = '';
-            drInput.style.background = "#fee2e2"; // Light red to indicate disabled
+            if (!skipClear) drInput.value = '';
+            drInput.style.background = "#f1f5f9";
             drInput.style.cursor = "not-allowed";
             crInput.disabled = false;
             crInput.style.background = "#ffffff";
@@ -829,26 +899,31 @@
                     </select>
                 </td>
                 <td>
-                    <div style="position:relative">
-                        <input type="text" list="ledgerOptions" class="row-acc-input" value="${accName}" placeholder="Type account name..."
-                            onchange="validateAccount(this)"
-                            onkeydown="if(event.key==='Enter') focusAmount(this)"
-                            style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
-                        <input type="hidden" class="row-acc-id" value="${accId}">
+                    <div style="position:relative; display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; position:relative;">
+                            <input type="text" list="ledgerOptions" class="row-acc-input" value="${accName}" placeholder="Search..."
+                                onchange="validateAccount(this)"
+                                onkeydown="if(event.key==='Enter') focusAmount(this)"
+                                style="border:1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:600;">
+                            <input type="hidden" class="row-acc-id" value="${accId}">
+                        </div>
+                        <span class="row-grp-badge" style="font-size:10px; font-weight:700; color:#64748b; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap;"></span>
                     </div>
                 </td>
-                <td><input type="number" class="row-dr text-right" value="${e.debit||''}" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
-                <td><input type="number" class="row-cr text-right" value="${e.credit||''}" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+                <td><input type="number" class="row-dr text-right" value="${e.debit || ''}" placeholder="0.00" oninput="syncEntry(this, 'dr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
+                <td><input type="number" class="row-cr text-right" value="${e.credit || ''}" placeholder="0.00" oninput="syncEntry(this, 'cr')" style="border: 1px solid var(--border); border-radius:4px; padding:8px; width:100%; font-weight:700;"></td>
                 <td class="text-right">
                     <button onclick="this.parentElement.parentElement.remove(); calcJournalTotals()" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size:18px;"><i class="fas fa-times"></i></button>
                 </td>
             `;
             tbody.appendChild(tr);
-            updateRowColor(tr.querySelector('.row-type'));
+            updateRowColor(tr.querySelector('.row-type'), true); // true to skip clearing values
+            validateAccount(tr.querySelector('.row-acc-input'));
         });
         showTab('journal');
-        document.getElementById('post-btn').innerText = "Update Voucher";
+        document.getElementById('post-btn').innerHTML = '<i class="fas fa-save"></i> UPDATE VOUCHER';
         document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     async function saveTransaction() {
@@ -896,6 +971,22 @@
         } finally {
             document.getElementById('post-btn').disabled = false;
             document.getElementById('post-btn').innerHTML = '<i class="fas fa-check-circle"></i> POST VOUCHER';
+        }
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm("Are you sure you want to DELETE this voucher?\nThis will reverse all account balances!")) return;
+        try {
+            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert("Transaction Deleted! 🗑️");
+                await init();
+            } else {
+                const err = await res.json();
+                alert("Error: " + err.error);
+            }
+        } catch (e) {
+            alert("Network Error");
         }
     }
 
@@ -1212,6 +1303,91 @@
                 <tr style="font-weight:700"><td>Total Expenses</td><td class="text-right">${te.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
                 <tr style="background:var(--primary); color:white"><td>NET PROFIT / LOSS</td><td class="text-right">${(tr-te).toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>
             </table>`;
+        } else if (type === 'daybook') {
+            const date = prompt("Enter Date (YYYY-MM-DD) for Day Book:", new Date().toISOString().split('T')[0]);
+            if (!date) return;
+
+            const targetDate = new Date(date);
+            const dayTxs = allTransactions.filter(tx => tx.date === date);
+
+            let html = `<h3>Day Book & Closing - ${date}</h3>`;
+            html += `<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:20px;">`;
+
+            const monetaryAccs = allAccounts.filter(a => a.group === 'Bank Accounts' || a.group === 'Cash-in-hand' || a.name.toLowerCase().includes('cash'));
+
+            let totalDayIn = 0;
+            let totalDayOut = 0;
+
+            let accountsSummaryHtml = `<table style="margin-top:20px"><thead><tr><th>Account</th><th class="text-right">Opening</th><th class="text-right">Inflow</th><th class="text-right">Outflow</th><th class="text-right">Closing</th></tr></thead><tbody>`;
+
+            monetaryAccs.forEach(acc => {
+                let opening = acc.openingBalance || 0;
+                let inflow = 0;
+                let outflow = 0;
+                const isDrInc = ['Asset', 'Expense'].includes(acc.type);
+
+                allTransactions.forEach(tx => {
+                    const txDate = new Date(tx.date);
+                    tx.entries.forEach(e => {
+                        if ((e.account?._id || e.account) === acc._id) {
+                            if (txDate < targetDate) {
+                                opening += isDrInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                            } else if (tx.date === date) {
+                                inflow += e.debit;
+                                outflow += e.credit;
+                            }
+                        }
+                    });
+                });
+
+                const closing = isDrInc ? (opening + inflow - outflow) : (opening + outflow - inflow);
+                totalDayIn += inflow;
+                totalDayOut += outflow;
+
+                accountsSummaryHtml += `<tr>
+                    <td><b>${acc.name}</b></td>
+                    <td class="text-right">${opening.toLocaleString()}</td>
+                    <td class="text-right text-success">${inflow > 0 ? '+' + inflow.toLocaleString() : '-'}</td>
+                    <td class="text-right text-danger">${outflow > 0 ? '-' + outflow.toLocaleString() : '-'}</td>
+                    <td class="text-right" style="background:#f8fafc; font-weight:700;">${closing.toLocaleString()}</td>
+                </tr>`;
+            });
+
+            accountsSummaryHtml += `</tbody></table>`;
+
+            html += `
+                <div class="stat-card" style="border-left:4px solid var(--success)">
+                    <div class="label">Total Inflow (Today)</div>
+                    <div class="value text-success">Rs. ${totalDayIn.toLocaleString()}</div>
+                </div>
+                <div class="stat-card" style="border-left:4px solid var(--danger)">
+                    <div class="label">Total Outflow (Today)</div>
+                    <div class="value text-danger">Rs. ${totalDayOut.toLocaleString()}</div>
+                </div>
+                <div class="stat-card" style="border-left:4px solid var(--accent)">
+                    <div class="label">Net Movement</div>
+                    <div class="value">Rs. ${(totalDayIn - totalDayOut).toLocaleString()}</div>
+                </div>
+            </div>`;
+
+            html += `<h4>Account-wise Day Summary</h4>` + accountsSummaryHtml;
+
+            html += `<h4 style="margin-top:30px">Today's Detailed Transactions</h4>
+                <table style="margin-top:10px">
+                    <thead><tr><th>Voucher</th><th>Particulars</th><th class="text-right">Dr Amount</th><th class="text-right">Cr Amount</th></tr></thead>
+                    <tbody>`;
+
+            dayTxs.forEach(tx => {
+                tx.entries.forEach(e => {
+                    html += `<tr>
+                        <td><small>${tx._id.slice(-6).toUpperCase()}</small></td>
+                        <td><b>${e.account?.name || 'Unknown'}</b><br><small>${tx.description}</small></td>
+                        <td class="text-right">${e.debit > 0 ? e.debit.toLocaleString() : '-'}</td>
+                        <td class="text-right">${e.credit > 0 ? e.credit.toLocaleString() : '-'}</td>
+                    </tr>`;
+                });
+            });
+            html += `</tbody></table>`;
         } else if (type === 'bs') {
             const assetTypes = ['Asset', 'Bank', 'Cash', 'Fixed Asset', 'Current Asset', 'Debtors', 'Investments'];
             const liabilityTypes = ['Liability', 'Current Liability', 'Long Term Liability', 'Creditors', 'Loans', 'Provisions'];
@@ -1341,6 +1517,96 @@
             else crInput.value = total.toFixed(2);
             calcJournalTotals();
         }
+    }
+
+        // --- SETTINGS ---
+        function saveSettings() {
+            const settings = {
+                companyName: document.getElementById('set-company-name').value,
+                address: document.getElementById('set-company-addr').value,
+                pan: document.getElementById('set-company-pan').value,
+                currency: document.getElementById('set-currency').value
+            };
+            localStorage.setItem('erp_settings', JSON.stringify(settings));
+            alert("Settings saved successfully!");
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('erp_settings');
+            if (saved) {
+                const s = JSON.parse(saved);
+                document.getElementById('set-company-name').value = s.companyName || '';
+                document.getElementById('set-company-addr').value = s.address || '';
+                document.getElementById('set-company-pan').value = s.pan || '';
+                document.getElementById('set-currency').value = s.currency || 'Rs.';
+            }
+        }
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('erp_theme', isDark ? 'dark' : 'light');
+        }
+
+        // Apply theme on load
+        if (localStorage.getItem('erp_theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+        loadSettings();
+
+        // --- ADVANCED ERP FEATURES: BACKUP & RESTORE ---
+    function backupData() {
+        const data = {
+            accounts: allAccounts,
+            transactions: allTransactions,
+            backupDate: new Date().toISOString(),
+            system: "InDrive Tracker ERP"
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ERP_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert("Backup file downloaded! Keep this file safe.");
+    }
+
+    function restoreData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (!data.accounts || !data.transactions) throw new Error("Invalid Backup File");
+
+                    if (confirm("WARNING: This will replace all current data with the backup. Proceed?")) {
+                        const res = await fetch('/api/restore', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        if (res.ok) {
+                            alert("Data Restored Successfully!");
+                            location.reload();
+                        } else {
+                            alert("Server error during restore.");
+                        }
+                    }
+                } catch (err) {
+                    alert("Error: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
     }
 </script>
 </body>

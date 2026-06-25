@@ -219,5 +219,24 @@ app.delete('/api/transactions/:id', async (req, res) => {
     }
 });
 
+// Restore Data
+app.post('/api/restore', async (req, res) => {
+    try {
+        const { accounts, transactions } = req.body;
+        if (!accounts || !transactions) return res.status(400).json({ error: "Invalid backup data" });
+
+        const userIds = [...new Set(accounts.map(a => a.userId))];
+        if (userIds.length > 0) {
+            await Account.deleteMany({ userId: { $in: userIds } });
+            await Transaction.deleteMany({ userId: { $in: userIds } });
+            await Account.insertMany(accounts);
+            await Transaction.insertMany(transactions);
+        }
+        res.status(200).json({ message: "Restore successful" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 सर्भर यहाँ चलिरहेको छ: http://localhost:${PORT}`));
