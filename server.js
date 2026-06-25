@@ -159,6 +159,33 @@ app.delete('/api/transactions/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "असफल" }); }
 });
 
+// ३. सबै खाताको ब्यालेन्स पुन: गणना (Recalculate) गर्ने
+app.post('/api/recalculate', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const accounts = await Account.find({ userId });
+        for (const acc of accounts) {
+            const txs = await Transaction.find({ "entries.account": acc._id });
+            let bal = acc.openingBalance || 0;
+            const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+
+            txs.forEach(t => {
+                const e = t.entries.find(en => en.account.toString() === acc._id.toString());
+                if (e) {
+                    bal += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                }
+            });
+
+            acc.balance = bal;
+            await acc.save();
+        }
+        console.log(`🔄 ${userId} को सबै हिसाब सच्याइयो।`);
+        res.json({ message: "हिसाब सफलतापूर्वक मिलान गरियो!" });
+    } catch (err) {
+        res.status(500).json({ error: "पुन: गणना असफल।" });
+    }
+});
+
 app.post('/api/restore', async (req, res) => {
     try {
         const { userId, accounts, transactions } = req.body;

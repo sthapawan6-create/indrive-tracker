@@ -293,6 +293,13 @@
 
         <div id="tab-settings" class="tab-content hidden">
             <div class="grid-stats">
+                <div class="stat-card" style="border-bottom:4px solid var(--accent)">
+                    <h3>Accounting Sync Engine</h3>
+                    <p style="color:#94a3b8; margin:10px 0;">यदि बाहिर र भित्रको ब्यालेन्स फरक देखिएमा यहाँबाट सच्याउनुहोस्।</p>
+                    <button class="btn btn-primary" onclick="recalculateBalances()">
+                        <i class="fas fa-sync-alt"></i> Recalculate & Sync Balances
+                    </button>
+                </div>
                 <div class="stat-card" style="border-bottom:4px solid var(--success)"><h3>Secure Encryption Cloud Backup</h3><p style="color:#94a3b8; margin:10px 0;">Download full ERP financial ledger transaction backup archive.</p><button class="btn btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Export Data Backup</button></div>
                 <div class="stat-card" style="border-bottom:4px solid var(--danger)"><h3>Database Recovery Console</h3><p style="color:#94a3b8; margin:10px 0;">Restore records via full replacement structure archive.</p><button class="btn btn-danger" onclick="importData()"><i class="fas fa-upload"></i> Restore Backup Archive</button></div>
             </div>
@@ -661,6 +668,31 @@
             r.readAsText(e.target.files[0]);
         };
         i.click();
+    }
+
+    async function recalculateBalances() {
+        if(!confirm("के तपाईं सबै खाताको ब्यालेन्स पुन: गणना गर्न चाहनुहुन्छ?")) return;
+
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/recalculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid })
+            });
+            const data = await res.json();
+            alert(data.message || "हिसाब मिलान गरियो!");
+            init(); // Refresh data
+        } catch (err) {
+            alert("Error syncing balances.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 </script>
 </body>
