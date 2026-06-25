@@ -81,6 +81,185 @@ app.post('/api/accounts', async (req, res) => {
     }
 });
 
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+
 // २. सबै खाताहरू तान्ने
 app.get('/api/accounts', async (req, res) => {
     try {
@@ -90,6 +269,185 @@ app.get('/api/accounts', async (req, res) => {
         res.status(500).json({ error: "डेटा तान्न सकिएन।" });
     }
 });
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
 
 // ३. भौचर प्रविष्टि (Double Entry सँगै ब्यालेन्स अपडेट)
 app.post('/api/transactions', async (req, res) => {
@@ -124,6 +482,185 @@ app.post('/api/transactions', async (req, res) => {
     }
 });
 
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+
 // ४. कारोबार इतिहास हेर्ने
 app.get('/api/transactions', async (req, res) => {
     try {
@@ -135,6 +672,185 @@ app.get('/api/transactions', async (req, res) => {
         res.status(500).json({ error: "कारोबार इतिहास लोड गर्न सकिएन।" });
     }
 });
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
 
 // ५. भौचर मेटाउने (र हिसाब उल्ट्याउने)
 app.delete('/api/transactions/:id', async (req, res) => {
@@ -159,6 +875,185 @@ app.delete('/api/transactions/:id', async (req, res) => {
     }
 });
 
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+
 // ५.१ खाता (Account) मेटाउने API (सुरक्षा जाँच सहित)
 app.delete('/api/accounts/:id', async (req, res) => {
     try {
@@ -175,6 +1070,185 @@ app.delete('/api/accounts/:id', async (req, res) => {
         res.status(500).json({ error: "खाता हटाउन सकिएन।" });
     }
 });
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
 
 // ६. डेटा रिस्टोर (Backup Recovery)
 app.post('/api/restore', async (req, res) => {
@@ -195,6 +1269,185 @@ app.post('/api/restore', async (req, res) => {
         res.status(500).json({ error: "रिस्टोरमा त्रुटि: " + err.message });
     }
 });
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.१ एउटा विशिष्ट ट्रान्जेक्सन तान्ने (Edit को लागि)
+app.get('/api/transactions/:id', async (req, res) => {
+    try {
+        const tx = await Transaction.findById(req.params.id).populate('entries.account');
+        res.json(tx);
+    } catch (err) {
+        res.status(500).json({ error: "कारोबार भेटिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
+// ४.२ भौचर परिमार्जन (Update/Edit) गर्ने
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "परिमार्जन गर्न खोजिएको भौचर भेटिएन।" });
+
+        // १. पुरानो हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा अपडेट गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ हिसाब लागू गर्ने (Apply New Balances)
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+
+        console.log(`📝 भौचर परिमार्जन सफल: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "भौचर अपडेट गर्न सकिएन।" });
+    }
+});
+
+// ४.१ भौचर सम्पादन (Update/Edit) गर्ने API
+app.put('/api/transactions/:id', async (req, res) => {
+    try {
+        const { date, description, entries } = req.body;
+        const oldTx = await Transaction.findById(req.params.id);
+        if (!oldTx) return res.status(404).json({ error: "भौचर भेटिएन।" });
+
+        // १. पहिलेको हिसाब उल्ट्याउने (Reverse Old Balances)
+        for (const entry of oldTx.entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance -= change;
+                await acc.save();
+            }
+        }
+
+        // २. नयाँ डेटा सुरक्षित गर्ने
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        await oldTx.save();
+
+        // ३. नयाँ संशोधित हिसाब लागू गर्ने
+        for (const entry of entries) {
+            const acc = await Account.findById(entry.account);
+            if (acc) {
+                const isDebitIncrease = ['Asset', 'Expense'].includes(acc.type);
+                const change = isDebitIncrease ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
+                acc.balance += change;
+                await acc.save();
+            }
+        }
+        console.log(`📝 भौचर परिमार्जन गरियो: ${description}`);
+        res.status(200).json(oldTx);
+    } catch (err) {
+        res.status(500).json({ error: "अपडेट असफल भयो।" });
+    }
+});
+
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
