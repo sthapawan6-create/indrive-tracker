@@ -364,7 +364,7 @@
                     <input type="text" id="accSearch" placeholder="Search accounts..." onkeyup="filterAccs()" style="width:250px; padding:8px 15px; border-radius:10px; font-size:12px;">
                 </div>
                 <div class="card-body" style="padding:0">
-                    <table id="aTable"><thead><tr><th>Account Head</th><th>Group Type</th><th class="text-right">Net Balance</th><th class="text-right">Action</th></tr></thead><tbody></tbody></table>
+                    <table id="aTable"><thead><tr><th>Account Head</th><th>Group Type</th><th class="text-right">Opening Bal</th><th class="text-right">Net Balance</th><th class="text-right">Action</th></tr></thead><tbody></tbody></table>
                 </div>
             </div>
         </div>
@@ -700,10 +700,16 @@
             localStorage.setItem('erp_gold_a', JSON.stringify(accounts));
         } catch(e) { accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]"); }
 
-        document.querySelector('#aTable tbody').innerHTML = accounts.map(a => `<tr><td><b style="font-size:14px; color:white;">${a.name}</b></td><td><span class="badge badge-asset">${a.group}</span></td><td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent);">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td><td class="text-right">
-            <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}')"></i>
-            <i class="fas fa-trash text-danger" style="cursor:pointer; padding:5px 10px;" onclick="delAcc('${a._id}')"></i>
-        </td></tr>`).join('');
+        document.querySelector('#aTable tbody').innerHTML = accounts.map(a => `<tr>
+            <td><b style="font-size:14px; color:white;">${a.name}</b></td>
+            <td><span class="badge badge-asset">${a.group}</span></td>
+            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
+            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent);">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="text-right">
+                <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
+                <i class="fas fa-trash text-danger" style="cursor:pointer; padding:5px 10px;" onclick="delAcc('${a._id}')"></i>
+            </td>
+        </tr>`).join('');
         document.getElementById('sAcc').innerHTML = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.getElementById('lOpts').innerHTML = accounts.map(a => `<option value="${a.name}">`).join('');
     }
@@ -726,19 +732,39 @@
     }
 
 
-    async function editAccPrompt(id, name, group) {
+    async function editAccPrompt(id, name, group, openingBalance) {
         const newName = prompt("Enter new name for account:", name);
-        if (!newName) return;
-        const newGroup = prompt("Enter new group (Bank Accounts, Cash-in-hand, Sundry Debtors, Sundry Creditors, Direct Expenses, Indirect Expenses, Sales Accounts, Fixed Assets, Capital Account):", group);
-        if (!newGroup) return;
+        if (newName === null) return;
 
-        const map = { 'Bank Accounts':'Asset', 'Cash-in-hand':'Asset', 'Sundry Debtors':'Asset', 'Sundry Creditors':'Liability', 'Direct Expenses':'Expense', 'Indirect Expenses':'Expense', 'Sales Accounts':'Revenue', 'Fixed Assets':'Asset', 'Capital Account':'Equity' };
+        const newGroup = prompt("Enter new group (Bank Accounts, Cash-in-hand, Sundry Debtors, Sundry Creditors, Direct Expenses, Indirect Expenses, Sales Accounts, Fixed Assets, Capital Account):", group);
+        if (newGroup === null) return;
+
+        const newOB = prompt("Enter opening balance:", openingBalance || 0);
+        if (newOB === null) return;
+
+        const map = {
+            'Bank Accounts':'Asset',
+            'Cash-in-hand':'Asset',
+            'Sundry Debtors':'Asset',
+            'Sundry Creditors':'Liability',
+            'Direct Expenses':'Expense',
+            'Indirect Expenses':'Expense',
+            'Sales Accounts':'Revenue',
+            'Fixed Assets':'Asset',
+            'Capital Account':'Equity'
+        };
+
         if (!map[newGroup]) return alert("Invalid group name. Please use exact group names provided.");
 
         const res = await fetch(`/api/accounts/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName, group: newGroup, type: map[newGroup] })
+            body: JSON.stringify({
+                name: newName,
+                group: newGroup,
+                type: map[newGroup],
+                openingBalance: Number(newOB)
+            })
         });
         if (res.ok) { alert("Account Master Updated!"); init(); }
     }
