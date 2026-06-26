@@ -52,7 +52,19 @@ const TransactionSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
+const SettingSchema = new mongoose.Schema({
+    userId: String,
+    lastClosedDate: { type: String, default: "" }
+});
+const Setting = mongoose.model('Setting', SettingSchema);
+
 // --- APIs ---
+
+const checkLock = async (userId, date) => {
+    const s = await Setting.findOne({ userId });
+    if (s && s.lastClosedDate && date <= s.lastClosedDate) return true;
+    return false;
+};
 
 // १. खाताहरू (Accounts)
 app.get('/api/accounts', async (req, res) => {
@@ -99,6 +111,7 @@ app.get('/api/transactions', async (req, res) => {
 app.post('/api/transactions', async (req, res) => {
     try {
         const { userId, date, description, entries } = req.body;
+        if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा परिवर्तन गर्न मिल्दैन।" });
         const tx = new Transaction({ userId, date, description, entries });
         await tx.save();
 
@@ -116,8 +129,10 @@ app.post('/api/transactions', async (req, res) => {
 
 app.put('/api/transactions/:id', async (req, res) => {
     try {
-        const { date, description, entries } = req.body;
+        const { userId, date, description, entries } = req.body;
         const oldTx = await Transaction.findById(req.params.id);
+        if (await checkLock(oldTx.userId, oldTx.date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा सम्पादन गर्न मिल्दैन।" });
+        if (await checkLock(userId, date)) return res.status(403).json({ error: "नयाँ मितिको हिसाब क्लोज भइसकेको छ।" });
 
         // Reverse Old
         for (const entry of oldTx.entries) {
@@ -148,6 +163,7 @@ app.put('/api/transactions/:id', async (req, res) => {
 app.delete('/api/transactions/:id', async (req, res) => {
     try {
         const tx = await Transaction.findById(req.params.id);
+        if (await checkLock(tx.userId, tx.date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा मेटाउन मिल्दैन।" });
         for (const entry of tx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -211,6 +227,29 @@ app.post('/api/restore', async (req, res) => {
         if (transactions) await Transaction.insertMany(transactions);
         res.status(200).json({ message: "सफल" });
     } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ४. सेटिङहरू (Settings & Day Close)
+app.get('/api/settings', async (req, res) => {
+    try {
+        let s = await Setting.findOne({ userId: req.query.userId });
+        if(!s) {
+            s = new Setting({ userId: req.query.userId, lastClosedDate: "" });
+            await s.save();
+        }
+        res.json(s);
+    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
+});
+
+app.post('/api/settings/close-day', async (req, res) => {
+    try {
+        const { userId, date } = req.body;
+        let s = await Setting.findOne({ userId });
+        if(!s) s = new Setting({ userId });
+        s.lastClosedDate = date;
+        await s.save();
+        res.json(s);
+    } catch (err) { res.status(500).json({ error: "क्लोजिङ असफल" }); }
 });
 
 const PORT = process.env.PORT || 3000;
