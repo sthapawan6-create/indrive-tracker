@@ -1220,7 +1220,7 @@
         document.getElementById('top-debtors').innerHTML = topD.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--accent)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
         document.getElementById('top-creditors').innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
 
-        renderChart(rev, exp);
+        renderChart();
         renderTrendChart();
     }
 
@@ -1272,10 +1272,62 @@
         });
     }
 
-    function renderChart(rev, exp) {
+    function renderChart() {
         const ctx = document.getElementById('mainChart').getContext('2d');
         if(chart) chart.destroy();
-        chart = new Chart(ctx, { type:'doughnut', data: { labels:['Revenue', 'Expenses'], datasets:[{ data:[rev||1, exp||0], backgroundColor:['#d4af37', '#f43f5e'], borderWidth:5, borderColor:'#1b2640' }] }, options: { plugins: { legend: { position:'bottom', labels: { color:'#f8fafc' } } }, cutout:'75%' } });
+
+        // Group expenses for chart
+        const expGroups = {};
+        accounts.filter(a => a.type === 'Expense').forEach(a => {
+            if (a.balance > 0) {
+                expGroups[a.group] = (expGroups[a.group] || 0) + a.balance;
+            }
+        });
+
+        const labels = Object.keys(expGroups);
+        const data = Object.values(expGroups);
+
+        // Dynamic colors for different expense groups
+        const colors = [
+            '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
+            '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1'
+        ];
+
+        chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.length ? labels : ['No Expenses'],
+                datasets: [{
+                    data: data.length ? data : [1],
+                    backgroundColor: labels.length ? colors.slice(0, labels.length) : ['#334155'],
+                    borderWidth: 2,
+                    borderColor: '#1b2640'
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#94a3b8',
+                            font: { size: 10, weight: 'bold' },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(item) {
+                                const val = item.raw;
+                                return ` Rs. ${val.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%',
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
     }
 
     function renderRep(type) {
@@ -1283,94 +1335,206 @@
         const div = document.getElementById('rContent');
         let html = '';
 
+        const headerHtml = (title, subtitle) => `
+            <div style="text-align:center; margin-bottom:30px; border-bottom:2px solid var(--accent); padding-bottom:20px;">
+                <h1 style="margin:0; color:white; font-size:28px; letter-spacing:-1px;">${config.name}</h1>
+                <p style="margin:5px 0; color:#94a3b8; font-size:12px; font-weight:600;">${config.address} | ${config.phone}</p>
+                <div style="display:inline-block; margin-top:15px; padding:8px 25px; background:var(--accent); color:var(--primary); border-radius:50px; font-weight:800; font-size:12px; text-transform:uppercase;">${title}</div>
+                ${subtitle ? `<p style="margin-top:10px; font-size:11px; color:#94a3b8; font-weight:700;">${subtitle}</p>` : ''}
+            </div>
+        `;
+
         if(type==='daybook') {
             const fromDate = document.getElementById('repFrom')?.value || new Date().toISOString().split('T')[0];
             const toDate = document.getElementById('repTo')?.value || new Date().toISOString().split('T')[0];
             const txs = transactions.filter(t => t.date >= fromDate && t.date <= toDate);
 
-            html = `<div class="card-body" style="padding:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.1); padding:12px 20px; border-radius:16px; border:1px solid var(--border);">
-                    <h3 style="margin:0; font-weight:800; color:var(--accent); font-size:14px; text-transform:uppercase; letter-spacing:1px;">Journal Feed</h3>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="date" id="repFrom" value="${fromDate}" onchange="renderRep('daybook')" style="background:var(--primary); border:1px solid var(--border); color:var(--accent); font-family:'JetBrains Mono'; padding:5px; border-radius:8px; font-size:11px;">
-                        <span style="color:#94a3b8; font-weight:bold;">TO</span>
-                        <input type="date" id="repTo" value="${toDate}" onchange="renderRep('daybook')" style="background:var(--primary); border:1px solid var(--border); color:var(--accent); font-family:'JetBrains Mono'; padding:5px; border-radius:8px; font-size:11px;">
-                    </div>
-                </div>
+            let totalDr = 0, totalCr = 0;
+            txs.forEach(t => t.entries.forEach(e => { totalDr += Number(e.debit || 0); totalCr += Number(e.credit || 0); }));
 
-                <table style="border-spacing: 0 4px;">
-                    <thead>
-                        <tr style="color:var(--accent); font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                            <th style="padding:10px 20px; text-align:left;">Voucher / Ledger Details</th>
-                            <th class="text-right" style="padding:10px 20px;">Debit (Dr)</th>
-                            <th class="text-right" style="padding:10px 20px;">Credit (Cr)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${txs.length ? txs.map(t => {
-                            let rows = `<tr style="background:rgba(212,175,55,0.08);"><td colspan="3" style="padding:10px 20px; border-radius:12px 12px 0 0;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        <b style="color:white; font-size:14px;">${t.description}</b>
-                                        <button onclick="printVoucher('${t._id}')" style="background:none; border:none; color:#10b981; cursor:pointer; font-size:12px; opacity:0.6;" title="Print Receipt"><i class="fas fa-print"></i></button>
-                                        <button onclick="openEditModal('${t._id}')" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:12px; opacity:0.6;" title="Edit Transaction"><i class="fas fa-edit"></i></button>
-                                        <button onclick="delTx('${t._id}')" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:12px; opacity:0.6;" title="Delete Transaction"><i class="fas fa-trash"></i></button>
+            html = `
+                <div class="card-body" style="padding:40px;">
+                    ${headerHtml('Day Book / Journal Feed', `Period: ${fromDate} to ${toDate}`)}
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-bottom:30px;">
+                        <div style="background:rgba(212,175,55,0.05); padding:20px; border-radius:20px; border:1px solid var(--border);">
+                            <span style="font-size:10px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">TOTAL VOUCHERS</span>
+                            <span style="font-size:20px; font-weight:800; color:white;">${txs.length}</span>
+                        </div>
+                        <div style="background:rgba(16,185,129,0.05); padding:20px; border-radius:20px; border:1px solid var(--border);">
+                            <span style="font-size:10px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">TOTAL DEBIT (DR)</span>
+                            <span style="font-size:20px; font-weight:800; color:var(--success);">Rs. ${totalDr.toLocaleString()}</span>
+                        </div>
+                        <div style="background:rgba(244,63,94,0.05); padding:20px; border-radius:20px; border:1px solid var(--border);">
+                            <span style="font-size:10px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">TOTAL CREDIT (CR)</span>
+                            <span style="font-size:20px; font-weight:800; color:var(--danger);">Rs. ${totalCr.toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:20px;">
+                        <input type="date" id="repFrom" value="${fromDate}" onchange="renderRep('daybook')" style="width:150px; padding:10px; font-size:12px;">
+                        <input type="date" id="repTo" value="${toDate}" onchange="renderRep('daybook')" style="width:150px; padding:10px; font-size:12px;">
+                    </div>
+
+                    <table style="border-spacing: 0 8px;">
+                        <tbody>
+                            ${txs.length ? txs.map(t => {
+                                let rows = `<tr style="background:rgba(255,255,255,0.03);"><td colspan="3" style="padding:15px 25px; border-radius:15px 15px 0 0; border-bottom:1px solid var(--border);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div>
+                                            <span style="font-family:'JetBrains Mono'; font-size:11px; color:var(--accent); background:rgba(212,175,55,0.1); padding:4px 10px; border-radius:6px; margin-right:10px;">JV-${t._id.slice(-4).toUpperCase()}</span>
+                                            <b style="color:white; font-size:15px;">${t.description}</b>
+                                            <small style="color:#94a3b8; margin-left:10px; font-weight:700;">[ ${t.date} ]</small>
+                                        </div>
+                                        <div style="display:flex; gap:12px;">
+                                            <button onclick="printVoucher('${t._id}')" class="btn btn-outline" style="padding:8px 12px; font-size:10px;"><i class="fas fa-print"></i></button>
+                                            <button onclick="openEditModal('${t._id}')" class="btn btn-outline" style="padding:8px 12px; font-size:10px; border-color:var(--accent); color:var(--accent);"><i class="fas fa-edit"></i></button>
+                                            <button onclick="delTx('${t._id}')" class="btn btn-outline" style="padding:8px 12px; font-size:10px; border-color:var(--danger); color:var(--danger);"><i class="fas fa-trash"></i></button>
+                                        </div>
                                     </div>
-                                    <span style="font-family:'JetBrains Mono'; font-size:10px; color:var(--accent); background:rgba(0,0,0,0.2); padding:2px 8px; border-radius:6px; border:1px solid rgba(212,175,55,0.2);">JV-${t._id.slice(-4).toUpperCase()}</span>
-                                </div>
-                            </td></tr>`;
-                            rows += t.entries.map((e, idx) => {
-                                const acc = accounts.find(a => a._id === (e.account?._id || e.account));
-                                const isLast = idx === t.entries.length - 1;
-                                return `<tr style="background:rgba(255,255,255,0.02);">
-                                    <td style="padding-left:45px; border:none; ${isLast?'border-radius:0 0 0 12px;':''}">
-                                        <span style="color:${e.debit > 0 ? 'var(--accent)' : '#94a3b8'}; font-weight:800; margin-right:8px; font-size:11px;">${e.debit > 0 ? 'BY' : 'TO'}</span>
-                                        <span style="color:#e2e8f0; font-weight:500;">${acc ? acc.name : 'Unknown Ledger'}</span>
-                                    </td>
-                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none; color:var(--success); font-size:13px;">${e.debit > 0 ? e.debit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
-                                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:600; border:none; ${isLast?'border-radius:0 0 12px 0;':''} color:var(--danger); font-size:13px;">${e.credit > 0 ? e.credit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
-                                </tr>`;
-                            }).join('');
-                            return rows + `<tr><td colspan="3" style="height:12px; border:none;"></td></tr>`;
-                        }).join('') : `<tr><td colspan="3" style="text-align:center; padding:100px; opacity:0.3;">
-                            <i class="fas fa-search" style="font-size:40px; margin-bottom:15px; color:var(--accent);"></i>
-                            <p style="font-size:14px;">No transactions recorded on this date.</p>
-                        </td></tr>`}
-                    </tbody>
-                </table>
-            </div>`;
+                                </td></tr>`;
+                                rows += t.entries.map((e, idx) => {
+                                    const acc = accounts.find(a => a._id === (e.account?._id || e.account));
+                                    const isLast = idx === t.entries.length - 1;
+                                    return `<tr style="background:rgba(255,255,255,0.01);">
+                                        <td style="padding-left:50px; border:none; ${isLast?'border-radius:0 0 0 15px;':''}">
+                                            <span style="color:${e.debit > 0 ? 'var(--accent)' : '#64748b'}; font-weight:800; font-size:11px; width:30px; display:inline-block;">${e.debit > 0 ? 'BY' : 'TO'}</span>
+                                            <span style="color:#f1f5f9; font-weight:600;">${acc ? acc.name : 'Unknown Ledger'}</span>
+                                        </td>
+                                        <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; border:none; color:var(--success);">${e.debit > 0 ? e.debit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
+                                        <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; border:none; ${isLast?'border-radius:0 0 15px 0;':''} color:var(--danger);">${e.credit > 0 ? e.credit.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
+                                    </tr>`;
+                                }).join('');
+                                return rows + `<tr><td colspan="3" style="height:20px; border:none;"></td></tr>`;
+                            }).join('') : `<tr><td colspan="3" style="text-align:center; padding:100px; opacity:0.3;"><p>No records found.</p></td></tr>`}
+                        </tbody>
+                    </table>
+                </div>`;
+
         } else if(type==='trial') {
             let tDr=0, tCr=0;
-            const rows = accounts.map(a => {
+            const rows = accounts.sort((a,b) => a.group.localeCompare(b.group)).map(a => {
                 const dr = a.balance > 0 ? a.balance : 0;
                 const cr = a.balance < 0 ? Math.abs(a.balance) : 0;
                 tDr += dr; tCr += cr;
-                return `<tr><td>${a.name}</td><td>${a.group}</td><td class="text-right">${dr?dr.toLocaleString():''}</td><td class="text-right">${cr?cr.toLocaleString():''}</td></tr>`;
+                return `<tr style="background:rgba(255,255,255,0.01);">
+                    <td style="font-weight:600;">${a.name}</td>
+                    <td style="font-size:11px; color:#94a3b8; font-weight:700;">${a.group.toUpperCase()}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--success);">${dr?dr.toLocaleString(undefined,{minimumFractionDigits:2}):''}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--danger);">${cr?cr.toLocaleString(undefined,{minimumFractionDigits:2}):''}</td>
+                </tr>`;
             }).join('');
-            html = `<div class="card-body">
-                <h2 style="text-align:center; color:var(--accent);">TRIAL BALANCE</h2>
-                <table><thead><tr style="background:rgba(0,0,0,0.3);"><th>Account Head</th><th>Group</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
-                <tbody>${rows}</tbody><tfoot><tr style="font-weight:900;"><td>TOTAL</td><td></td><td class="text-right">Rs. ${tDr.toLocaleString()}</td><td class="text-right">Rs. ${tCr.toLocaleString()}</td></tr></tfoot></table></div>`;
+            html = `<div class="card-body" style="padding:40px;">
+                ${headerHtml('Trial Balance Summary', `As of ${new Date().toDateString()}`)}
+                <table style="border-spacing:0 5px;">
+                    <thead><tr style="background:rgba(0,0,0,0.2);">
+                        <th style="padding:15px 25px; border-radius:15px 0 0 15px;">Account Head</th>
+                        <th>Group Category</th>
+                        <th class="text-right">Debit (Rs)</th>
+                        <th class="text-right" style="padding-right:25px; border-radius:0 15px 15px 0;">Credit (Rs)</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot><tr style="background:rgba(212,175,55,0.1); font-weight:900; color:white;">
+                        <td colspan="2" style="padding:20px 25px; border-radius:15px 0 0 15px;">GRAND TOTAL</td>
+                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:16px;">${tDr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:16px; padding-right:25px; border-radius:0 15px 15px 0;">${tCr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    </tr></tfoot>
+                </table>
+            </div>`;
+
         } else if(type==='pl') {
             let rev=0, exp=0;
-            const rRows = accounts.filter(a => a.type==='Revenue').map(a => { rev += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
-            const eRows = accounts.filter(a => a.type==='Expense').map(a => { exp += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
-            html = `<div class="card-body"><h2 style="text-align:center; color:var(--accent);">PROFIT & LOSS STATEMENT</h2>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
-                    <div><h4>EXPENSES</h4><table><tbody>${eRows}</tbody><tfoot><tr><td>Total</td><td class="text-right">${exp.toLocaleString()}</td></tr></tfoot></table></div>
-                    <div><h4>REVENUE</h4><table><tbody>${rRows}</tbody><tfoot><tr><td>Total</td><td class="text-right">${rev.toLocaleString()}</td></tr></tfoot></table></div>
-                </div><h3 style="text-align:center; margin-top:30px;">NET ${rev-exp>=0?'PROFIT':'LOSS'}: Rs. ${Math.abs(rev-exp).toLocaleString()}</h3></div>`;
+            const revAccs = accounts.filter(a => a.type==='Revenue');
+            const expAccs = accounts.filter(a => a.type==='Expense');
+
+            const groupData = (accs) => {
+                let groups = {};
+                accs.forEach(a => {
+                    if(!groups[a.group]) groups[a.group] = { total: 0, items: [] };
+                    groups[a.group].total += a.balance;
+                    groups[a.group].items.push(a);
+                });
+                return groups;
+            };
+
+            const rGroups = groupData(revAccs);
+            const eGroups = groupData(expAccs);
+
+            Object.values(rGroups).forEach(g => rev += g.total);
+            Object.values(eGroups).forEach(g => exp += g.total);
+
+            const renderGroups = (groups) => Object.entries(groups).map(([name, data]) => `
+                <tr style="background:rgba(255,255,255,0.03);"><td colspan="2" style="padding:10px 20px; color:var(--accent); font-weight:800; font-size:11px;">${name.toUpperCase()}</td></tr>
+                ${data.items.map(i => `<tr style="background:transparent;"><td style="padding-left:40px; color:#cbd5e1;">${i.name}</td><td class="text-right" style="font-family:'JetBrains Mono';">${i.balance.toLocaleString()}</td></tr>`).join('')}
+                <tr style="background:rgba(0,0,0,0.1); font-weight:700;"><td style="padding-left:40px;">Sub-total</td><td class="text-right">Rs. ${data.total.toLocaleString()}</td></tr>
+                <tr><td colspan="2" style="height:10px;"></td></tr>
+            `).join('');
+
+            const net = rev - exp;
+            html = `<div class="card-body" style="padding:40px;">
+                ${headerHtml('Profit & Loss Statement', `Fiscal Year Analysis`)}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px;">
+                    <div>
+                        <h4 style="color:var(--danger); border-bottom:1px solid var(--danger); padding-bottom:10px; margin-bottom:15px;">EXPENDITURE</h4>
+                        <table style="border-spacing:0;"><tbody>${renderGroups(eGroups)}</tbody>
+                        <tfoot><tr style="background:var(--danger); color:white; font-weight:800;"><td>TOTAL EXPENSES</td><td class="text-right">Rs. ${exp.toLocaleString()}</td></tr></tfoot></table>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--success); border-bottom:1px solid var(--success); padding-bottom:10px; margin-bottom:15px;">INCOME / REVENUE</h4>
+                        <table style="border-spacing:0;"><tbody>${renderGroups(rGroups)}</tbody>
+                        <tfoot><tr style="background:var(--success); color:white; font-weight:800;"><td>TOTAL REVENUE</td><td class="text-right">Rs. ${rev.toLocaleString()}</td></tr></tfoot></table>
+                    </div>
+                </div>
+                <div style="margin-top:40px; padding:30px; background:${net>=0?'rgba(16,185,129,0.1)':'rgba(244,63,94,0.1)'}; border-radius:25px; text-align:center; border:2px dashed ${net>=0?'var(--success)':'var(--danger)'};">
+                    <span style="font-size:14px; font-weight:800; color:#94a3b8; display:block; margin-bottom:10px;">NET ${net>=0?'TRADING PROFIT':'TRADING LOSS'}</span>
+                    <span style="font-size:36px; font-weight:900; color:${net>=0?'var(--success)':'var(--danger)'};">Rs. ${Math.abs(net).toLocaleString()}</span>
+                </div>
+            </div>`;
+
         } else if(type==='bs') {
             let ass=0, lia=0, eq=0;
-            const aRows = accounts.filter(a => a.type==='Asset').map(a => { ass += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
-            const lRows = accounts.filter(a => a.type==='Liability').map(a => { lia += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
-            const qRows = accounts.filter(a => a.type==='Equity').map(a => { eq += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
+            const aAccs = accounts.filter(a => a.type==='Asset');
+            const lAccs = accounts.filter(a => a.type==='Liability');
+            const qAccs = accounts.filter(a => a.type==='Equity');
+
             let r=0, x=0; accounts.forEach(a => { if(a.type==='Revenue') r+=a.balance; if(a.type==='Expense') x+=a.balance; });
-            html = `<div class="card-body"><h2 style="text-align:center; color:var(--accent);">BALANCE SHEET</h2>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px;">
-                    <div><h4>LIABILITIES & EQUITY</h4><table><tbody>${lRows} ${qRows} <tr><td>Net Profit/Loss</td><td class="text-right">${(r-x).toLocaleString()}</td></tr></tbody><tfoot><tr><td>Total</td><td class="text-right">${(lia+eq+(r-x)).toLocaleString()}</td></tr></tfoot></table></div>
-                    <div><h4>ASSETS</h4><table><tbody>${aRows}</tbody><tfoot><tr><td>Total</td><td class="text-right">${ass.toLocaleString()}</td></tr></tfoot></table></div>
-                </div></div>`;
+            const netProfit = r - x;
+
+            const renderSimple = (accs) => {
+                let total = 0;
+                let rows = accs.map(a => { total += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
+                return { rows, total };
+            };
+
+            const assets = renderSimple(aAccs);
+            const liabilities = renderSimple(lAccs);
+            const equity = renderSimple(qAccs);
+
+            html = `<div class="card-body" style="padding:40px;">
+                ${headerHtml('Balance Sheet', `Financial Position as of Today`)}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px;">
+                    <div>
+                        <h4 style="color:var(--accent); border-bottom:1px solid var(--accent); padding-bottom:10px; margin-bottom:15px;">LIABILITIES & CAPITAL</h4>
+                        <table style="border-spacing:0;">
+                            <tbody>
+                                <tr style="background:rgba(0,0,0,0.2);"><td colspan="2" style="padding:8px 15px; font-size:11px; font-weight:800; color:var(--accent);">CAPITAL & EQUITY</td></tr>
+                                ${equity.rows}
+                                <tr><td>Profit & Loss A/c (Current)</td><td class="text-right">${netProfit.toLocaleString()}</td></tr>
+                                <tr style="background:rgba(0,0,0,0.2);"><td colspan="2" style="padding:8px 15px; font-size:11px; font-weight:800; color:var(--accent);">CURRENT LIABILITIES</td></tr>
+                                ${liabilities.rows}
+                            </tbody>
+                            <tfoot><tr style="background:var(--secondary); color:white; font-weight:800;"><td>TOTAL LIABILITIES</td><td class="text-right">Rs. ${(liabilities.total + equity.total + netProfit).toLocaleString()}</td></tr></tfoot>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--accent); border-bottom:1px solid var(--accent); padding-bottom:10px; margin-bottom:15px;">ASSETS & PROPERTIES</h4>
+                        <table style="border-spacing:0;">
+                            <tbody>${assets.rows}</tbody>
+                            <tfoot><tr style="background:var(--secondary); color:white; font-weight:800;"><td>TOTAL ASSETS</td><td class="text-right">Rs. ${assets.total.toLocaleString()}</td></tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
         }
         div.innerHTML = html;
     }
@@ -1378,16 +1542,74 @@
     function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.text(`PAWAN ACCOUNTING REPORT: ${currentReportType.toUpperCase()}`, 14, 15);
-        doc.autoTable({ html: '#rContent table', startY: 25 });
-        doc.save(`ERP_REPORT_${Date.now()}.pdf`);
+
+        // Company Letterhead in PDF
+        doc.setFontSize(22);
+        doc.setTextColor(30, 41, 59); // Dark slate
+        doc.text(config.name, 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139); // Gray
+        doc.text(`${config.address} | Tel: ${config.phone}`, 105, 27, { align: 'center' });
+
+        doc.setDrawColor(212, 175, 55); // Golden line
+        doc.setLineWidth(0.5);
+        doc.line(15, 32, 195, 32);
+
+        doc.setFontSize(14);
+        doc.setTextColor(30, 41, 59);
+        const title = currentReportType.toUpperCase().replace('_', ' ') + ' REPORT';
+        doc.text(title, 105, 42, { align: 'center' });
+
+        doc.setFontSize(9);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 195, 42, { align: 'right' });
+
+        doc.autoTable({
+            html: '#rContent table',
+            startY: 50,
+            theme: 'grid',
+            headStyles: { fillColor: [212, 175, 55], textColor: [0, 0, 0], fontStyle: 'bold' },
+            styles: { fontSize: 8, cellPadding: 3 },
+            alternateRowStyles: { fillColor: [248, 250, 252] }
+        });
+
+        doc.save(`${config.name.replace(/\s+/g, '_')}_${currentReportType}_${Date.now()}.pdf`);
     }
 
     function exportExcel() {
-        const ws = XLSX.utils.table_to_sheet(document.querySelector('#rContent table'));
+        const table = document.querySelector('#rContent table');
+        if (!table) return;
+
+        // Header info for Excel
+        const headerInfo = [
+            [config.name],
+            [config.address],
+            [config.phone],
+            [currentReportType.toUpperCase() + ' REPORT'],
+            [`Date: ${new Date().toLocaleString()}`],
+            [] // Empty row
+        ];
+
+        const ws = XLSX.utils.table_to_sheet(table);
+
+        // Convert to array of arrays to prepend header
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const data = [];
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            const row = [];
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell = ws[XLSX.utils.encode_cell({c: C, r: R})];
+                row.push(cell ? cell.v : "");
+            }
+            data.push(row);
+        }
+
+        const finalData = headerInfo.concat(data);
+        const newWs = XLSX.utils.aoa_to_sheet(finalData);
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Report");
-        XLSX.writeFile(wb, `ERP_EXCEL_${Date.now()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, newWs, "Report");
+        XLSX.writeFile(wb, `${config.name.replace(/\s+/g, '_')}_${currentReportType}.xlsx`);
     }
 
     function genStat() {
