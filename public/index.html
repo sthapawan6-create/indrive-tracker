@@ -1277,7 +1277,7 @@
         if(chart) chart.destroy();
 
         // Group expenses for chart
-        const expGroups = {};
+        const expGroups = {u};
         accounts.filter(a => a.type === 'Expense').forEach(a => {
             if (a.balance > 0) {
                 expGroups[a.group] = (expGroups[a.group] || 0) + a.balance;
@@ -1492,48 +1492,65 @@
             </div>`;
 
         } else if(type==='bs') {
+            // Logic to handle negative balances (move to other side)
             let ass=0, lia=0, eq=0;
-            const aAccs = accounts.filter(a => a.type==='Asset');
-            const lAccs = accounts.filter(a => a.type==='Liability');
-            const qAccs = accounts.filter(a => a.type==='Equity');
 
+            // Calculate Net Profit
             let r=0, x=0; accounts.forEach(a => { if(a.type==='Revenue') r+=a.balance; if(a.type==='Expense') x+=a.balance; });
             const netProfit = r - x;
 
-            const renderSimple = (accs) => {
-                let total = 0;
-                let rows = accs.map(a => { total += a.balance; return `<tr><td>${a.name}</td><td class="text-right">${a.balance.toLocaleString()}</td></tr>`; }).join('');
-                return { rows, total };
+            // Separate accounts based on actual nature (Netting off)
+            // If Liability is negative, it's a Debit (Receivable) -> Assets side
+            // If Asset is negative, it's a Credit (Payable) -> Liabilities side
+            const assetsList = accounts.filter(a => (a.type==='Asset' && a.balance >= 0) || (a.type==='Liability' && a.balance < 0));
+            const liabilityList = accounts.filter(a => (a.type==='Liability' && a.balance >= 0) || (a.type==='Asset' && a.balance < 0));
+            const equityList = accounts.filter(a => a.type==='Equity');
+
+            const renderAccountRow = (a, side) => {
+                const val = Math.abs(a.balance);
+                // Highlight if it's on the 'wrong' side normally
+                const isOpposite = (side === 'Asset' && a.type === 'Liability') || (side === 'Liability' && a.type === 'Asset');
+                return `<tr style="background:transparent;">
+                    <td style="color:#cbd5e1; padding:8px 0;">${a.name} ${isOpposite ? `<small style="color:var(--accent); font-size:9px; margin-left:5px;">(Adjusted)</small>` : ''}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:${isOpposite?'var(--success)':'white'}">${val.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                </tr>`;
             };
 
-            const assets = renderSimple(aAccs);
-            const liabilities = renderSimple(lAccs);
-            const equity = renderSimple(qAccs);
+            let aTotal = 0; assetsList.forEach(a => aTotal += Math.abs(a.balance));
+            let lTotal = 0; liabilityList.forEach(a => lTotal += Math.abs(a.balance));
+            let eTotal = 0; equityList.forEach(a => eTotal += a.balance);
 
             html = `<div class="card-body" style="padding:40px;">
-                ${headerHtml('Balance Sheet', `Financial Position as of Today`)}
+                ${headerHtml('Balance Sheet', `Financial Position as of ${new Date().toLocaleDateString()}`)}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px;">
                     <div>
                         <h4 style="color:var(--accent); border-bottom:1px solid var(--accent); padding-bottom:10px; margin-bottom:15px;">LIABILITIES & CAPITAL</h4>
-                        <table style="border-spacing:0;">
+                        <table style="border-spacing:0; width:100%;">
                             <tbody>
                                 <tr style="background:rgba(0,0,0,0.2);"><td colspan="2" style="padding:8px 15px; font-size:11px; font-weight:800; color:var(--accent);">CAPITAL & EQUITY</td></tr>
-                                ${equity.rows}
-                                <tr><td>Profit & Loss A/c (Current)</td><td class="text-right">${netProfit.toLocaleString()}</td></tr>
+                                ${equityList.map(a => renderAccountRow(a, 'Liability')).join('')}
+                                <tr>
+                                    <td style="padding:8px 0;">Current Year Profit/Loss</td>
+                                    <td class="text-right ${netProfit>=0?'text-success':'text-danger'}" style="font-family:'JetBrains Mono'; font-weight:700;">${Math.abs(netProfit).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                                </tr>
                                 <tr style="background:rgba(0,0,0,0.2);"><td colspan="2" style="padding:8px 15px; font-size:11px; font-weight:800; color:var(--accent);">CURRENT LIABILITIES</td></tr>
-                                ${liabilities.rows}
+                                ${liabilityList.map(a => renderAccountRow(a, 'Liability')).join('')}
                             </tbody>
-                            <tfoot><tr style="background:var(--secondary); color:white; font-weight:800;"><td>TOTAL LIABILITIES</td><td class="text-right">Rs. ${(liabilities.total + equity.total + netProfit).toLocaleString()}</td></tr></tfoot>
+                            <tfoot><tr style="background:var(--secondary); color:white; font-weight:800; font-size:14px;"><td style="padding:10px;">TOTAL LIABILITIES</td><td class="text-right" style="padding:10px;">Rs. ${(lTotal + eTotal + netProfit).toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr></tfoot>
                         </table>
                     </div>
                     <div>
                         <h4 style="color:var(--accent); border-bottom:1px solid var(--accent); padding-bottom:10px; margin-bottom:15px;">ASSETS & PROPERTIES</h4>
-                        <table style="border-spacing:0;">
-                            <tbody>${assets.rows}</tbody>
-                            <tfoot><tr style="background:var(--secondary); color:white; font-weight:800;"><td>TOTAL ASSETS</td><td class="text-right">Rs. ${assets.total.toLocaleString()}</td></tr></tfoot>
+                        <table style="border-spacing:0; width:100%;">
+                            <tbody>
+                                <tr style="background:rgba(0,0,0,0.2);"><td colspan="2" style="padding:8px 15px; font-size:11px; font-weight:800; color:var(--accent);">FIXED & CURRENT ASSETS</td></tr>
+                                ${assetsList.map(a => renderAccountRow(a, 'Asset')).join('')}
+                            </tbody>
+                            <tfoot style="margin-top:auto;"><tr style="background:var(--secondary); color:white; font-weight:800; font-size:14px;"><td style="padding:10px;">TOTAL ASSETS</td><td class="text-right" style="padding:10px;">Rs. ${aTotal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr></tfoot>
                         </table>
                     </div>
                 </div>
+                <p style="margin-top:30px; font-size:11px; color:#94a3b8; text-align:center; opacity:0.7;"><i class="fas fa-info-circle"></i> Note: Account balances are automatically adjusted to the appropriate side (Assets/Liabilities) based on their debit/credit nature.</p>
             </div>`;
         }
         div.innerHTML = html;
