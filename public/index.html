@@ -589,14 +589,25 @@
 
             <div class="grid-stats">
                 <div class="stat-card" style="border-bottom:4px solid var(--accent); background:rgba(255,193,7,0.05);">
-                    <h3 style="color:var(--accent)">Master Sync & Recovery</h3>
-                    <p style="color:#94a3b8; margin:10px 0;">यदि डेटा ०.०० देखिएमा वा पुरानो डेटा फिर्ता ल्याउनु परेमा यहाँ क्लिक गर्नुहोस्।</p>
-                    <button class="btn btn-warning" onclick="recalculateBalances(event)" style="width:100%; font-weight:800; padding:15px;">
-                        <i class="fas fa-sync-alt"></i> RECALCULATE & RESTORE DATA
+                    <h3 style="color:var(--accent)">Master Sync & Merge</h3>
+                    <p style="color:#94a3b8; margin:10px 0;">दुईवटा खाताहरूलाई एउटैमा मिसाउन (Merge) वा ब्यालेन्स सिंक गर्न:</p>
+
+                    <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:12px; margin-bottom:15px; text-align:left;">
+                        <label style="font-size:10px; font-weight:800; color:var(--accent);">FROM (गलत खाता)</label>
+                        <select id="mergeFrom" style="width:100%; margin-bottom:10px;"></select>
+                        <label style="font-size:10px; font-weight:800; color:var(--success);">TO (सही खाता)</label>
+                        <select id="mergeTo" style="width:100%;"></select>
+                    </div>
+
+                    <button class="btn btn-warning w-100 mb-2" onclick="mergeAccounts()">
+                        <i class="fas fa-object-group"></i> MERGE ACCOUNTS
+                    </button>
+                    <button class="btn btn-outline w-100" onclick="recalculateBalances(event)">
+                        <i class="fas fa-sync-alt"></i> RECALCULATE ALL
                     </button>
                 </div>
-                <div class="stat-card" style="border-bottom:4px solid var(--success)"><h3>Secure Encryption Cloud Backup</h3><p style="color:#94a3b8; margin:10px 0;">Download full ERP financial ledger transaction backup archive.</p><button class="btn btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Export Data Backup</button></div>
-                <div class="stat-card" style="border-bottom:4px solid var(--danger)"><h3>Database Recovery Console</h3><p style="color:#94a3b8; margin:10px 0;">Restore records via full replacement structure archive.</p><button class="btn btn-danger" onclick="importData()"><i class="fas fa-upload"></i> Restore Backup Archive</button></div>
+                <div class="stat-card" style="border-bottom:4px solid var(--success)"><h3>Cloud Backup</h3><p style="color:#94a3b8; margin:10px 0;">Download full ERP financial backup archive.</p><button class="btn btn-outline" onclick="exportData()"><i class="fas fa-download"></i> Export Data</button></div>
+                <div class="stat-card" style="border-bottom:4px solid var(--danger)"><h3>Recovery</h3><p style="color:#94a3b8; margin:10px 0;">Restore records via full replacement archive.</p><button class="btn btn-danger" onclick="importData()"><i class="fas fa-upload"></i> Restore Backup</button></div>
             </div>
         </div>
     </div>
@@ -765,7 +776,13 @@
         alert("Business Profile & Logo Updated!");
     }
 
-    function loginWithGoogle() { auth.signInWithPopup(provider).catch(e => alert(e.message)); }
+    function loginWithGoogle() {
+        auth.signInWithPopup(provider).catch(e => {
+            if (e.code !== 'auth/popup-closed-by-user') {
+                alert("Login Error: " + e.message);
+            }
+        });
+    }
     function logout() { if(confirm("Terminate modern Gold Secure session?")) auth.signOut(); }
 
     // --- Book Reader Logic ---
@@ -1223,6 +1240,15 @@
         document.getElementById('sAcc').innerHTML = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.getElementById('lOpts').innerHTML = accounts.map(a => `<option value="${a.name}">`).join('');
 
+        // Populate Merge Dropdowns
+        const mergeOpts = accounts.map(a => `<option value="${a._id}">${a.name} (${a.group})</option>`).join('');
+        const mFrom = document.getElementById('mergeFrom');
+        const mTo = document.getElementById('mergeTo');
+        if(mFrom && mTo) {
+            mFrom.innerHTML = `<option value="">-- Source --</option>` + mergeOpts;
+            mTo.innerHTML = `<option value="">-- Destination --</option>` + mergeOpts;
+        }
+
         // Update summary display if elements exist
         if(document.getElementById('totalRecvDisp')) document.getElementById('totalRecvDisp').innerText = 'Rs. ' + totalReceivable.toLocaleString();
         if(document.getElementById('totalPayDisp')) document.getElementById('totalPayDisp').innerText = 'Rs. ' + totalPayable.toLocaleString();
@@ -1255,7 +1281,11 @@
         if(tx && lastClosedDate && tx.date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। डाटा मेटाउन मिल्दैन।");
         if(!confirm("के तपाईं यो कारोबार सदाको लागि मेटाउन चाहनुहुन्छ?")) return;
         const res = await fetch(`/api/transactions/${id}`, { method:'DELETE' });
-        if(res.ok) init();
+        if(res.ok) {
+            await init();
+            // If we are in statement tab, refresh it
+            if(!document.getElementById('tab-statement').classList.contains('hidden')) genStat();
+        }
         else { const d = await res.json(); alert(d.error || "असफल"); }
     }
 
@@ -1495,43 +1525,62 @@
         document.getElementById('tCr').innerText = cr.toFixed(2);
     }
 
-    async function saveTx() {
+    async function saveTx(btn) {
         const date = document.getElementById('jDate').value;
         if(lastClosedDate && date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। नयाँ डाटा थप्न मिल्दैन।");
 
-        const e = [];
-        let tDr=0, tCr=0;
-        const rows = document.querySelectorAll('.voucher-row:not(.edit-mode-row)');
+        // Disable button to prevent double-clicks
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
 
-        for (const r of rows) {
-            const name = r.querySelector('.r-acc').value;
-            if (!name) continue;
+        try {
+            const e = [];
+            let tDr=0, tCr=0;
+            const rows = document.querySelectorAll('.voucher-row:not(.edit-mode-row)');
 
-            const acc = await ensureAccountExists(name);
-            if (!acc) return;
+            for (const r of rows) {
+                const name = r.querySelector('.r-acc').value;
+                if (!name) continue;
 
-            const dr = Number(r.querySelector('.r-dr').value || 0), cr = Number(r.querySelector('.r-cr').value || 0);
+                const acc = await ensureAccountExists(name);
+                if (!acc) throw new Error("Account validation failed");
 
-            // Validation for Bank/Cash and Parties
-            if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
-                if(acc.balance < cr) return alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
-            } else if (cr > 0 && (acc.group === 'Sundry Debtors' || acc.group === 'Receivables')) {
-                if(acc.balance < cr) return alert(`बढी रकम! ${acc.name} बाट उठ्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
-            } else if (dr > 0 && (acc.group === 'Sundry Creditors' || acc.group === 'Payables')) {
-                if(acc.balance < dr) return alert(`बढी भुक्तानी! ${acc.name} लाई तिर्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+                const dr = Number(r.querySelector('.r-dr').value || 0), cr = Number(r.querySelector('.r-cr').value || 0);
+
+                // Validation for Bank/Cash and Parties
+                if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
+                    if(acc.balance < cr) { alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Balance insufficient"); }
+                } else if (cr > 0 && (acc.group === 'Sundry Debtors' || acc.group === 'Receivables')) {
+                    if(acc.balance < cr) { alert(`बढी रकम! ${acc.name} बाट उठ्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Limit exceeded"); }
+                } else if (dr > 0 && (acc.group === 'Sundry Creditors' || acc.group === 'Payables')) {
+                    if(acc.balance < dr) { alert(`बढी भुक्तानी! ${acc.name} लाई तिर्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Limit exceeded"); }
+                }
+
+                if(dr||cr) { e.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
             }
 
-            if(dr||cr) { e.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
+            if(Math.abs(tDr-tCr)>0.01) { alert("Accounting Imbalance: Total debits must match credits."); throw new Error("Imbalance"); }
+            if(e.length < 2) { alert("Double Entry rule: Minimum 2 accounts required."); throw new Error("Incomplete entry"); }
+
+            const res = await fetch('/api/transactions', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ userId:currentUser.uid, date:document.getElementById('jDate').value, description:document.getElementById('jDesc').value, entries:e })
+            });
+            if(res.ok) {
+                alert("Voucher Posted Successfully!");
+                closeCreateModal();
+                init();
+            } else {
+                const d = await res.json();
+                alert(d.error || "Error saving transaction");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
-
-        if(Math.abs(tDr-tCr)>0.01) return alert("Accounting Imbalance Detected: Total debits must strictly match credits.");
-        if(e.length < 2) return alert("Double Entry compliance validation rule error.");
-
-        const res = await fetch('/api/transactions', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId:currentUser.uid, date:document.getElementById('jDate').value, description:document.getElementById('jDesc').value, entries:e })
-        });
-        if(res.ok) { alert("Voucher Posted Successfully!"); closeCreateModal(); init(); }
     }
 
     async function createAcc() {
@@ -2150,20 +2199,18 @@
 
         let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`;
 
-        txs.forEach(t => {
-            const e = t.entries.find(en => (en.account?._id||en.account)===id);
-            const dr = Number(e.debit || 0);
-            const cr = Number(e.credit || 0);
-
-            const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
-            bal += isDebitInc ? (dr - cr) : (cr - dr);
-
-            html += `<tr>
-                <td><small style="font-family:'JetBrains Mono'">${t.date}</small></td>
-                <td>${t.description}</td>
-                <td class="text-right text-success">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
-                <td class="text-right text-danger">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : ''}</td>
-                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td><small style="font-family:'JetBrains Mono'; color:#94a3b8;">${t.date}</small></td>
+                <td style="font-weight:600;">
+                    ${t.description}
+                    <div style="font-size:10px; color:#64748b;">ID: JV-${t._id.slice(-4).toUpperCase()}</div>
+                </td>
+                <td class="text-right" style="color:#10b981; font-weight:700;">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+                <td class="text-right" style="color:#ef4444; font-weight:700;">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--accent); background: rgba(212, 175, 55, 0.05);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="text-right">
+                    <i class="fas fa-trash-alt text-danger" style="cursor:pointer; padding:5px;" onclick="delTx('${t._id}')" title="Delete this transaction"></i>
+                </td>
             </tr>`;
         });
         document.querySelector('#sTable tbody').innerHTML = html;
@@ -2274,6 +2321,37 @@
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
+        }
+    }
+
+    async function mergeAccounts() {
+        const fromId = document.getElementById('mergeFrom').value;
+        const toId = document.getElementById('mergeTo').value;
+
+        if (!fromId || !toId) return alert("कृपया दुवै 'Source' र 'Destination' खाताहरू छान्नुहोस्।");
+        if (fromId === toId) return alert("एउटै खातालाई मिसाउन मिल्दैन। दुई फरक खाता रोज्नुहोस्।");
+
+        const fromName = accounts.find(a => a._id === fromId)?.name;
+        const toName = accounts.find(a => a._id === toId)?.name;
+
+        if (!confirm(`के तपाईं निश्चित हुनुहुन्छ? \n'${fromName}' का सबै हिसाबहरू '${toName}' मा सर्नेछन् र '${fromName}' सदाको लागि मेटिनेछ।`)) return;
+
+        try {
+            const res = await fetch('/api/accounts/merge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid, fromId, toId })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message);
+                // Trigger recalculation to ensure balances are perfect after merge
+                await recalculateBalances();
+            } else {
+                alert(data.error || "Merge failed");
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
         }
     }
 </script>
