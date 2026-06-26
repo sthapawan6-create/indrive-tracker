@@ -228,36 +228,48 @@
 
     <!-- Edit Account Modal -->
     <div id="editAccModal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 style="margin:0; color:var(--accent);"><i class="fas fa-university"></i> Edit Account</h2>
+                <h2 style="margin:0; color:var(--accent);"><i class="fas fa-university"></i> Edit Account Master</h2>
                 <button onclick="closeEditAccModal()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editAccId">
-                <div style="margin-bottom:20px;">
-                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">ACCOUNT NAME</label>
-                    <input type="text" id="editAccName" placeholder="Enter Account Name" style="width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:white;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">ACCOUNT NAME</label>
+                        <input type="text" id="editAccName" placeholder="Account Name">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">GROUP / CATEGORY</label>
+                        <select id="editAccGroup">
+                            <option value="Bank Accounts">Bank Accounts (बैंक)</option>
+                            <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
+                            <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
+                            <option value="Payables">Party - Payables (दिनुपर्ने)</option>
+                            <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
+                            <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
+                            <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
+                            <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
+                            <option value="Capital Account">Capital Account (पूँजी)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">PHONE NUMBER</label>
+                        <input type="text" id="editAccPhone" placeholder="98XXXXXXXX">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">ADDRESS</label>
+                        <input type="text" id="editAccAddr" placeholder="City, Location">
+                    </div>
                 </div>
                 <div style="margin-bottom:20px;">
-                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">GROUP / CATEGORY</label>
-                    <select id="editAccGroup" style="width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:white;">
-                        <option value="Bank Accounts">Bank Accounts (बैंक)</option>
-                        <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
-                        <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
-                        <option value="Payables">Party - Payables (दिनुपर्ने)</option>
-                        <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
-                        <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
-                        <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
-                        <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
-                        <option value="Capital Account">Capital Account (पूँजी)</option>
-                    </select>
-                </div>
-                <div style="margin-bottom:25px;">
                     <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">OPENING BALANCE</label>
-                    <input type="number" id="editAccOB" placeholder="0.00" style="width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:white;">
+                    <input type="number" id="editAccOB" placeholder="0.00">
                 </div>
-                <button class="btn btn-primary" onclick="saveAccEdit()" style="width: 100%;"><i class="fas fa-save"></i> UPDATE ACCOUNT</button>
+                <button class="btn btn-primary" onclick="saveAccEdit()" style="width: 100%; padding:18px;"><i class="fas fa-save"></i> UPDATE ACCOUNT MASTER</button>
             </div>
         </div>
     </div>
@@ -279,13 +291,13 @@
 
         <div id="tab-dashboard" class="tab-content">
             <div class="grid-stats">
-                <div class="stat-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(0,0,0,0)); border: 1px solid rgba(212,175,55,0.2);">
-                    <span class="label" style="color:var(--accent); letter-spacing:1px;">TOTAL NET WORTH (कुल सम्पत्ति)</span>
-                    <div class="value" id="dash-networth" style="font-size:32px; color:var(--white); margin-top:5px;">Rs. 0.00</div>
+                <div class="stat-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(30,41,59,0.5)); border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+                    <span class="label" style="color:#d4af37; letter-spacing:1.5px; text-shadow: 0 0 10px rgba(212,175,55,0.2);">TOTAL NET WORTH (कुल सम्पत्ति)</span>
+                    <div class="value" id="dash-networth" style="font-size:36px; color:#ffffff; margin-top:8px; text-shadow: 0 0 20px rgba(255,255,255,0.1);">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-gem"></i></div>
-                    <div style="display:flex; gap:15px; margin-top:15px; font-size:11px; font-weight:700;">
-                        <div id="nw-weekly" style="padding:4px 8px; border-radius:6px;">7D: --</div>
-                        <div id="nw-monthly" style="padding:4px 8px; border-radius:6px;">30D: --</div>
+                    <div style="display:flex; gap:12px; margin-top:18px; font-size:12px; font-weight:800;">
+                        <div id="nw-weekly" style="padding:6px 12px; border-radius:10px; border: 1px solid rgba(255,255,255,0.05);">7D: --</div>
+                        <div id="nw-monthly" style="padding:6px 12px; border-radius:10px; border: 1px solid rgba(255,255,255,0.05);">30D: --</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -385,6 +397,17 @@
         </div>
 
         <div id="tab-accounts" class="tab-content hidden">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
+                <div class="stat-card" style="border-bottom: 4px solid var(--success); background:rgba(16,185,129,0.05);">
+                    <div style="font-size:11px; color:#94a3b8; font-weight:800; text-transform:uppercase; margin-bottom:10px;">Total Receivables (लिनुपर्ने)</div>
+                    <div id="totalRecvDisp" style="font-size:24px; font-weight:900; color:var(--success); font-family:'JetBrains Mono'">Rs. 0.00</div>
+                </div>
+                <div class="stat-card" style="border-bottom: 4px solid var(--danger); background:rgba(244,63,94,0.05);">
+                    <div style="font-size:11px; color:#94a3b8; font-weight:800; text-transform:uppercase; margin-bottom:10px;">Total Payables (दिनुपर्ने)</div>
+                    <div id="totalPayDisp" style="font-size:24px; font-weight:900; color:var(--danger); font-family:'JetBrains Mono'">Rs. 0.00</div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Create New Account Head (नयाँ खाता)</h3></div>
                 <div class="card-body">
@@ -448,11 +471,12 @@
         </div>
 
         <div id="tab-reports" class="tab-content hidden">
-            <div style="display:flex; gap:12px; margin-bottom:30px;">
+            <div style="display:flex; gap:12px; margin-bottom:30px; flex-wrap:wrap;">
                 <button class="btn btn-primary" onclick="renderRep('daybook')">Day Book</button>
                 <button class="btn btn-outline" onclick="renderRep('trial')">Trial Balance</button>
                 <button class="btn btn-outline" onclick="renderRep('pl')">Profit & Loss</button>
                 <button class="btn btn-outline" onclick="renderRep('bs')">Balance Sheet</button>
+                <button class="btn btn-outline" style="border-color:var(--accent); color:var(--accent);" onclick="renderRep('aging')"><i class="fas fa-clock"></i> Aging Report</button>
                 <div style="margin-left:auto; display:flex; gap:10px;">
                     <button class="btn btn-outline" style="border-color:#10b981; color:#10b981;" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel Download</button>
                     <button class="btn btn-outline" style="border-color:#f43f5e; color:#f43f5e;" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF Statement</button>
@@ -482,6 +506,10 @@
                         <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">COMPANY NAME</label><input type="text" class="cfgName" placeholder="Business Name"></div>
                         <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">ADDRESS</label><input type="text" class="cfgAddr" placeholder="City, Country"></div>
                         <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">CONTACT NUMBER</label><input type="text" class="cfgPhone" placeholder="+977-98XXXXXXXX"></div>
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:8px;">UPLOAD BUSINESS LOGO / YOUR PHOTO</label>
+                        <input type="file" accept="image/*" onchange="handleLogoUpload(event)" style="background:var(--bg); padding:10px; border:1px dashed var(--accent); width:100%; border-radius:10px;">
                     </div>
                     <button class="btn btn-primary" onclick="saveConfig(this)">Save Business Profile</button>
                 </div>
@@ -548,10 +576,14 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '', config = { name: "PAWAN ACCOUNTING", address: "", phone: "" };
+    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '', config = { name: "PAWAN ACCOUNTING", address: "", phone: "", logo: "" };
 
     const localConfig = localStorage.getItem('erp_gold_config');
-    if (localConfig) config = JSON.parse(localConfig);
+    if (localConfig) {
+        config = JSON.parse(localConfig);
+        // Ensure all fields exist
+        if (!config.logo) config.logo = "";
+    }
 
     auth.onAuthStateChanged(async user => {
         if (user) {
@@ -570,17 +602,47 @@
             document.getElementById('userImg').src = user.photoURL;
             document.getElementById('currentDateDisp').innerText = new Date().toDateString();
 
-            // Load config to UI
-            document.querySelectorAll('.cfgName').forEach(el => el.value = config.name || "");
-            document.querySelectorAll('.cfgAddr').forEach(el => el.value = config.address || "");
-            document.querySelectorAll('.cfgPhone').forEach(el => el.value = config.phone || "");
-            document.querySelector('.logo-text').innerText = config.name;
+            applyConfig();
         } else {
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
             document.getElementById('pinModal').classList.add('hidden');
         }
     });
+
+    function applyConfig() {
+        // Load config to UI inputs
+        document.querySelectorAll('.cfgName').forEach(el => el.value = config.name || "");
+        document.querySelectorAll('.cfgAddr').forEach(el => el.value = config.address || "");
+        document.querySelectorAll('.cfgPhone').forEach(el => el.value = config.phone || "");
+
+        // Update Logo and Names across UI
+        document.querySelector('.logo-text').innerText = config.name;
+
+        const mainLogo = document.querySelector('.sidebar .logo-icon');
+        const loginLogo = document.querySelector('.login-card .logo-icon');
+
+        if (config.logo) {
+            mainLogo.innerHTML = `<img src="${config.logo}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
+            if(loginLogo) loginLogo.innerHTML = `<img src="${config.logo}" style="width:100%; height:100%; object-fit:cover; border-radius:18px;">`;
+        } else {
+            mainLogo.innerText = config.name.charAt(0);
+            if(loginLogo) loginLogo.innerText = "👑";
+        }
+    }
+
+    function handleLogoUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                config.logo = e.target.result;
+                // Preview it immediately in settings if you want, but we'll save it via saveConfig
+                alert("लोगो सेट भयो! अब 'Save Business Profile' मा क्लिक गर्नुहोस्।");
+            }
+            reader.readAsDataURL(file);
+        }
+    }
 
     async function checkSecurity() {
         try {
@@ -655,20 +717,13 @@
 
     function saveConfig(btn) {
         const card = btn.closest('.card-body');
-        config = {
-            name: card.querySelector('.cfgName').value || 'PAWAN ACCOUNTING',
-            address: card.querySelector('.cfgAddr').value,
-            phone: card.querySelector('.cfgPhone').value
-        };
+        config.name = card.querySelector('.cfgName').value || 'PAWAN ACCOUNTING';
+        config.address = card.querySelector('.cfgAddr').value;
+        config.phone = card.querySelector('.cfgPhone').value;
+
         localStorage.setItem('erp_gold_config', JSON.stringify(config));
-
-        // Sync all config inputs
-        document.querySelectorAll('.cfgName').forEach(el => el.value = config.name);
-        document.querySelectorAll('.cfgAddr').forEach(el => el.value = config.address);
-        document.querySelectorAll('.cfgPhone').forEach(el => el.value = config.phone);
-
-        document.querySelector('.logo-text').innerText = config.name;
-        alert("Business Profile Updated!");
+        applyConfig();
+        alert("Business Profile & Logo Updated!");
     }
 
     function loginWithGoogle() { auth.signInWithPopup(provider).catch(e => alert(e.message)); }
@@ -874,25 +929,77 @@
             localStorage.setItem('erp_gold_a', JSON.stringify(accounts));
         } catch(e) { accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]"); }
 
-        document.querySelector('#aTable tbody').innerHTML = accounts.map(a => `<tr>
-            <td>
-                <div style="font-weight:800; color:white; font-size:15px;">${a.name}</div>
-                ${a.panVat ? `<small style="color:var(--accent); font-size:10px; font-weight:700;">PAN: ${a.panVat}</small>` : ''}
-            </td>
-            <td>
-                <span class="badge ${['Asset', 'Revenue'].includes(a.type) ? 'badge-asset' : 'badge-liab'}" style="margin-bottom:4px; display:inline-block;">${a.group}</span>
-                <div style="font-size:11px; color:#94a3b8; font-weight:600;"><i class="fas fa-phone-alt" style="font-size:9px;"></i> ${a.phone || 'N/A'}</div>
-            </td>
-            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
-            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent); font-size:16px;">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-            <td class="text-right">
-                <i class="fas fa-history text-success" title="View Statement" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="viewLedgerStatement('${a._id}')"></i>
-                <i class="fas fa-edit text-warning" title="Edit Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
-                <i class="fas fa-trash text-danger" title="Delete Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="delAcc('${a._id}')"></i>
-            </td>
-        </tr>`).join('');
+        // Render Summary Mini-Cards
+        let totalReceivable = 0;
+        let totalPayable = 0;
+        accounts.forEach(a => {
+            const bal = Number(a.balance || 0);
+            if (a.group === 'Receivables' || a.group === 'Sundry Debtors') {
+                if (bal > 0) totalReceivable += bal; else totalPayable += Math.abs(bal);
+            } else if (a.group === 'Payables' || a.group === 'Sundry Creditors') {
+                if (bal > 0) totalPayable += bal; else totalReceivable += Math.abs(bal);
+            }
+        });
+
+        // Grouping logic
+        const groups = {};
+        accounts.forEach(a => {
+            if (!groups[a.group]) groups[a.group] = [];
+            groups[a.group].push(a);
+        });
+
+        let html = '';
+        // Group Header and Rows
+        Object.keys(groups).sort().forEach(gName => {
+            const gAccs = groups[gName];
+            const gTotal = gAccs.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+
+            html += `
+                <tr style="background: rgba(59, 130, 246, 0.05); cursor:pointer;" onclick="toggleGroup('${gName.replace(/\s/g,'_')}')">
+                    <td colspan="3" style="font-weight:800; color:var(--accent); padding:15px;">
+                        <i class="fas fa-chevron-down" id="icon-${gName.replace(/\s/g,'_')}"></i> ${gName.toUpperCase()} (${gAccs.length})
+                    </td>
+                    <td class="text-right" style="font-weight:800; color:var(--accent); padding:15px;">Rs. ${gTotal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td></td>
+                </tr>
+            `;
+
+            gAccs.forEach(a => {
+                html += `<tr class="group-row-${gName.replace(/\s/g,'_')}">
+                    <td style="padding-left:30px;">
+                        <div style="font-weight:800; color:white; font-size:15px;">${a.name}</div>
+                        ${a.panVat ? `<small style="color:var(--accent); font-size:10px; font-weight:700;">PAN: ${a.panVat}</small>` : ''}
+                    </td>
+                    <td>
+                        <div style="font-size:11px; color:#94a3b8; font-weight:600;"><i class="fas fa-phone-alt" style="font-size:9px;"></i> ${a.phone || 'N/A'}</div>
+                        <div style="font-size:10px; color:#64748b;"><i class="fas fa-map-marker-alt" style="font-size:9px;"></i> ${a.address || 'N/A'}</div>
+                    </td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent); font-size:16px;">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td class="text-right">
+                        <i class="fas fa-history text-success" title="View Statement" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="viewLedgerStatement('${a._id}')"></i>
+                        <i class="fas fa-edit text-warning" title="Edit Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
+                        <i class="fas fa-trash text-danger" title="Delete Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="delAcc('${a._id}')"></i>
+                    </td>
+                </tr>`;
+            });
+        });
+
+        document.querySelector('#aTable tbody').innerHTML = html;
         document.getElementById('sAcc').innerHTML = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.getElementById('lOpts').innerHTML = accounts.map(a => `<option value="${a.name}">`).join('');
+
+        // Update summary display if elements exist
+        if(document.getElementById('totalRecvDisp')) document.getElementById('totalRecvDisp').innerText = 'Rs. ' + totalReceivable.toLocaleString();
+        if(document.getElementById('totalPayDisp')) document.getElementById('totalPayDisp').innerText = 'Rs. ' + totalPayable.toLocaleString();
+    }
+
+    function toggleGroup(gClass) {
+        const rows = document.querySelectorAll('.group-row-' + gClass);
+        const icon = document.getElementById('icon-' + gClass);
+        rows.forEach(r => r.classList.toggle('hidden'));
+        icon.classList.toggle('fa-chevron-right');
+        icon.classList.toggle('fa-chevron-down');
     }
 
     function viewLedgerStatement(accId) {
@@ -920,10 +1027,13 @@
 
 
     function editAccPrompt(id, name, group, ob) {
+        const a = accounts.find(x => x._id === id);
         document.getElementById('editAccId').value = id;
         document.getElementById('editAccName').value = name;
         document.getElementById('editAccGroup').value = group;
         document.getElementById('editAccOB').value = ob || 0;
+        document.getElementById('editAccPhone').value = a?.phone || '';
+        document.getElementById('editAccAddr').value = a?.address || '';
         document.getElementById('editAccModal').classList.remove('hidden');
     }
 
@@ -936,6 +1046,8 @@
         const name = document.getElementById('editAccName').value;
         const group = document.getElementById('editAccGroup').value;
         const ob = Number(document.getElementById('editAccOB').value);
+        const phone = document.getElementById('editAccPhone').value;
+        const addr = document.getElementById('editAccAddr').value;
 
         if(!name || !group) return alert("All fields are required!");
 
@@ -957,7 +1069,7 @@
             const res = await fetch(`/api/accounts/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, group, type: map[group], openingBalance: ob })
+                body: JSON.stringify({ name, group, type: map[group], openingBalance: ob, phone, address: addr })
             });
             if(res.ok) {
                 alert("Account Master Updated!");
@@ -1249,8 +1361,9 @@
             if(old === 0 && diff === 0) { el.innerText = `${label}: --`; el.style.background="transparent"; return; }
             const perc = old !== 0 ? ((diff/Math.abs(old)) * 100).toFixed(1) : (diff > 0 ? 100 : 0);
             el.innerHTML = `${label}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
-            el.style.background = diff >= 0 ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)";
-            el.style.color = diff >= 0 ? "var(--success)" : "var(--danger)";
+            el.style.background = diff >= 0 ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)";
+            el.style.color = diff >= 0 ? "#10b981" : "#ff4d6d";
+            el.style.border = diff >= 0 ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(244,63,94,0.3)";
         };
 
         updateGrowth('nw-weekly', netWorth, stats7.nw, '7D');
@@ -1632,6 +1745,35 @@
                     </div>
                 </div>
                 <p style="margin-top:30px; font-size:11px; color:#94a3b8; text-align:center; opacity:0.7;"><i class="fas fa-info-circle"></i> Note: Account balances are automatically adjusted to the appropriate side (Assets/Liabilities) based on their debit/credit nature.</p>
+            </div>`;
+        } else if(type==='aging') {
+            const debtors = accounts.filter(a => (a.group === 'Receivables' || a.group === 'Sundry Debtors') && a.balance > 0);
+            let rows = debtors.map(a => `
+                <tr style="background:rgba(255,255,255,0.01);">
+                    <td style="padding:15px 25px;">
+                        <div style="font-weight:800; color:white;">${a.name}</div>
+                        <small style="color:#94a3b8;">${a.phone || 'No Contact'}</small>
+                    </td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent);">Rs. ${a.balance.toLocaleString()}</td>
+                    <td class="text-right" style="color:#94a3b8;">-</td>
+                    <td class="text-right" style="color:#94a3b8;">-</td>
+                    <td class="text-right" style="color:#94a3b8; padding-right:25px;">-</td>
+                </tr>
+            `).join('');
+
+            html = `<div class="card-body" style="padding:40px;">
+                ${headerHtml('Debtor Aging Report', 'Receivables breakdown by overdue period')}
+                <table style="border-spacing:0 5px;">
+                    <thead><tr style="background:rgba(0,0,0,0.2);">
+                        <th style="padding:15px 25px; border-radius:15px 0 0 15px;">Party Name</th>
+                        <th class="text-right">Net Balance</th>
+                        <th class="text-right">0-30 Days</th>
+                        <th class="text-right">31-60 Days</th>
+                        <th class="text-right" style="padding-right:25px; border-radius:0 15px 15px 0;">60+ Days</th>
+                    </tr></thead>
+                    <tbody>${rows || '<tr><td colspan="5" style="text-align:center; padding:40px; opacity:0.5;">No outstanding receivables found.</td></tr>'}</tbody>
+                </table>
+                <p style="margin-top:20px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> This report shows parties who owe you money. Detailed aging analysis coming soon.</p>
             </div>`;
         }
         div.innerHTML = html;
