@@ -1109,11 +1109,16 @@
             const row = document.createElement('div');
             row.className = 'voucher-row edit-mode-row';
             row.innerHTML = `
-                <input type="text" list="lOpts" class="e-acc" value="${accName}" placeholder="Account...">
+                <div style="position:relative">
+                    <input type="text" list="lOpts" class="e-acc" value="${accName}" placeholder="Account..." oninput="showBal(this)">
+                    <span class="e-bal" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; font-weight:800; pointer-events:none;"></span>
+                </div>
                 <input type="number" class="e-dr text-right" value="${entry.debit || ''}" placeholder="Debit" oninput="sumEdit()">
                 <input type="number" class="e-cr text-right" value="${entry.credit || ''}" placeholder="Credit" oninput="sumEdit()">
             `;
             container.appendChild(row);
+            // Trigger balance display for initial load
+            showBal(row.querySelector('.e-acc'));
         });
 
         document.getElementById('editVoucherModal').classList.remove('hidden');
@@ -1147,6 +1152,16 @@
             if (!acc) return;
 
             const dr = Number(r.querySelector('.e-dr').value || 0), cr = Number(r.querySelector('.e-cr').value || 0);
+
+            // Validation for Bank/Cash and Parties
+            if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
+                if(acc.balance < cr) return alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+            } else if (cr > 0 && (acc.group === 'Sundry Debtors' || acc.group === 'Receivables')) {
+                if(acc.balance < cr) return alert(`बढी रकम! ${acc.name} बाट उठ्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+            } else if (dr > 0 && (acc.group === 'Sundry Creditors' || acc.group === 'Payables')) {
+                if(acc.balance < dr) return alert(`बढी भुक्तानी! ${acc.name} लाई तिर्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+            }
+
             if(dr||cr) { entries.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
         }
 
@@ -1212,11 +1227,21 @@
 
     function showBal(el) {
         const row = el.closest('.voucher-row');
-        const balEl = row.querySelector('.r-bal');
+        const balEl = row.querySelector('.r-bal') || row.querySelector('.e-bal');
+        if(!balEl) return;
         const acc = accounts.find(a => a.name === el.value);
-        if(acc && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
-            balEl.innerText = `Rs. ${acc.balance.toLocaleString()}`;
-            balEl.style.color = acc.balance <= 0 ? '#f43f5e' : '#10b981';
+        if(acc) {
+            const b = acc.balance;
+            const isDebit = (['Asset', 'Expense'].includes(acc.type) && b >= 0) || (['Liability', 'Revenue', 'Equity'].includes(acc.type) && b < 0);
+            const suffix = isDebit ? 'Dr' : 'Cr';
+            balEl.innerText = `Rs. ${Math.abs(b).toLocaleString()} ${suffix}`;
+
+            // Red alert color for zero/negative cash or bank
+            if(b <= 0 && (acc.group==='Bank Accounts' || acc.group==='Cash-in-hand')) {
+                balEl.style.color = '#f43f5e';
+            } else {
+                balEl.style.color = '#10b981';
+            }
         } else {
             balEl.innerText = '';
         }
@@ -1253,11 +1278,13 @@
 
             const dr = Number(r.querySelector('.r-dr').value || 0), cr = Number(r.querySelector('.r-cr').value || 0);
 
-            // Check Insufficient Balance for Cash/Bank Outflows
+            // Validation for Bank/Cash and Parties
             if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
-                if(acc.balance < cr) {
-                    return alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ। तपाईंले Rs. ${cr.toLocaleString()} खर्च गर्न खोज्नुभयो।`);
-                }
+                if(acc.balance < cr) return alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+            } else if (cr > 0 && (acc.group === 'Sundry Debtors' || acc.group === 'Receivables')) {
+                if(acc.balance < cr) return alert(`बढी रकम! ${acc.name} बाट उठ्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
+            } else if (dr > 0 && (acc.group === 'Sundry Creditors' || acc.group === 'Payables')) {
+                if(acc.balance < dr) return alert(`बढी भुक्तानी! ${acc.name} लाई तिर्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`);
             }
 
             if(dr||cr) { e.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
