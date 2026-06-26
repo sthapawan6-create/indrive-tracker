@@ -284,16 +284,16 @@
                     <div style="display:flex; gap:20px; align-items:center;">
                         <div style="flex:1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">CLOSE ACCOUNTS UNTIL</label>
-                            <input type="date" id="closeDate">
+                            <input type="date">
                         </div>
                         <div style="flex:1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">LAST CLOSED DATE</label>
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <div id="lastClosedDisp" style="flex:1; font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
+                                <div class="lastClosedDisp" style="flex:1; font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
                                 <button class="btn btn-outline" onclick="viewClosingSummary()" style="padding:16px;"><i class="fas fa-eye"></i> VIEW REPORT</button>
                             </div>
                         </div>
-                        <button class="btn btn-danger" onclick="closeDay()" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
+                        <button class="btn btn-danger" onclick="closeDay(this)" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
                     </div>
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
                 </div>
@@ -304,9 +304,9 @@
                     <div style="display: flex; gap: 20px; align-items: flex-end;">
                         <div style="flex: 1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">SYSTEM MASTER PIN (4 Digits)</label>
-                            <input type="password" id="newPin" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
+                            <input type="password" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
                         </div>
-                        <button class="btn btn-primary" onclick="updatePin()">Update Security PIN</button>
+                        <button class="btn btn-primary" onclick="updatePin(this)">Update Security PIN</button>
                     </div>
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-shield-alt"></i> यो पिनले सफ्टवेयर खोल्ने समयमा सुरक्षा प्रमाणीकरण गर्नेछ।</p>
                 </div>
@@ -496,16 +496,16 @@
                     <div style="display:flex; gap:20px; align-items:center;">
                         <div style="flex:1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">CLOSE ACCOUNTS UNTIL</label>
-                            <input type="date" id="closeDate">
+                            <input type="date">
                         </div>
                         <div style="flex:1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">LAST CLOSED DATE</label>
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <div id="lastClosedDisp" style="flex:1; font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
+                                <div class="lastClosedDisp" style="flex:1; font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
                                 <button class="btn btn-outline" onclick="viewClosingSummary()" style="padding:16px;"><i class="fas fa-eye"></i> VIEW REPORT</button>
                             </div>
                         </div>
-                        <button class="btn btn-danger" onclick="closeDay()" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
+                        <button class="btn btn-danger" onclick="closeDay(this)" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
                     </div>
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
                 </div>
@@ -516,9 +516,9 @@
                     <div style="display: flex; gap: 20px; align-items: flex-end;">
                         <div style="flex: 1;">
                             <label style="font-size:11px; color:#94a3b8; font-weight:800;">SYSTEM MASTER PIN (4 Digits)</label>
-                            <input type="password" id="newPin" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
+                            <input type="password" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
                         </div>
-                        <button class="btn btn-primary" onclick="updatePin()">Update Security PIN</button>
+                        <button class="btn btn-primary" onclick="updatePin(this)">Update Security PIN</button>
                     </div>
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-shield-alt"></i> यो पिनले सफ्टवेयर खोल्ने समयमा सुरक्षा प्रमाणीकरण गर्नेछ।</p>
                 </div>
@@ -552,7 +552,10 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '';
+    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '', config = { name: "PAWAN ACCOUNTING", address: "", phone: "" };
+
+    const localConfig = localStorage.getItem('erp_gold_config');
+    if (localConfig) config = JSON.parse(localConfig);
 
     auth.onAuthStateChanged(async user => {
         if (user) {
@@ -616,20 +619,25 @@
         init();
     }
 
-    async function updatePin() {
-        const pin = document.getElementById('newPin').value;
-        if (pin.length !== 4) return alert("कृपया ४-अंकको पिन हाल्नुहोस्।");
+    async function updatePin(btn) {
+        const card = btn.closest('.card-body');
+        const pinInput = card.querySelector('input[type="password"]');
+        const pin = pinInput.value;
+
+        if (pin && pin.length !== 4) return alert("कृपया ४-अंकको पिन हाल्नुहोस्।");
+
+        if (!pin && !confirm("के तपाईं सुरक्षा पिन हटाउन चाहनुहुन्छ? (Remove PIN?)")) return;
 
         try {
             const res = await fetch('/api/settings/update-pin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.uid, pin })
+                body: JSON.stringify({ userId: currentUser.uid, pin: pin || "" })
             });
             if (res.ok) {
-                alert("Security PIN updated successfully!");
-                systemPin = pin;
-                document.getElementById('newPin').value = '';
+                alert(pin ? "Security PIN updated successfully!" : "Security PIN removed!");
+                systemPin = pin || "";
+                document.querySelectorAll('input[placeholder="Enter New PIN"]').forEach(i => i.value = '');
             }
         } catch(e) { alert("PIN update failed"); }
     }
@@ -695,12 +703,13 @@
             const r = await fetch(`/api/settings?userId=${currentUser.uid}`);
             const s = await r.json();
             lastClosedDate = s.lastClosedDate || "";
-            document.getElementById('lastClosedDisp').innerText = lastClosedDate || "No data";
+            document.querySelectorAll('.lastClosedDisp').forEach(el => el.innerText = lastClosedDate || "No data");
         } catch(e) { console.error("Settings load failed", e); }
     }
 
-    async function closeDay() {
-        const date = document.getElementById('closeDate').value;
+    async function closeDay(btn) {
+        const card = btn.closest('.card-body');
+        const date = card.querySelector('input[type="date"]').value;
         if(!date) return alert("Please select a date to close.");
         if(lastClosedDate && date <= lastClosedDate) return alert("You cannot close a date before or on the current closed date.");
 
