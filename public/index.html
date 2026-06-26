@@ -1409,17 +1409,13 @@
                 const acc = accounts.find(a => a._id === (e.account?._id || e.account));
                 if(!acc) return;
 
-                // Track Cash/Bank movements for more realistic flow
-                if(acc.type === 'Revenue') {
+                // Only track actual Revenue and Expense accounts to avoid double counting
+                // Revenue: Sales Accounts
+                // Expense: Direct Expenses, Indirect Expenses
+                if(acc.group === 'Sales Accounts' || acc.type === 'Revenue') {
                     months[m].rev += (Number(e.credit || 0) - Number(e.debit || 0));
-                } else if(acc.type === 'Expense') {
+                } else if(acc.group === 'Direct Expenses' || acc.group === 'Indirect Expenses' || acc.type === 'Expense') {
                     months[m].exp += (Number(e.debit || 0) - Number(e.credit || 0));
-                } else if(acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand') {
-                    // Treat cash/bank inflows as "Revenue-like" and outflows as "Expense-like" for trend purposes
-                    const inflow = Number(e.debit || 0);
-                    const outflow = Number(e.credit || 0);
-                    if(inflow > 0) months[m].rev += inflow;
-                    if(outflow > 0) months[m].exp += outflow;
                 }
             });
         });
