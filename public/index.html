@@ -1226,20 +1226,24 @@
 
     function renderTrendChart() {
         const months = {};
-        // Use all transactions for the chart
         transactions.forEach(t => {
             const m = t.date.substring(0, 7); // YYYY-MM
             if(!months[m]) months[m] = { rev:0, exp:0 };
             t.entries.forEach(e => {
                 const acc = accounts.find(a => a._id === (e.account?._id || e.account));
                 if(!acc) return;
-                // Revenue accounts (Credit increases balance)
+
+                // Track Cash/Bank movements for more realistic flow
                 if(acc.type === 'Revenue') {
                     months[m].rev += (Number(e.credit || 0) - Number(e.debit || 0));
-                }
-                // Expense accounts (Debit increases balance)
-                if(acc.type === 'Expense') {
+                } else if(acc.type === 'Expense') {
                     months[m].exp += (Number(e.debit || 0) - Number(e.credit || 0));
+                } else if(acc.group === 'Cash' || acc.group === 'Bank') {
+                    // Treat cash/bank inflows as "Revenue-like" and outflows as "Expense-like" for trend purposes
+                    const inflow = Number(e.debit || 0);
+                    const outflow = Number(e.credit || 0);
+                    if(inflow > 0) months[m].rev += inflow;
+                    if(outflow > 0) months[m].exp += outflow;
                 }
             });
         });
@@ -1285,10 +1289,11 @@
         if(chart) chart.destroy();
 
         // Group expenses for chart
-        const expGroups = {u};
+        const expGroups = {};
         accounts.filter(a => a.type === 'Expense').forEach(a => {
-            if (a.balance > 0) {
-                expGroups[a.group] = (expGroups[a.group] || 0) + a.balance;
+            const bal = Math.abs(a.balance);
+            if (bal > 0) {
+                expGroups[a.group] = (expGroups[a.group] || 0) + bal;
             }
         });
 
