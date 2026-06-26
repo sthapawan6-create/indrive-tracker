@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PERFECT ACCOUNTING - Gold Edition</title>
+    <title>PAWAN ACCOUNTING - Gold Edition</title>
     <script>
         // Version control for cache clearing
         const ERP_VER = 'gold_v3_premium';
@@ -124,7 +124,7 @@
     <div id="login-screen">
         <div class="login-card">
             <div class="logo-icon" style="margin: 0 auto 30px auto; width: 80px; height: 80px; font-size: 40px;">👑</div>
-            <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 10px; color: white; letter-spacing: -1px;">PERFECT <span style="font-weight:300; color:var(--accent);">ACCOUNTING</span></h1>
+            <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 10px; color: white; letter-spacing: -1px;">PAWAN <span style="font-weight:300; color:var(--accent);">ACCOUNTING</span></h1>
             <p style="color: #94a3b8; margin-bottom: 45px; font-weight: 500; font-size: 15px;">Professional Enterprise Resource Planning</p>
             <button class="btn btn-primary" onclick="loginWithGoogle()" style="width: 100%; padding: 20px; font-size: 16px; border-radius: 18px;">
                 <i class="fab fa-google"></i> Launch Gold Workspace
@@ -137,7 +137,7 @@
     <div class="sidebar" id="sidebar">
         <div class="logo">
             <div class="logo-icon">P</div>
-            <div class="logo-text">PERFECT ACCOUNTING</div>
+            <div class="logo-text">PAWAN ACCOUNTING</div>
         </div>
         <div class="nav-item active" onclick="showTab('dashboard', this); if(window.innerWidth<768) toggleSidebar();"><i class="fas fa-th-large"></i> <span class="nav-text">Command Center</span></div>
         <div class="nav-item" onclick="showTab('journal', this); if(window.innerWidth<768) toggleSidebar();"><i class="fas fa-file-invoice-dollar"></i> <span class="nav-text">Voucher Posting</span></div>
@@ -542,7 +542,7 @@
 
     function saveConfig() {
         config = {
-            name: document.getElementById('cfgName').value || 'PERFECT ACCOUNTING',
+            name: document.getElementById('cfgName').value || 'PAWAN ACCOUNTING',
             address: document.getElementById('cfgAddr').value,
             phone: document.getElementById('cfgPhone').value
         };
@@ -1287,7 +1287,7 @@
     function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        doc.text(`ERP GOLD REPORT: ${currentReportType.toUpperCase()}`, 14, 15);
+        doc.text(`PAWAN ACCOUNTING REPORT: ${currentReportType.toUpperCase()}`, 14, 15);
         doc.autoTable({ html: '#rContent table', startY: 25 });
         doc.save(`ERP_REPORT_${Date.now()}.pdf`);
     }
