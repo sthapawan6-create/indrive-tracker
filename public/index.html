@@ -6,14 +6,18 @@
     <title>PAWAN ACCOUNTING - Gold Edition</title>
     <script>
         // Version control for cache clearing
-        const ERP_VER = 'gold_v3_premium';
+        const ERP_VER = 'gold_v5_compatibility_fix';
         if (localStorage.getItem('erp_ver') !== ERP_VER) {
-            caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-            });
+            localStorage.clear(); // Clear all to be safe
             localStorage.setItem('erp_ver', ERP_VER);
-            // window.location.reload();
+            window.location.reload(true);
         }
+
+        // Global Error Handler to catch hidden issues
+        window.onerror = function(msg, url, line) {
+            alert("System Error: " + msg + "\nLine: " + line);
+            return false;
+        };
     </script>
     <!-- Dependencies -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -138,7 +142,7 @@
             <div class="logo-icon" style="margin: 0 auto 30px auto; width: 80px; height: 80px; font-size: 40px;">👑</div>
             <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 10px; color: white; letter-spacing: -1px;">PAWAN <span style="font-weight:300; color:var(--accent);">ACCOUNTING</span></h1>
             <p style="color: #94a3b8; margin-bottom: 45px; font-weight: 500; font-size: 15px;">Professional Enterprise Resource Planning</p>
-            <button class="btn btn-primary" onclick="loginWithGoogle()" style="width: 100%; padding: 20px; font-size: 16px; border-radius: 18px;">
+            <button id="loginBtn" class="btn btn-primary" onclick="loginWithGoogle()" style="width: 100%; padding: 20px; font-size: 16px; border-radius: 18px;">
                 <i class="fab fa-google"></i> Launch Gold Workspace
             </button>
         </div>
@@ -404,7 +408,7 @@
                 <p style="color: #94a3b8; margin-bottom: 40px;">Create and manage your double-entry journal vouchers.</p>
                 <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="openCreateModal()"><i class="fas fa-plus"></i> Create New Voucher</button>
-                    <button class="btn btn-outline" onclick="showTab('reports', document.querySelector('[onclick*=\"reports\"]'))"><i class="fas fa-list"></i> View Day Book</button>
+                    <button class="btn btn-outline" onclick="showTab('reports', this)"><i class="fas fa-list"></i> View Day Book</button>
                 </div>
             </div>
         </div>
@@ -624,39 +628,79 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // Set persistence to LOCAL so user stays logged in
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+    // Handle the redirect result when the page loads
+    auth.getRedirectResult().then((result) => {
+        if (result.user) {
+            console.log("Successfully logged in:", result.user.email);
+        }
+    }).catch((error) => {
+        if (error.code !== 'auth/no-auth-event') {
+            alert("Redirect Result Error: " + error.message);
+        }
+    });
 
     let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '', config = { name: "PAWAN ACCOUNTING", address: "", phone: "", logo: "" };
 
-    const localConfig = localStorage.getItem('erp_gold_config');
-    if (localConfig) {
-        config = JSON.parse(localConfig);
-        // Ensure all fields exist
-        if (!config.logo) config.logo = "";
+    try {
+        const localConfig = localStorage.getItem('erp_gold_config');
+        if (localConfig) {
+            config = JSON.parse(localConfig);
+            if (!config.logo) config.logo = "";
+        }
+    } catch(e) { console.error("Config load failed", e); }
+
+    function loginWithGoogle() {
+        var btn = document.getElementById('loginBtn');
+        var provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        if(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Connecting to Google...';
+        }
+
+        // Using standard syntax for maximum compatibility
+        auth.signInWithRedirect(provider).catch(function(e) {
+            alert("Login Failed: " + e.message);
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fab fa-google"></i> Launch Gold Workspace';
+            }
+        });
     }
 
-    auth.onAuthStateChanged(async user => {
+    auth.onAuthStateChanged(function(user) {
         if (user) {
             if (user.email !== 'sthapawan6@gmail.com') {
-                alert("Unauthorized Access: Only sthapawan6@gmail.com is allowed.");
+                alert("Unauthorized Access!");
                 auth.signOut();
                 return;
             }
             currentUser = user;
+            checkSecurity();
 
-            // Check for PIN Security
-            await checkSecurity();
-
-            document.getElementById('userName').innerText = user.displayName;
-            document.getElementById('userEmail').innerText = user.email;
-            document.getElementById('userImg').src = user.photoURL;
-            document.getElementById('currentDateDisp').innerText = new Date().toDateString();
-
+            if(document.getElementById('userName')) {
+                document.getElementById('userName').innerText = user.displayName;
+                document.getElementById('userEmail').innerText = user.email;
+                document.getElementById('userImg').src = user.photoURL;
+                document.getElementById('currentDateDisp').innerText = new Date().toDateString();
+            }
             applyConfig();
         } else {
-            document.getElementById('loginSection').classList.remove('hidden');
-            document.getElementById('mainSection').classList.add('hidden');
-            document.getElementById('pinModal').classList.add('hidden');
+            var ls = document.getElementById('loginSection');
+            var ms = document.getElementById('mainSection');
+            if(ls) ls.classList.remove('hidden');
+            if(ms) ms.classList.add('hidden');
+
+            var btn = document.getElementById('loginBtn');
+            if(btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fab fa-google"></i> Launch Gold Workspace';
+            }
         }
     });
 
@@ -776,13 +820,6 @@
         alert("Business Profile & Logo Updated!");
     }
 
-    function loginWithGoogle() {
-        auth.signInWithPopup(provider).catch(e => {
-            if (e.code !== 'auth/popup-closed-by-user') {
-                alert("Login Error: " + e.message);
-            }
-        });
-    }
     function logout() { if(confirm("Terminate modern Gold Secure session?")) auth.signOut(); }
 
     // --- Book Reader Logic ---
@@ -2198,6 +2235,12 @@
         </div>`;
 
         let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`;
+
+        txs.forEach(t => {
+            const entry = t.entries.find(e => (e.account?._id || e.account) === id);
+            const dr = Number(entry.debit || 0);
+            const cr = Number(entry.credit || 0);
+            bal += (dr - cr);
 
             html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td><small style="font-family:'JetBrains Mono'; color:#94a3b8;">${t.date}</small></td>

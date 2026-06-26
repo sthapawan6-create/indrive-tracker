@@ -104,6 +104,37 @@ app.delete('/api/accounts/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "मेटाउन सकिएन" }); }
 });
 
+app.post('/api/accounts/merge', async (req, res) => {
+    try {
+        const { userId, fromId, toId } = req.body;
+        if (!fromId || !toId || fromId === toId) return res.status(400).json({ error: "Invalid account selection" });
+
+        // 1. Update all transactions from 'fromId' to 'toId'
+        await Transaction.updateMany(
+            { userId, "entries.account": fromId },
+            { $set: { "entries.$[elem].account": toId } },
+            { arrayFilters: [{ "elem.account": fromId }] }
+        );
+
+        // 2. Add opening balance of 'fromId' to 'toId'
+        const fromAcc = await Account.findById(fromId);
+        const toAcc = await Account.findById(toId);
+
+        if (fromAcc && toAcc) {
+            toAcc.openingBalance = (toAcc.openingBalance || 0) + (fromAcc.openingBalance || 0);
+            // Balance will be recalculated next
+            await toAcc.save();
+        }
+
+        // 3. Delete the 'fromId' account
+        await Account.findByIdAndDelete(fromId);
+
+        res.json({ message: "खाताहरू सफलतापूर्वक मिसाइयो! अब ब्यालेन्स रिक्याल्कुलेट हुँदैछ..." });
+    } catch (err) {
+        res.status(500).json({ error: "Merge Failed: " + err.message });
+    }
+});
+
 // २. कारोबार (Transactions)
 app.get('/api/transactions', async (req, res) => {
     try {
@@ -206,10 +237,11 @@ app.post('/api/recalculate', async (req, res) => {
             const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
 
             txs.forEach(t => {
-                const e = t.entries.find(en => en.account && en.account.toString() === acc._id.toString());
-                if (e) {
-                    bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
-                }
+                t.entries.forEach(e => {
+                    if (e.account && e.account.toString() === acc._id.toString()) {
+                        bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
+                    }
+                });
             });
 
             acc.balance = bal;
