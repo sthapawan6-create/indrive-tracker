@@ -54,7 +54,8 @@ const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 const SettingSchema = new mongoose.Schema({
     userId: String,
-    lastClosedDate: { type: String, default: "" }
+    lastClosedDate: { type: String, default: "" },
+    accessPin: { type: String, default: "" } // Security PIN
 });
 const Setting = mongoose.model('Setting', SettingSchema);
 
@@ -250,6 +251,17 @@ app.post('/api/settings/close-day', async (req, res) => {
         await s.save();
         res.json(s);
     } catch (err) { res.status(500).json({ error: "क्लोजिङ असफल" }); }
+});
+
+app.post('/api/settings/update-pin', async (req, res) => {
+    try {
+        const { userId, pin } = req.body;
+        let s = await Setting.findOne({ userId });
+        if(!s) s = new Setting({ userId });
+        s.accessPin = pin;
+        await s.save();
+        res.json({ message: "PIN Updated" });
+    } catch (err) { res.status(500).json({ error: "PIN Update Failed" }); }
 });
 
 const PORT = process.env.PORT || 3000;

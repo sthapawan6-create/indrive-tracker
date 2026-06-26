@@ -634,16 +634,27 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: currentUser.uid, pin: pin || "" })
             });
-            if (res.ok) {
-                alert(pin ? "Security PIN updated successfully!" : "Security PIN removed!");
-                systemPin = pin || "";
-                // Clear all PIN inputs in both tabs
-                document.querySelectorAll('input[placeholder="Enter New PIN"]').forEach(i => i.value = '');
+
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await res.json();
+                if (res.ok) {
+                    alert(pin ? "Security PIN updated successfully!" : "Security PIN removed!");
+                    systemPin = pin || "";
+                    document.querySelectorAll('input[placeholder="Enter New PIN"]').forEach(i => i.value = '');
+                } else {
+                    alert("Error: " + (data.error || "Update failed"));
+                }
             } else {
-                const err = await res.json();
-                alert("PIN update failed: " + (err.error || "Unknown error"));
+                // If not JSON, it means server returned HTML (error page)
+                const text = await res.text();
+                console.error("Server returned non-JSON:", text);
+                alert("Server Error: The API returned an invalid response. Please refresh and try again.");
             }
-        } catch(e) { alert("PIN update failed: " + e.message); }
+        } catch(e) {
+            console.error("Fetch error:", e);
+            alert("Connection Error: PIN update failed.");
+        }
     }
 
     function saveConfig(btn) {
