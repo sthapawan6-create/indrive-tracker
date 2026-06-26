@@ -133,6 +133,21 @@
     </div>
 </div>
 
+<!-- Security PIN Modal -->
+<div id="pinModal" class="modal hidden" style="z-index: 9999; background: rgba(15, 23, 42, 0.98);">
+    <div class="modal-content" style="max-width: 400px; text-align: center; border: 2px solid var(--accent);">
+        <div class="logo-icon" style="background: rgba(212, 175, 55, 0.1); color: var(--accent); margin: 0 auto 20px;"><i class="fas fa-lock"></i></div>
+        <h2 style="color:white; margin-bottom:10px;">Security Verification</h2>
+        <p style="color:#94a3b8; margin-bottom:20px;">कृपया आफ्नो ४-अंकको सुरक्षा पिन हाल्नुहोस्।</p>
+        <input type="password" id="inputPin" maxlength="4" placeholder="PIN" style="font-size: 32px; text-align: center; letter-spacing: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); color: white; width: 80%;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn btn-primary" onclick="verifyPin()">UNLOCK</button>
+            <button class="btn btn-outline" onclick="auth.signOut(); location.reload();">CANCEL</button>
+        </div>
+        <div id="pinMsg" style="margin-top: 15px; color: var(--danger); font-size: 13px; font-weight: bold;"></div>
+    </div>
+</div>
+
 <div id="mainSection" class="hidden">
     <div class="sidebar" id="sidebar">
         <div class="logo">
@@ -283,6 +298,20 @@
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
                 </div>
             </div>
+            <div class="card">
+                <div class="card-header"><h3>Security & Access Control</h3></div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 20px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">SYSTEM MASTER PIN (4 Digits)</label>
+                            <input type="password" id="newPin" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="updatePin()">Update Security PIN</button>
+                    </div>
+                    <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-shield-alt"></i> यो पिनले सफ्टवेयर खोल्ने समयमा सुरक्षा प्रमाणीकरण गर्नेछ।</p>
+                </div>
+            </div>
+
             <div class="grid-stats">
                 <div class="stat-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(0,0,0,0)); border: 1px solid rgba(212,175,55,0.2);">
                     <span class="label" style="color:var(--accent); letter-spacing:1px;">TOTAL NET WORTH (कुल सम्पत्ति)</span>
@@ -481,6 +510,20 @@
                     <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
                 </div>
             </div>
+            <div class="card">
+                <div class="card-header"><h3>Security & Access Control</h3></div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 20px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">SYSTEM MASTER PIN (4 Digits)</label>
+                            <input type="password" id="newPin" maxlength="4" placeholder="Enter New PIN" style="font-family: 'JetBrains Mono'; font-size: 18px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="updatePin()">Update Security PIN</button>
+                    </div>
+                    <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-shield-alt"></i> यो पिनले सफ्टवेयर खोल्ने समयमा सुरक्षा प्रमाणीकरण गर्नेछ।</p>
+                </div>
+            </div>
+
             <div class="grid-stats">
                 <div class="stat-card" style="border-bottom:4px solid var(--accent); background:rgba(255,193,7,0.05);">
                     <h3 style="color:var(--accent)">Master Sync & Recovery</h3>
@@ -509,10 +552,9 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '';
-    let config = JSON.parse(localStorage.getItem('erp_gold_config') || '{"name":"ERP GOLD EXTREME","address":"Global Workspace","phone":""}');
+    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '', systemPin = '';
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
         if (user) {
             if (user.email !== 'sthapawan6@gmail.com') {
                 alert("Unauthorized Access: Only sthapawan6@gmail.com is allowed.");
@@ -520,8 +562,10 @@
                 return;
             }
             currentUser = user;
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('mainSection').classList.remove('hidden');
+
+            // Check for PIN Security
+            await checkSecurity();
+
             document.getElementById('userName').innerText = user.displayName;
             document.getElementById('userEmail').innerText = user.email;
             document.getElementById('userImg').src = user.photoURL;
@@ -532,13 +576,63 @@
             document.getElementById('cfgAddr').value = config.address;
             document.getElementById('cfgPhone').value = config.phone;
             document.querySelector('.logo-text').innerText = config.name;
-
-            init();
         } else {
             document.getElementById('loginSection').classList.remove('hidden');
             document.getElementById('mainSection').classList.add('hidden');
+            document.getElementById('pinModal').classList.add('hidden');
         }
     });
+
+    async function checkSecurity() {
+        try {
+            const r = await fetch(`/api/settings?userId=${currentUser.uid}`);
+            const s = await r.json();
+            systemPin = s.accessPin || "";
+
+            if (systemPin) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('pinModal').classList.remove('hidden');
+                document.getElementById('inputPin').focus();
+            } else {
+                unlockSystem();
+            }
+        } catch(e) { unlockSystem(); }
+    }
+
+    function verifyPin() {
+        const input = document.getElementById('inputPin').value;
+        if (input === systemPin) {
+            unlockSystem();
+        } else {
+            document.getElementById('pinMsg').innerText = "गलत पिन! कृपया फेरि प्रयास गर्नुहोस्।";
+            document.getElementById('inputPin').value = '';
+        }
+    }
+
+    function unlockSystem() {
+        document.getElementById('pinModal').classList.add('hidden');
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('mainSection').classList.remove('hidden');
+        init();
+    }
+
+    async function updatePin() {
+        const pin = document.getElementById('newPin').value;
+        if (pin.length !== 4) return alert("कृपया ४-अंकको पिन हाल्नुहोस्।");
+
+        try {
+            const res = await fetch('/api/settings/update-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid, pin })
+            });
+            if (res.ok) {
+                alert("Security PIN updated successfully!");
+                systemPin = pin;
+                document.getElementById('newPin').value = '';
+            }
+        } catch(e) { alert("PIN update failed"); }
+    }
 
     function saveConfig() {
         config = {
