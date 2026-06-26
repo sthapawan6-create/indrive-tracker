@@ -1199,12 +1199,27 @@
         const d = document.createElement('div');
         d.className = 'voucher-row';
         d.innerHTML = `<select class="r-type" onchange="sync(this)"><option value="dr">By (Debit)</option><option value="cr">To (Credit)</option></select>
-                       <input type="text" list="lOpts" class="r-acc" placeholder="Select Ledger Account...">
+                       <div style="position:relative">
+                           <input type="text" list="lOpts" class="r-acc" placeholder="Select Ledger Account..." oninput="showBal(this)">
+                           <span class="r-bal" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:10px; font-weight:800; pointer-events:none;"></span>
+                       </div>
                        <input type="number" class="r-dr text-right" placeholder="0.00" oninput="sum()">
                        <input type="number" class="r-cr text-right" placeholder="0.00" oninput="sum()">
                        <button onclick="this.parentElement.remove();sum()" style="border:none;background:none;color:var(--danger);font-size:22px;cursor:pointer">&times;</button>`;
         document.getElementById('jEntries').appendChild(d);
         sync(d.querySelector('.r-type'));
+    }
+
+    function showBal(el) {
+        const row = el.closest('.voucher-row');
+        const balEl = row.querySelector('.r-bal');
+        const acc = accounts.find(a => a.name === el.value);
+        if(acc && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
+            balEl.innerText = `Rs. ${acc.balance.toLocaleString()}`;
+            balEl.style.color = acc.balance <= 0 ? '#f43f5e' : '#10b981';
+        } else {
+            balEl.innerText = '';
+        }
     }
 
     function sync(el) {
@@ -1237,6 +1252,14 @@
             if (!acc) return;
 
             const dr = Number(r.querySelector('.r-dr').value || 0), cr = Number(r.querySelector('.r-cr').value || 0);
+
+            // Check Insufficient Balance for Cash/Bank Outflows
+            if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
+                if(acc.balance < cr) {
+                    return alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ। तपाईंले Rs. ${cr.toLocaleString()} खर्च गर्न खोज्नुभयो।`);
+                }
+            }
+
             if(dr||cr) { e.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
         }
 
