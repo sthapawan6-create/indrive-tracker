@@ -139,7 +139,7 @@
         <div class="logo-icon" style="background: rgba(212, 175, 55, 0.1); color: var(--accent); margin: 0 auto 20px;"><i class="fas fa-lock"></i></div>
         <h2 style="color:white; margin-bottom:10px;">Security Verification</h2>
         <p style="color:#94a3b8; margin-bottom:20px;">कृपया आफ्नो ४-अंकको सुरक्षा पिन हाल्नुहोस्।</p>
-        <input type="password" id="inputPin" maxlength="4" placeholder="PIN" style="font-size: 32px; text-align: center; letter-spacing: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); color: white; width: 80%;">
+        <input type="password" id="inputPin" maxlength="4" placeholder="PIN" onkeyup="if(event.key==='Enter') verifyPin()" style="font-size: 32px; text-align: center; letter-spacing: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); color: white; width: 80%;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <button class="btn btn-primary" onclick="verifyPin()">UNLOCK</button>
             <button class="btn btn-outline" onclick="auth.signOut(); location.reload();">CANCEL</button>
@@ -483,11 +483,11 @@
                 <div class="card-header"><h3>Company Profile Settings</h3></div>
                 <div class="card-body">
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-bottom:20px;">
-                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">COMPANY NAME</label><input type="text" id="cfgName" placeholder="Business Name"></div>
-                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">ADDRESS</label><input type="text" id="cfgAddr" placeholder="City, Country"></div>
-                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">CONTACT NUMBER</label><input type="text" id="cfgPhone" placeholder="+977-98XXXXXXXX"></div>
+                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">COMPANY NAME</label><input type="text" class="cfgName" placeholder="Business Name"></div>
+                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">ADDRESS</label><input type="text" class="cfgAddr" placeholder="City, Country"></div>
+                        <div><label style="font-size:11px; color:#94a3b8; font-weight:800;">CONTACT NUMBER</label><input type="text" class="cfgPhone" placeholder="+977-98XXXXXXXX"></div>
                     </div>
-                    <button class="btn btn-primary" onclick="saveConfig()">Save Business Profile</button>
+                    <button class="btn btn-primary" onclick="saveConfig(this)">Save Business Profile</button>
                 </div>
             </div>
             <div class="card">
@@ -575,9 +575,9 @@
             document.getElementById('currentDateDisp').innerText = new Date().toDateString();
 
             // Load config to UI
-            document.getElementById('cfgName').value = config.name;
-            document.getElementById('cfgAddr').value = config.address;
-            document.getElementById('cfgPhone').value = config.phone;
+            document.querySelectorAll('.cfgName').forEach(el => el.value = config.name || "");
+            document.querySelectorAll('.cfgAddr').forEach(el => el.value = config.address || "");
+            document.querySelectorAll('.cfgPhone').forEach(el => el.value = config.phone || "");
             document.querySelector('.logo-text').innerText = config.name;
         } else {
             document.getElementById('loginSection').classList.remove('hidden');
@@ -637,18 +637,29 @@
             if (res.ok) {
                 alert(pin ? "Security PIN updated successfully!" : "Security PIN removed!");
                 systemPin = pin || "";
+                // Clear all PIN inputs in both tabs
                 document.querySelectorAll('input[placeholder="Enter New PIN"]').forEach(i => i.value = '');
+            } else {
+                const err = await res.json();
+                alert("PIN update failed: " + (err.error || "Unknown error"));
             }
-        } catch(e) { alert("PIN update failed"); }
+        } catch(e) { alert("PIN update failed: " + e.message); }
     }
 
-    function saveConfig() {
+    function saveConfig(btn) {
+        const card = btn.closest('.card-body');
         config = {
-            name: document.getElementById('cfgName').value || 'PAWAN ACCOUNTING',
-            address: document.getElementById('cfgAddr').value,
-            phone: document.getElementById('cfgPhone').value
+            name: card.querySelector('.cfgName').value || 'PAWAN ACCOUNTING',
+            address: card.querySelector('.cfgAddr').value,
+            phone: card.querySelector('.cfgPhone').value
         };
         localStorage.setItem('erp_gold_config', JSON.stringify(config));
+
+        // Sync all config inputs
+        document.querySelectorAll('.cfgName').forEach(el => el.value = config.name);
+        document.querySelectorAll('.cfgAddr').forEach(el => el.value = config.address);
+        document.querySelectorAll('.cfgPhone').forEach(el => el.value = config.phone);
+
         document.querySelector('.logo-text').innerText = config.name;
         alert("Business Profile Updated!");
     }
