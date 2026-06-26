@@ -208,7 +208,7 @@
                         <div style="color:var(--success)">DR: <span id="tDr">0.00</span></div>
                         <div style="color:var(--danger)">CR: <span id="tCr">0.00</span></div>
                     </div>
-                    <button class="btn btn-primary" onclick="saveTx()" style="width: 100%;">POST TO LEDGER</button>
+                    <button class="btn btn-primary" onclick="saveTx(this)" style="width: 100%;">POST TO LEDGER</button>
                 </div>
             </div>
         </div>
@@ -1563,6 +1563,7 @@
     }
 
     async function saveTx(btn) {
+        if(!btn) btn = event.target; // Fallback if btn not passed
         const date = document.getElementById('jDate').value;
         if(lastClosedDate && date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। नयाँ डाटा थप्न मिल्दैन।");
 
