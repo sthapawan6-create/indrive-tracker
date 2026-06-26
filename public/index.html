@@ -1585,15 +1585,6 @@
 
                 const dr = Number(r.querySelector('.r-dr').value || 0), cr = Number(r.querySelector('.r-cr').value || 0);
 
-                // Validation for Bank/Cash and Parties
-                if(cr > 0 && (acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand')) {
-                    if(acc.balance < cr) { alert(`अपुग रकम! ${acc.name} मा हाल Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Balance insufficient"); }
-                } else if (cr > 0 && (acc.group === 'Sundry Debtors' || acc.group === 'Receivables')) {
-                    if(acc.balance < cr) { alert(`बढी रकम! ${acc.name} बाट उठ्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Limit exceeded"); }
-                } else if (dr > 0 && (acc.group === 'Sundry Creditors' || acc.group === 'Payables')) {
-                    if(acc.balance < dr) { alert(`बढी भुक्तानी! ${acc.name} लाई तिर्नुपर्ने Rs. ${acc.balance.toLocaleString()} मात्र छ।`); throw new Error("Limit exceeded"); }
-                }
-
                 if(dr||cr) { e.push({ account: acc._id, debit: dr, credit: cr }); tDr+=dr; tCr+=cr; }
             }
 
@@ -2222,48 +2213,78 @@
         const id = document.getElementById('sAcc').value, acc = accounts.find(a => a._id===id);
         if(!acc) return;
 
-        // Sort transactions by date ascending for correct running balance
+        // Group & Name check logic (Ultra-Resilient)
+        const g = (acc.group || '').toLowerCase().trim();
+        const n = (acc.name || '').toLowerCase().trim();
+
+        // Identify Liability nature (Negative balance by default)
+        // Catching common terms and misspellings like 'payble'
+        const isLiability = /creditor|liability|payable|payble|income|equity|tax|capital|loan|revenue|sale|reserve/.test(g) ||
+                           (g === '' && /payable|payble|creditor/.test(n));
+
+        // Sort transactions by date ascending
         const txs = transactions
             .filter(t => t.entries.some(e => (e.account?._id||e.account)===id))
             .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const isLiability = ['Sundry Creditors', 'Payables', 'Liabilities', 'Equity', 'Income', 'Duties & Taxes'].includes(acc.group);
-
-        // If it's a liability, opening balance is naturally Credit (negative in our DR-based calculation)
-        let bal = Number(acc.openingBalance || 0);
+        // Assets = Positive (Dr), Liabilities = Negative (Cr)
+        let bal = Math.abs(Number(acc.openingBalance || 0));
         if (isLiability) bal = -bal;
 
         document.getElementById('sRes').classList.remove('hidden');
-        document.getElementById('sTitle').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Statement: ${acc.name}</span>
-            <span style="font-size:12px; color:#94a3b8;">${acc.group}</span>
-        </div>`;
+        document.getElementById('sTitle').innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-size:1.2rem; font-weight:bold; color:white;">Statement: ${acc.name}</div>
+                    <div style="font-size:11px; margin-top:4px;">
+                        <span style="background:rgba(212,175,55,0.2); color:#ffd700; padding:2px 8px; border-radius:4px; border:1px solid rgba(212,175,55,0.3);">
+                            <i class="fas fa-folder-open"></i> ${acc.group || 'General Account'}
+                        </span>
+                        <span style="margin-left:8px; color:#94a3b8;">
+                            Nature: ${isLiability ? 'Liability (Cr)' : 'Asset (Dr)'}
+                        </span>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <button class="btn-primary" style="padding:5px 15px; font-size:12px;" onclick="printStatement()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>`;
 
         let openBalDisp = Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2}) + (bal >= 0 ? ' Dr' : ' Cr');
-        let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${openBalDisp}</td></tr>`;
+        let html = `<tr style="background:rgba(255,255,255,0.02);">
+            <td>-</td>
+            <td style="color:#94a3b8; font-weight:bold;">OPENING BALANCE</td>
+            <td class="text-right">-</td>
+            <td class="text-right">-</td>
+            <td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${openBalDisp}</td>
+            <td></td>
+        </tr>`;
 
         txs.forEach(t => {
             const entry = t.entries.find(e => (e.account?._id || e.account) === id);
             const dr = Number(entry.debit || 0);
             const cr = Number(entry.credit || 0);
 
-            // Debit increases Asset/Receivable balance, Credit decreases it
+            // Standard Accounting Equation:
+            // Assets: Bal + Dr - Cr
+            // Liabilities: Starts -ve, increases with Dr, decreases with Cr
             bal += (dr - cr);
 
-            let balType = bal >= 0 ? ' Dr' : ' Cr';
-            let displayBal = Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2}) + balType;
+            let displayBal = Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2}) + (bal >= 0 ? ' Dr' : ' Cr');
 
             html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td><small style="font-family:'JetBrains Mono'; color:#94a3b8;">${t.date}</small></td>
-                <td style="font-weight:600;">
-                    ${t.description}
-                    <div style="font-size:10px; color:#64748b;">ID: JV-${t._id.slice(-4).toUpperCase()}</div>
+                <td>
+                    <div style="font-weight:600;">${t.description}</div>
+                    <div style="font-size:10px; color:#64748b;">Voucher: JV-${t._id.slice(-4).toUpperCase()}</div>
                 </td>
-                <td class="text-right" style="color:#10b981; font-weight:700;">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
-                <td class="text-right" style="color:#ef4444; font-weight:700;">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+                <td class="text-right" style="color:#10b981; font-weight:bold;">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+                <td class="text-right" style="color:#ef4444; font-weight:bold;">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
                 <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--accent); background: rgba(212, 175, 55, 0.05);">Rs. ${displayBal}</td>
                 <td class="text-right">
-                    <i class="fas fa-trash-alt text-danger" style="cursor:pointer; padding:5px;" onclick="delTx('${t._id}')" title="Delete this transaction"></i>
+                    <i class="fas fa-trash-alt text-danger" style="cursor:pointer; padding:5px; opacity:0.6;" onclick="delTx('${t._id}')"></i>
                 </td>
             </tr>`;
         });
