@@ -2227,20 +2227,31 @@
             .filter(t => t.entries.some(e => (e.account?._id||e.account)===id))
             .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+        const isLiability = ['Sundry Creditors', 'Payables', 'Liabilities', 'Equity', 'Income', 'Duties & Taxes'].includes(acc.group);
+
+        // If it's a liability, opening balance is naturally Credit (negative in our DR-based calculation)
         let bal = Number(acc.openingBalance || 0);
+        if (isLiability) bal = -bal;
+
         document.getElementById('sRes').classList.remove('hidden');
         document.getElementById('sTitle').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
             <span>Statement: ${acc.name}</span>
             <span style="font-size:12px; color:#94a3b8;">${acc.group}</span>
         </div>`;
 
-        let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td></tr>`;
+        let openBalDisp = Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2}) + (bal >= 0 ? ' Dr' : ' Cr');
+        let html = `<tr><td>-</td><td>OPENING BALANCE</td><td class="text-right">-</td><td class="text-right">-</td><td class="text-right" style="font-weight:bold; color:var(--accent);">Rs. ${openBalDisp}</td></tr>`;
 
         txs.forEach(t => {
             const entry = t.entries.find(e => (e.account?._id || e.account) === id);
             const dr = Number(entry.debit || 0);
             const cr = Number(entry.credit || 0);
+
+            // Debit increases Asset/Receivable balance, Credit decreases it
             bal += (dr - cr);
+
+            let balType = bal >= 0 ? ' Dr' : ' Cr';
+            let displayBal = Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2}) + balType;
 
             html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <td><small style="font-family:'JetBrains Mono'; color:#94a3b8;">${t.date}</small></td>
@@ -2250,7 +2261,7 @@
                 </td>
                 <td class="text-right" style="color:#10b981; font-weight:700;">${dr > 0 ? dr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
                 <td class="text-right" style="color:#ef4444; font-weight:700;">${cr > 0 ? cr.toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
-                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--accent); background: rgba(212, 175, 55, 0.05);">Rs. ${bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--accent); background: rgba(212, 175, 55, 0.05);">Rs. ${displayBal}</td>
                 <td class="text-right">
                     <i class="fas fa-trash-alt text-danger" style="cursor:pointer; padding:5px;" onclick="delTx('${t._id}')" title="Delete this transaction"></i>
                 </td>
