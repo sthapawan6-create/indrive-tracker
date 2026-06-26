@@ -36,7 +36,10 @@ const AccountSchema = new mongoose.Schema({
     type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'], required: true },
     group: String,
     openingBalance: { type: Number, default: 0 },
-    balance: { type: Number, default: 0 }
+    balance: { type: Number, default: 0 },
+    phone: { type: String, default: "" },
+    address: { type: String, default: "" },
+    panVat: { type: String, default: "" }
 });
 const Account = mongoose.model('Account', AccountSchema);
 

@@ -242,15 +242,15 @@
                 <div style="margin-bottom:20px;">
                     <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">GROUP / CATEGORY</label>
                     <select id="editAccGroup" style="width:100%; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:white;">
-                        <option value="Cash-in-hand">Cash-in-hand</option>
-                        <option value="Bank Accounts">Bank Accounts</option>
-                        <option value="Sundry Debtors">Sundry Debtors</option>
-                        <option value="Sundry Creditors">Sundry Creditors</option>
-                        <option value="Direct Expenses">Direct Expenses</option>
-                        <option value="Indirect Expenses">Indirect Expenses</option>
-                        <option value="Fixed Assets">Fixed Assets</option>
-                        <option value="Capital Account">Capital Account</option>
-                        <option value="Sales Accounts">Sales Accounts</option>
+                        <option value="Bank Accounts">Bank Accounts (बैंक)</option>
+                        <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
+                        <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
+                        <option value="Payables">Party - Payables (दिनुपर्ने)</option>
+                        <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
+                        <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
+                        <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
+                        <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
+                        <option value="Capital Account">Capital Account (पूँजी)</option>
                     </select>
                 </div>
                 <div style="margin-bottom:25px;">
@@ -386,33 +386,63 @@
 
         <div id="tab-accounts" class="tab-content hidden">
             <div class="card">
-                <div class="card-header"><h3>Create New Account Head</h3></div>
+                <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Create New Account Head (नयाँ खाता)</h3></div>
                 <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 2fr 1.3fr 1fr auto; gap: 15px;">
-                        <input type="text" id="aName" placeholder="Ledger Account Name">
-                        <select id="aGroup">
-                            <option value="Bank Accounts">Bank Accounts</option>
-                            <option value="Cash-in-hand">Cash-in-hand</option>
-                            <option value="Sundry Debtors">Sundry Debtors (AR)</option>
-                            <option value="Sundry Creditors">Sundry Creditors (AP)</option>
-                            <option value="Direct Expenses">Direct Expenses</option>
-                            <option value="Indirect Expenses">Indirect Expenses</option>
-                            <option value="Sales Accounts">Sales accounts (Revenue)</option>
-                            <option value="Fixed Assets">Fixed Assets</option>
-                            <option value="Capital Account">Capital Account</option>
-                        </select>
-                        <input type="number" id="aOp" placeholder="Opening Bal">
-                        <button class="btn btn-primary" onclick="createAcc()">Create Head</button>
+                    <div style="display: grid; grid-template-columns: 1.5fr 1fr 0.8fr 1fr 1fr auto; gap: 12px; align-items: end;">
+                        <div>
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">ACCOUNT NAME</label>
+                            <input type="text" id="aName" placeholder="Ledger Name (उदा: राम स्टोर)">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">GROUP / CATEGORY</label>
+                            <select id="aGroup">
+                                <option value="Bank Accounts">Bank Accounts (बैंक)</option>
+                                <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
+                                <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
+                                <option value="Payables">Party - Payables (दिनुपर्ने)</option>
+                                <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
+                                <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
+                                <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
+                                <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
+                                <option value="Capital Account">Capital Account (पूँजी)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">OPENING BAL</label>
+                            <input type="number" id="aOp" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PHONE (OPTIONAL)</label>
+                            <input type="text" id="aPhone" placeholder="98XXXXXXXX">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PAN/VAT (OPTIONAL)</label>
+                            <input type="text" id="aPan" placeholder="PAN Number">
+                        </div>
+                        <button class="btn btn-primary" onclick="createAcc()" style="padding: 16px;"><i class="fas fa-save"></i> CREATE</button>
                     </div>
                 </div>
             </div>
             <div class="card">
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>Chart of Accounts</h3>
-                    <input type="text" id="accSearch" placeholder="Search accounts..." onkeyup="filterAccs()" style="width:250px; padding:8px 15px; border-radius:10px; font-size:12px;">
+                    <h3><i class="fas fa-list-ul"></i> Chart of Accounts (खाता सूची)</h3>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="accSearch" placeholder="Search accounts..." onkeyup="filterAccs()" style="width:250px; padding:8px 15px; border-radius:10px; font-size:12px;">
+                    </div>
                 </div>
                 <div class="card-body" style="padding:0">
-                    <table id="aTable"><thead><tr><th>Account Head</th><th>Group Type</th><th class="text-right">Opening Bal</th><th class="text-right">Net Balance</th><th class="text-right">Action</th></tr></thead><tbody></tbody></table>
+                    <table id="aTable">
+                        <thead>
+                            <tr>
+                                <th>Account Head</th>
+                                <th>Group & Contact</th>
+                                <th class="text-right">Opening Bal</th>
+                                <th class="text-right">Net Balance</th>
+                                <th class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -747,8 +777,8 @@
         let cash = 0, ar = 0, ap = 0, rev = 0, exp = 0, totalDr = 0, totalCr = 0;
         let rowsHtml = Object.values(closingBalances).filter(b => b.bal !== 0).map(b => {
             if(b.group === 'Bank Accounts' || b.group === 'Cash-in-hand') cash += b.bal;
-            else if(b.group === 'Sundry Debtors') { if(b.bal > 0) ar += b.bal; else ap += Math.abs(b.bal); }
-            else if(b.group === 'Sundry Creditors') { if(b.bal > 0) ap += b.bal; else ar += Math.abs(b.bal); }
+            else if(b.group === 'Sundry Debtors' || b.group === 'Receivables') { if(b.bal > 0) ar += b.bal; else ap += Math.abs(b.bal); }
+            else if(b.group === 'Sundry Creditors' || b.group === 'Payables') { if(b.bal > 0) ap += b.bal; else ar += Math.abs(b.bal); }
 
             if(b.type === 'Revenue') rev += b.bal;
             if(b.type === 'Expense') exp += b.bal;
@@ -845,17 +875,30 @@
         } catch(e) { accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]"); }
 
         document.querySelector('#aTable tbody').innerHTML = accounts.map(a => `<tr>
-            <td><b style="font-size:14px; color:white;">${a.name}</b></td>
-            <td><span class="badge badge-asset">${a.group}</span></td>
+            <td>
+                <div style="font-weight:800; color:white; font-size:15px;">${a.name}</div>
+                ${a.panVat ? `<small style="color:var(--accent); font-size:10px; font-weight:700;">PAN: ${a.panVat}</small>` : ''}
+            </td>
+            <td>
+                <span class="badge ${['Asset', 'Revenue'].includes(a.type) ? 'badge-asset' : 'badge-liab'}" style="margin-bottom:4px; display:inline-block;">${a.group}</span>
+                <div style="font-size:11px; color:#94a3b8; font-weight:600;"><i class="fas fa-phone-alt" style="font-size:9px;"></i> ${a.phone || 'N/A'}</div>
+            </td>
             <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
-            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent);">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+            <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent); font-size:16px;">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
             <td class="text-right">
-                <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
-                <i class="fas fa-trash text-danger" style="cursor:pointer; padding:5px 10px;" onclick="delAcc('${a._id}')"></i>
+                <i class="fas fa-history text-success" title="View Statement" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="viewLedgerStatement('${a._id}')"></i>
+                <i class="fas fa-edit text-warning" title="Edit Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
+                <i class="fas fa-trash text-danger" title="Delete Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="delAcc('${a._id}')"></i>
             </td>
         </tr>`).join('');
         document.getElementById('sAcc').innerHTML = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.getElementById('lOpts').innerHTML = accounts.map(a => `<option value="${a.name}">`).join('');
+    }
+
+    function viewLedgerStatement(accId) {
+        document.getElementById('sAcc').value = accId;
+        showTab('statement', document.querySelector('[onclick*="statement"]'));
+        genStat();
     }
 
     function filterAccs() {
@@ -899,6 +942,8 @@
         const map = {
             'Bank Accounts':'Asset',
             'Cash-in-hand':'Asset',
+            'Receivables':'Asset',
+            'Payables':'Liability',
             'Sundry Debtors':'Asset',
             'Sundry Creditors':'Liability',
             'Direct Expenses':'Expense',
@@ -1016,8 +1061,8 @@
                 "1": { group: "Indirect Expenses", type: "Expense" },
                 "2": { group: "Sales Accounts", type: "Revenue" },
                 "3": { group: "Bank Accounts", type: "Asset" },
-                "4": { group: "Sundry Creditors", type: "Liability" },
-                "5": { group: "Sundry Debtors", type: "Asset" },
+                "4": { group: "Payables", type: "Liability" },
+                "5": { group: "Receivables", type: "Asset" },
                 "6": { group: "Capital Account", type: "Equity" }
             };
 
@@ -1094,15 +1139,33 @@
     }
 
     async function createAcc() {
-        const name = document.getElementById('aName').value, group = document.getElementById('aGroup').value, op = Number(document.getElementById('aOp').value || 0);
+        const name = document.getElementById('aName').value,
+              group = document.getElementById('aGroup').value,
+              op = Number(document.getElementById('aOp').value || 0),
+              phone = document.getElementById('aPhone').value,
+              pan = document.getElementById('aPan').value;
+
         if(!name) return alert("Account name field required.");
-        const map = { 'Bank Accounts':'Asset', 'Cash-in-hand':'Asset', 'Sundry Debtors':'Asset', 'Sundry Creditors':'Liability', 'Direct Expenses':'Expense', 'Indirect Expenses':'Expense', 'Sales Accounts':'Revenue', 'Fixed Assets':'Asset', 'Capital Account':'Equity' };
+        const map = { 'Bank Accounts':'Asset', 'Cash-in-hand':'Asset', 'Receivables':'Asset', 'Payables':'Liability', 'Sundry Debtors':'Asset', 'Sundry Creditors':'Liability', 'Direct Expenses':'Expense', 'Indirect Expenses':'Expense', 'Sales Accounts':'Revenue', 'Fixed Assets':'Asset', 'Capital Account':'Equity' };
+
         await fetch('/api/accounts', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId:currentUser.uid, name, type:map[group], group, openingBalance:op, balance:op })
+            body: JSON.stringify({
+                userId:currentUser.uid,
+                name,
+                type:map[group],
+                group,
+                openingBalance:op,
+                balance:op,
+                phone: phone,
+                panVat: pan
+            })
         });
+
         document.getElementById('aName').value = '';
         document.getElementById('aOp').value = '';
+        document.getElementById('aPhone').value = '';
+        document.getElementById('aPan').value = '';
         init();
     }
 
@@ -1119,7 +1182,7 @@
                 cash += a.balance;
                 if(a.balance !== 0) cashList.push(`${a.name}: ${a.balance.toLocaleString()}`);
             }
-            else if(a.group==='Sundry Debtors') {
+            else if(a.group==='Sundry Debtors' || a.group==='Receivables') {
                 if(a.balance > 0) {
                     ar += a.balance;
                     arList.push(`${a.name}: ${a.balance.toLocaleString()}`);
@@ -1128,7 +1191,7 @@
                     apList.push(`${a.name}: ${Math.abs(a.balance).toLocaleString()}`);
                 }
             }
-            else if(a.group==='Sundry Creditors') {
+            else if(a.group==='Sundry Creditors' || a.group==='Payables') {
                 if(a.balance > 0) {
                     ap += a.balance;
                     apList.push(`${a.name}: ${a.balance.toLocaleString()}`);
@@ -1162,10 +1225,10 @@
                 if(a.type === 'Liability') nw -= bal;
 
                 if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') csh += bal;
-                if(a.group==='Sundry Debtors') {
+                if(a.group==='Sundry Debtors' || a.group==='Receivables') {
                     if(bal > 0) rec += bal;
                 }
-                if(a.group==='Sundry Creditors') {
+                if(a.group==='Sundry Creditors' || a.group==='Payables') {
                     if(bal < 0) rec += Math.abs(bal);
                 }
             });
@@ -1214,8 +1277,8 @@
 
         // New: Top Debtors/Creditors logic
         const sortedAccounts = [...accounts].sort((a,b) => Math.abs(b.balance) - Math.abs(a.balance));
-        const topD = sortedAccounts.filter(a => (a.group==='Sundry Debtors' && a.balance > 0) || (a.group==='Sundry Creditors' && a.balance < 0)).slice(0,3);
-        const topC = sortedAccounts.filter(a => (a.group==='Sundry Creditors' && a.balance > 0) || (a.group==='Sundry Debtors' && a.balance < 0)).slice(0,3);
+        const topD = sortedAccounts.filter(a => ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance > 0) || ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance < 0)).slice(0,3);
+        const topC = sortedAccounts.filter(a => ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance > 0) || ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance < 0)).slice(0,3);
 
         document.getElementById('top-debtors').innerHTML = topD.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--accent)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
         document.getElementById('top-creditors').innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
@@ -1238,7 +1301,7 @@
                     months[m].rev += (Number(e.credit || 0) - Number(e.debit || 0));
                 } else if(acc.type === 'Expense') {
                     months[m].exp += (Number(e.debit || 0) - Number(e.credit || 0));
-                } else if(acc.group === 'Cash' || acc.group === 'Bank') {
+                } else if(acc.group === 'Bank Accounts' || acc.group === 'Cash-in-hand') {
                     // Treat cash/bank inflows as "Revenue-like" and outflows as "Expense-like" for trend purposes
                     const inflow = Number(e.debit || 0);
                     const outflow = Number(e.credit || 0);
@@ -1288,17 +1351,22 @@
         const ctx = document.getElementById('mainChart').getContext('2d');
         if(chart) chart.destroy();
 
-        // Group expenses for chart
-        const expGroups = {};
-        accounts.filter(a => a.type === 'Expense').forEach(a => {
-            const bal = Math.abs(a.balance);
-            if (bal > 0) {
-                expGroups[a.group] = (expGroups[a.group] || 0) + bal;
-            }
-        });
+        // Detailed Expense distribution by Account
+        const expDataRaw = accounts.filter(a => a.type === 'Expense' && a.balance !== 0)
+            .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
 
-        const labels = Object.keys(expGroups);
-        const data = Object.values(expGroups);
+        let labels = [], data = [];
+        if (expDataRaw.length > 7) {
+            const top = expDataRaw.slice(0, 7);
+            const others = expDataRaw.slice(7);
+            labels = top.map(a => a.name);
+            data = top.map(a => Math.abs(a.balance));
+            labels.push('Others');
+            data.push(others.reduce((sum, a) => sum + Math.abs(a.balance), 0));
+        } else {
+            labels = expDataRaw.map(a => a.name);
+            data = expDataRaw.map(a => Math.abs(a.balance));
+        }
 
         // Dynamic colors for different expense groups
         const colors = [
