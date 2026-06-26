@@ -227,6 +227,23 @@
         </div>
 
         <div id="tab-dashboard" class="tab-content">
+            <div class="card">
+                <div class="card-header"><h3>Day Close Lock System</h3></div>
+                <div class="card-body">
+                    <div style="display:flex; gap:20px; align-items:center;">
+                        <div style="flex:1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">CLOSE ACCOUNTS UNTIL</label>
+                            <input type="date" id="closeDate">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">LAST CLOSED DATE</label>
+                            <div id="lastClosedDisp" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="closeDay()" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
+                    </div>
+                    <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
+                </div>
+            </div>
             <div class="grid-stats">
                 <div class="stat-card">
                     <span class="label">Net Liquidity (तरलता)</span>
@@ -388,6 +405,23 @@
                     <button class="btn btn-primary" onclick="saveConfig()">Save Business Profile</button>
                 </div>
             </div>
+            <div class="card">
+                <div class="card-header"><h3>Day Close Lock System</h3></div>
+                <div class="card-body">
+                    <div style="display:flex; gap:20px; align-items:center;">
+                        <div style="flex:1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">CLOSE ACCOUNTS UNTIL</label>
+                            <input type="date" id="closeDate">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:11px; color:#94a3b8; font-weight:800;">LAST CLOSED DATE</label>
+                            <div id="lastClosedDisp" style="font-family:'JetBrains Mono'; font-weight:800; color:var(--danger); padding:16px; background:rgba(244,63,94,0.1); border-radius:16px; border:1px solid rgba(244,63,94,0.2);">None</div>
+                        </div>
+                        <button class="btn btn-danger" onclick="closeDay()" style="margin-top:20px;"><i class="fas fa-lock"></i> LOCK & CLOSE DAY</button>
+                    </div>
+                    <p style="margin-top:15px; font-size:12px; color:#94a3b8;"><i class="fas fa-info-circle"></i> Once a day is closed, no transactions can be added, edited, or deleted on or before that date.</p>
+                </div>
+            </div>
             <div class="grid-stats">
                 <div class="stat-card" style="border-bottom:4px solid var(--accent); background:rgba(255,193,7,0.05);">
                     <h3 style="color:var(--accent)">Master Sync & Recovery</h3>
@@ -416,7 +450,7 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook';
+    let currentUser = null, accounts = [], transactions = [], chart = null, trendChart = null, currentReportType = 'daybook', lastClosedDate = '';
     let config = JSON.parse(localStorage.getItem('erp_gold_config') || '{"name":"ERP GOLD EXTREME","address":"Global Workspace","phone":""}');
 
     auth.onAuthStateChanged(user => {
@@ -496,10 +530,42 @@
     }
 
     async function init() {
+        await fetchSettings();
         await fetchAcc();
         await fetchTx();
         updateDash();
         resetJ();
+    }
+
+    async function fetchSettings() {
+        try {
+            const r = await fetch(`/api/settings?userId=${currentUser.uid}`);
+            const s = await r.json();
+            lastClosedDate = s.lastClosedDate || "";
+            document.getElementById('lastClosedDisp').innerText = lastClosedDate || "No data";
+        } catch(e) { console.error("Settings load failed", e); }
+    }
+
+    async function closeDay() {
+        const date = document.getElementById('closeDate').value;
+        if(!date) return alert("Please select a date to close.");
+        if(lastClosedDate && date <= lastClosedDate) return alert("You cannot close a date before or on the current closed date.");
+
+        if(!confirm(`Are you sure you want to CLOSE accounts until ${date}? \nThis will LOCK all transactions before this date.`)) return;
+
+        try {
+            const res = await fetch('/api/settings/close-day', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid, date })
+            });
+            if(res.ok) {
+                alert("Day Closed Successfully! System locked for previous dates.");
+                await fetchSettings();
+            } else {
+                alert("Day Close Failed");
+            }
+        } catch(e) { alert("Error: " + e.message); }
     }
 
     function showTab(t, el) {
@@ -534,9 +600,12 @@
     }
 
     async function delTx(id) {
+        const tx = transactions.find(t => t._id === id);
+        if(tx && lastClosedDate && tx.date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। डाटा मेटाउन मिल्दैन।");
         if(!confirm("के तपाईं यो कारोबार सदाको लागि मेटाउन चाहनुहुन्छ?")) return;
-        await fetch(`/api/transactions/${id}`, { method:'DELETE' });
-        init();
+        const res = await fetch(`/api/transactions/${id}`, { method:'DELETE' });
+        if(res.ok) init();
+        else { const d = await res.json(); alert(d.error || "असफल"); }
     }
 
 
@@ -573,6 +642,7 @@
     async function openEditModal(id) {
         const tx = transactions.find(t => t._id === id);
         if(!tx) return;
+        if(lastClosedDate && tx.date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। डाटा सम्पादन गर्न मिल्दैन।");
 
         document.getElementById('editTxId').value = id;
         document.getElementById('editDate').value = tx.date;
@@ -609,6 +679,9 @@
 
     async function updateTx() {
         const id = document.getElementById('editTxId').value;
+        const date = document.getElementById('editDate').value;
+        if(lastClosedDate && date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। डाटा परिवर्तन गर्न मिल्दैन।");
+
         const entries = [];
         let tDr=0, tCr=0;
 
@@ -628,7 +701,7 @@
 
         const res = await fetch(`/api/transactions/${id}`, {
             method:'PUT', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ date:document.getElementById('editDate').value, description:document.getElementById('editDesc').value, entries })
+            body: JSON.stringify({ userId:currentUser.uid, date:document.getElementById('editDate').value, description:document.getElementById('editDesc').value, entries })
         });
 
         if(res.ok) { alert("Voucher Updated Successfully!"); closeEditModal(); init(); }
@@ -696,6 +769,9 @@
     }
 
     async function saveTx() {
+        const date = document.getElementById('jDate').value;
+        if(lastClosedDate && date <= lastClosedDate) return alert("यो मितिको हिसाब क्लोज भइसकेको छ। नयाँ डाटा थप्न मिल्दैन।");
+
         const e = [];
         let tDr=0, tCr=0;
         const rows = document.querySelectorAll('.voucher-row:not(.edit-mode-row)');
