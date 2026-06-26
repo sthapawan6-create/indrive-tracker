@@ -600,7 +600,7 @@
             });
         });
 
-        let cash = 0, ar = 0, ap = 0, rev = 0, exp = 0;
+        let cash = 0, ar = 0, ap = 0, rev = 0, exp = 0, totalDr = 0, totalCr = 0;
         let rowsHtml = Object.values(closingBalances).filter(b => b.bal !== 0).map(b => {
             if(b.group === 'Bank Accounts' || b.group === 'Cash-in-hand') cash += b.bal;
             else if(b.group === 'Sundry Debtors') { if(b.bal > 0) ar += b.bal; else ap += Math.abs(b.bal); }
@@ -609,31 +609,47 @@
             if(b.type === 'Revenue') rev += b.bal;
             if(b.type === 'Expense') exp += b.bal;
 
+            const isDebitSide = ['Asset', 'Expense'].includes(b.type);
+            let displayDr = 0, displayCr = 0;
+            if (isDebitSide) {
+                if (b.bal >= 0) displayDr = b.bal; else displayCr = Math.abs(b.bal);
+            } else {
+                if (b.bal >= 0) displayCr = b.bal; else displayDr = Math.abs(b.bal);
+            }
+            totalDr += displayDr; totalCr += displayCr;
+
             return `<tr>
                 <td><b>${b.name}</b></td>
                 <td><span class="badge badge-asset">${b.group}</span></td>
-                <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${b.bal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--success); font-weight:700;">${displayDr > 0 ? displayDr.toLocaleString() : '-'}</td>
+                <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--danger); font-weight:700;">${displayCr > 0 ? displayCr.toLocaleString() : '-'}</td>
             </tr>`;
         }).join('');
+
+        const diff = Math.abs(totalDr - totalCr);
+        const statusHtml = diff < 0.01
+            ? `<div style="color:var(--success); font-weight:800; border:2px solid var(--success); padding:10px; border-radius:12px; display:inline-block; background:rgba(34,197,94,0.1);"><i class="fas fa-check-circle"></i> ACCOUNTS BALANCED (Difference: 0.00)</div>`
+            : `<div style="color:var(--danger); font-weight:800; border:2px solid var(--danger); padding:10px; border-radius:12px; display:inline-block; background:rgba(244,63,94,0.1);"><i class="fas fa-exclamation-triangle"></i> IMBALANCE DETECTED: ${diff.toLocaleString()}</div>`;
 
         const html = `
             <div class="card-body">
                 <div style="text-align:center; margin-bottom:30px;">
                     <h2 style="color:var(--accent); margin-bottom:5px;">CLOSING FINANCIAL POSITION</h2>
                     <p style="color:#94a3b8; font-weight:700;">AS OF ${lastClosedDate} (LOCKED)</p>
+                    <div style="margin-top:10px;">${statusHtml}</div>
                 </div>
 
                 <div class="grid-stats" style="margin-bottom:30px;">
                     <div class="stat-card" style="padding:20px;">
-                        <span class="label">Bank/Cash</span>
+                        <span class="label">Liquidity</span>
                         <div class="value text-success" style="font-size:1.2rem;">Rs. ${cash.toLocaleString()}</div>
                     </div>
                     <div class="stat-card" style="padding:20px;">
-                        <span class="label">Receivables</span>
+                        <span class="label">Net Receivables</span>
                         <div class="value" style="font-size:1.2rem;">Rs. ${ar.toLocaleString()}</div>
                     </div>
                     <div class="stat-card" style="padding:20px;">
-                        <span class="label">Payables</span>
+                        <span class="label">Net Payables</span>
                         <div class="value text-danger" style="font-size:1.2rem;">Rs. ${ap.toLocaleString()}</div>
                     </div>
                     <div class="stat-card" style="padding:20px;">
@@ -647,10 +663,18 @@
                         <tr style="background:rgba(0,0,0,0.2);">
                             <th>Account Head</th>
                             <th>Group</th>
-                            <th class="text-right">Balance as of ${lastClosedDate}</th>
+                            <th class="text-right">Debit (Dr)</th>
+                            <th class="text-right">Credit (Cr)</th>
                         </tr>
                     </thead>
                     <tbody>${rowsHtml}</tbody>
+                    <tfoot>
+                        <tr style="background:rgba(212,175,55,0.1); font-weight:800;">
+                            <td colspan="2" style="text-align:right;">TOTAL TRIAL BALANCE</td>
+                            <td class="text-right" style="color:var(--success);">Rs. ${totalDr.toLocaleString()}</td>
+                            <td class="text-right" style="color:var(--danger);">Rs. ${totalCr.toLocaleString()}</td>
+                        </tr>
+                    </tfoot>
                 </table>
                 <div style="margin-top:30px; text-align:center;">
                     <button class="btn btn-outline" onclick="window.print()"><i class="fas fa-print"></i> Print Closing Report</button>
