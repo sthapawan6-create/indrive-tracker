@@ -1226,13 +1226,21 @@
 
     function renderTrendChart() {
         const months = {};
+        // Use all transactions for the chart
         transactions.forEach(t => {
             const m = t.date.substring(0, 7); // YYYY-MM
             if(!months[m]) months[m] = { rev:0, exp:0 };
             t.entries.forEach(e => {
                 const acc = accounts.find(a => a._id === (e.account?._id || e.account));
-                if(acc?.type === 'Revenue') months[m].rev += (e.credit - e.debit);
-                if(acc?.type === 'Expense') months[m].exp += (e.debit - e.credit);
+                if(!acc) return;
+                // Revenue accounts (Credit increases balance)
+                if(acc.type === 'Revenue') {
+                    months[m].rev += (Number(e.credit || 0) - Number(e.debit || 0));
+                }
+                // Expense accounts (Debit increases balance)
+                if(acc.type === 'Expense') {
+                    months[m].exp += (Number(e.debit || 0) - Number(e.credit || 0));
+                }
             });
         });
 
@@ -1499,12 +1507,12 @@
             let r=0, x=0; accounts.forEach(a => { if(a.type==='Revenue') r+=a.balance; if(a.type==='Expense') x+=a.balance; });
             const netProfit = r - x;
 
-            // Separate accounts based on actual nature (Netting off)
+            // Separate accounts based on actual nature (Netting off) and hide 0 balances
             // If Liability is negative, it's a Debit (Receivable) -> Assets side
             // If Asset is negative, it's a Credit (Payable) -> Liabilities side
-            const assetsList = accounts.filter(a => (a.type==='Asset' && a.balance >= 0) || (a.type==='Liability' && a.balance < 0));
-            const liabilityList = accounts.filter(a => (a.type==='Liability' && a.balance >= 0) || (a.type==='Asset' && a.balance < 0));
-            const equityList = accounts.filter(a => a.type==='Equity');
+            const assetsList = accounts.filter(a => (a.type==='Asset' && a.balance > 0) || (a.type==='Liability' && a.balance < 0));
+            const liabilityList = accounts.filter(a => (a.type==='Liability' && a.balance > 0) || (a.type==='Asset' && a.balance < 0));
+            const equityList = accounts.filter(a => a.type==='Equity' && a.balance !== 0);
 
             const renderAccountRow = (a, side) => {
                 const val = Math.abs(a.balance);
