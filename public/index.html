@@ -284,6 +284,12 @@
                 </div>
             </div>
             <div class="grid-stats">
+                <div class="stat-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(0,0,0,0)); border: 1px solid rgba(212,175,55,0.2);">
+                    <span class="label" style="color:var(--accent); letter-spacing:1px;">TOTAL NET WORTH (कुल सम्पत्ति)</span>
+                    <div class="value" id="dash-networth" style="font-size:32px; color:var(--white); margin-top:5px;">Rs. 0.00</div>
+                    <div class="icon-bg"><i class="fas fa-gem"></i></div>
+                    <div style="margin-top:10px; font-size:10px; color:#94a3b8;">(Total Assets - Total Liabilities)</div>
+                </div>
                 <div class="stat-card">
                     <span class="label">Net Liquidity (तरलता)</span>
                     <div class="value text-success" id="dash-cash">Rs. 0.00</div>
@@ -1001,8 +1007,12 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        let cash=0, ar=0, ap=0, rev=0, exp=0, cashList=[], arList=[], apList=[];
+        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0, cashList=[], arList=[], apList=[];
         accounts.forEach(a => {
+            if(a.type === 'Asset') assets += a.balance;
+            if(a.type === 'Liability') liabilities += a.balance;
+            if(a.type === 'Equity') equity += a.balance;
+
             if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') {
                 cash += a.balance;
                 if(a.balance !== 0) cashList.push(`${a.name}: ${a.balance.toLocaleString()}`);
@@ -1028,6 +1038,10 @@
             if(a.type==='Revenue') rev += a.balance;
             if(a.type==='Expense') exp += a.balance;
         });
+
+        const netWorth = assets - liabilities;
+        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString(undefined,{minimumFractionDigits:2});
+
         document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString(undefined,{minimumFractionDigits:2});
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString(undefined,{minimumFractionDigits:2});
         document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString(undefined,{minimumFractionDigits:2});
