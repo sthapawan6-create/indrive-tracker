@@ -288,19 +288,30 @@
                     <span class="label" style="color:var(--accent); letter-spacing:1px;">TOTAL NET WORTH (कुल सम्पत्ति)</span>
                     <div class="value" id="dash-networth" style="font-size:32px; color:var(--white); margin-top:5px;">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-gem"></i></div>
-                    <div style="margin-top:10px; font-size:10px; color:#94a3b8;">(Total Assets - Total Liabilities)</div>
+                    <div style="display:flex; gap:15px; margin-top:15px; font-size:11px; font-weight:700;">
+                        <div id="nw-weekly" style="padding:4px 8px; border-radius:6px;">7D: --</div>
+                        <div id="nw-monthly" style="padding:4px 8px; border-radius:6px;">30D: --</div>
+                    </div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Net Liquidity (तरलता)</span>
                     <div class="value text-success" id="dash-cash">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-vault"></i></div>
-                    <div style="margin-top:15px; font-size:11px; font-weight:700; color:#94a3b8;" id="cash-breakdown"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px; font-size:10px; font-weight:700;">
+                        <div id="cash-weekly" style="padding:2px 6px; border-radius:4px;">7D: --</div>
+                        <div id="cash-monthly" style="padding:2px 6px; border-radius:4px;">30D: --</div>
+                    </div>
+                    <div style="margin-top:10px; font-size:11px; font-weight:700; color:#94a3b8;" id="cash-breakdown"></div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Receivables (उठ्नुपर्ने)</span>
                     <div class="value" id="dash-ar">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-hand-holding-usd"></i></div>
-                    <div style="margin-top:15px; font-size:11px; font-weight:700; color:#94a3b8;" id="ar-breakdown"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px; font-size:10px; font-weight:700;">
+                        <div id="ar-weekly" style="padding:2px 6px; border-radius:4px;">7D: --</div>
+                        <div id="ar-monthly" style="padding:2px 6px; border-radius:4px;">30D: --</div>
+                    </div>
+                    <div style="margin-top:10px; font-size:11px; font-weight:700; color:#94a3b8;" id="ar-breakdown"></div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Payables (तिर्नुपर्ने)</span>
@@ -1041,6 +1052,61 @@
 
         const netWorth = assets - liabilities;
         document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString(undefined,{minimumFractionDigits:2});
+
+        // Calculate History for Growth Comparison
+        const calcStatsAtDate = (dateStr) => {
+            let nw = 0, csh = 0, rec = 0;
+            accounts.forEach(a => {
+                let bal = Number(a.openingBalance || 0);
+                const isDebitInc = ['Asset', 'Expense'].includes(a.type);
+                transactions.filter(t => t.date <= dateStr).forEach(t => {
+                    t.entries.forEach(e => {
+                        const accId = e.account?._id || e.account;
+                        if(accId === a._id) {
+                            bal += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                        }
+                    });
+                });
+                if(a.type === 'Asset') nw += bal;
+                if(a.type === 'Liability') nw -= bal;
+
+                if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') csh += bal;
+                if(a.group==='Sundry Debtors') {
+                    if(bal > 0) rec += bal;
+                }
+                if(a.group==='Sundry Creditors') {
+                    if(bal < 0) rec += Math.abs(bal);
+                }
+            });
+            return { nw, csh, rec };
+        };
+
+        const today = new Date();
+        const d7 = new Date(today); d7.setDate(today.getDate() - 7);
+        const d30 = new Date(today); d30.setDate(today.getDate() - 30);
+
+        const stats7 = calcStatsAtDate(d7.toISOString().split('T')[0]);
+        const stats30 = calcStatsAtDate(d30.toISOString().split('T')[0]);
+
+        const updateGrowth = (id, current, old, label) => {
+            const diff = current - old;
+            const el = document.getElementById(id);
+            if(!el) return;
+            if(old === 0 && diff === 0) { el.innerText = `${label}: --`; el.style.background="transparent"; return; }
+            const perc = old !== 0 ? ((diff/Math.abs(old)) * 100).toFixed(1) : (diff > 0 ? 100 : 0);
+            el.innerHTML = `${label}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
+            el.style.background = diff >= 0 ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)";
+            el.style.color = diff >= 0 ? "var(--success)" : "var(--danger)";
+        };
+
+        updateGrowth('nw-weekly', netWorth, stats7.nw, '7D');
+        updateGrowth('nw-monthly', netWorth, stats30.nw, '30D');
+
+        updateGrowth('cash-weekly', cash, stats7.csh, '7D');
+        updateGrowth('cash-monthly', cash, stats30.csh, '30D');
+
+        updateGrowth('ar-weekly', ar, stats7.rec, '7D');
+        updateGrowth('ar-monthly', ar, stats30.rec, '30D');
 
         document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString(undefined,{minimumFractionDigits:2});
         document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString(undefined,{minimumFractionDigits:2});
