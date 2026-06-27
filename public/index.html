@@ -350,16 +350,14 @@
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:25px; margin-bottom:40px;">
-                <div class="card" style="margin-bottom:0;">
+            <div style="display:grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap:20px; margin-bottom:40px; align-items: start;">
+                <!-- Column 1: Recent Feed -->
+                <div class="card" style="margin-bottom:0; min-height:480px;">
                     <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Real-time Transaction Feed</h3>
-                        <div style="position:relative; width:250px;">
-                            <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
-                            <input type="text" id="txSearch" placeholder="Search transactions..." onkeyup="filterRecentTx()" style="padding:10px 15px 10px 40px; font-size:12px; border-radius:12px;">
-                        </div>
+                        <h3>Real-time Feed</h3>
+                        <input type="text" id="txSearch" placeholder="Search..." onkeyup="filterRecentTx()" style="padding:6px 12px; font-size:11px; width:120px; border-radius:8px;">
                     </div>
-                    <div class="card-body" style="padding:0; max-height:400px; overflow-y:auto;">
+                    <div class="card-body" style="padding:0; max-height:410px; overflow-y:auto;">
                         <table id="recentTxTable" style="margin:0;">
                             <thead>
                                 <tr><th>Date</th><th>Description</th><th class="text-right">Action</th></tr>
@@ -368,33 +366,51 @@
                         </table>
                     </div>
                 </div>
-                <div class="card" style="margin-bottom:0;">
-                    <div class="card-header"><h3>Monthly Cash Flow Trend</h3></div>
-                    <div class="card-body" style="height:350px;">
-                        <canvas id="trendChart"></canvas>
+
+                <!-- Column 2: Expense Distribution -->
+                <div class="card" style="margin-bottom:0; min-height:480px;">
+                    <div class="card-header"><h3>Expense Mix</h3></div>
+                    <div class="card-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:400px;">
+                        <canvas id="mainChart"></canvas>
                     </div>
                 </div>
-                <div class="card" style="margin-bottom:0;">
-                    <div class="card-header"><h3>Expense Distribution</h3></div>
-                    <div class="card-body" style="display:flex; align-items:center; justify-content:center; height:350px;">
-                        <canvas id="mainChart"></canvas>
+
+                <!-- Column 3: Summary & Parties -->
+                <div style="display: flex; flex-direction: column; gap: 20px; min-height:480px;">
+                    <div class="card" style="margin-bottom:0; background: linear-gradient(135deg, #1e293b, #0f172a); border-left: 4px solid var(--accent);">
+                        <div class="card-header"><h3 style="color:var(--accent);">Income vs Expense</h3></div>
+                        <div class="card-body" style="padding:15px;">
+                            <div style="margin-bottom:15px;">
+                                <small style="color:#94a3b8; font-weight:700;">TOTAL INCOME</small>
+                                <div id="dash-total-income" style="font-size:20px; font-weight:800; color:var(--success);">Rs. 0.00</div>
+                            </div>
+                            <div>
+                                <small style="color:#94a3b8; font-weight:700;">TOTAL EXPENSE</small>
+                                <div id="dash-total-expense" style="font-size:20px; font-weight:800; color:var(--danger);">Rs. 0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom:0; flex: 1;">
+                        <div class="card-header"><h3>Top Parties</h3></div>
+                        <div class="card-body" style="padding:15px;">
+                            <div style="margin-bottom:15px;">
+                                <h4 style="margin:0 0 8px 0; font-size:10px; color:var(--success); letter-spacing:1px;">RECEIVABLES</h4>
+                                <div id="top-debtors" style="font-size:11px; font-weight:600; color:#e2e8f0;"></div>
+                            </div>
+                            <div>
+                                <h4 style="margin:0 0 8px 0; font-size:10px; color:var(--danger); letter-spacing:1px;">PAYABLES</h4>
+                                <div id="top-creditors" style="font-size:11px; font-weight:600; color:#e2e8f0;"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <h3>Top Debtors & Creditors</h3>
-                </div>
-                <div class="card-body" style="padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                    <div style="background:rgba(16,185,129,0.05); padding:15px; border-radius:15px; border:1px solid rgba(16,185,129,0.1);">
-                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--success);">TOP RECEIVABLES</h4>
-                        <div id="top-debtors" style="font-size:13px; font-weight:600;"></div>
-                    </div>
-                    <div style="background:rgba(244,63,94,0.05); padding:15px; border-radius:15px; border:1px solid rgba(244,63,94,0.1);">
-                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--danger);">TOP PAYABLES</h4>
-                        <div id="top-creditors" style="font-size:13px; font-weight:600;"></div>
-                    </div>
+                <div class="card-header"><h3>Cash Flow Performance</h3></div>
+                <div class="card-body" style="height:350px;">
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
         </div>
@@ -1683,6 +1699,9 @@
             if(a.type==='Revenue') rev += a.balance;
             if(a.type==='Expense') exp += a.balance;
         });
+
+        document.getElementById('dash-total-income').innerText = "Rs. " + rev.toLocaleString(undefined,{minimumFractionDigits:2});
+        document.getElementById('dash-total-expense').innerText = "Rs. " + exp.toLocaleString(undefined,{minimumFractionDigits:2});
 
         const netWorth = assets - liabilities;
         document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString(undefined,{minimumFractionDigits:2});
