@@ -1386,10 +1386,16 @@
             transactions = await r.json();
             localStorage.setItem('erp_gold_t', JSON.stringify(transactions));
         } catch(e) { transactions = JSON.parse(localStorage.getItem('erp_gold_t') || "[]"); }
-        document.querySelector('#recentTxTable tbody').innerHTML = transactions.slice(0,15).map(t => `<tr><td><small style="color:var(--accent); font-family:'JetBrains Mono'">${t.date}</small></td><td><b>${t.description}</b></td><td class="text-right">
-            <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="openEditModal('${t._id}')"></i>
-            <i class="fas fa-trash-can text-danger" style="cursor:pointer; padding:5px 10px" onclick="delTx('${t._id}')"></i>
-        </td></tr>`).join('');
+        document.querySelector('#recentTxTable tbody').innerHTML = transactions.slice(0,15).map(t => {
+            const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+            return `<tr><td>
+                <small style="color:var(--accent); font-family:'JetBrains Mono'">${t.date}</small><br>
+                <small style="color:#94a3b8; font-size:10px;">${timeStr}</small>
+            </td><td><b>${t.description}</b></td><td class="text-right">
+                <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="openEditModal('${t._id}')"></i>
+                <i class="fas fa-trash-can text-danger" style="cursor:pointer; padding:5px 10px" onclick="delTx('${t._id}')"></i>
+            </td></tr>`
+        }).join('');
     }
 
     // --- Edit Voucher Logic ---

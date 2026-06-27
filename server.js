@@ -52,7 +52,7 @@ const TransactionSchema = new mongoose.Schema({
         debit: { type: Number, default: 0 },
         credit: { type: Number, default: 0 }
     }]
-});
+}, { timestamps: true });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 const SettingSchema = new mongoose.Schema({
@@ -138,7 +138,7 @@ app.post('/api/accounts/merge', async (req, res) => {
 // २. कारोबार (Transactions)
 app.get('/api/transactions', async (req, res) => {
     try {
-        const txs = await Transaction.find({ userId: req.query.userId }).populate('entries.account').sort({ date: -1 });
+        const txs = await Transaction.find({ userId: req.query.userId }).populate('entries.account').sort({ createdAt: -1 });
         res.json(txs);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
 });
