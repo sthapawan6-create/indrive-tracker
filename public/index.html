@@ -417,21 +417,40 @@
         </div>
 
         <div id="tab-cinema" class="tab-content hidden">
-            <div class="card" style="padding:0; overflow:hidden; background:#000; border:2px solid var(--accent); box-shadow: 0 0 50px rgba(212,175,55,0.2);">
-                <div class="card-header" style="background:rgba(212,175,55,0.1); display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="color:var(--accent); margin:0;"><i class="fas fa-film"></i> PAWAN GOLD CINEMA HALL</h3>
-                    <span class="badge badge-asset">NOW PLAYING</span>
+            <div class="card" style="padding:40px; text-align:center; background: radial-gradient(circle at top, #1e293b, #0f172a); border: 2px solid var(--accent); box-shadow: 0 0 60px rgba(212,175,55,0.15);">
+                <div style="margin-bottom:30px;">
+                    <div style="background: rgba(244,63,94,0.1); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; border: 2px solid #f43f5e;">
+                        <i class="fas fa-film" style="font-size: 40px; color: #f43f5e;"></i>
+                    </div>
+                    <h1 style="color:var(--accent); font-size:32px; font-weight:900; letter-spacing:-1px; margin-bottom:10px;">PAWAN GOLD THEATER</h1>
+                    <p style="color:#94a3b8; font-size:16px;">अकाउन्टिङको काम सकेपछि अब मनोरञ्जनको पालो!</p>
                 </div>
-                <div class="card-body" style="padding:0; position:relative; aspect-ratio: 16/9; background:#000;">
-                    <iframe
-                        src="https://hdstream4u.com/file/xe6shy18d2iy"
-                        style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"
-                        allowfullscreen
-                        allow="autoplay; encrypted-media">
-                    </iframe>
+
+                <div style="background: rgba(255,255,255,0.03); padding:30px; border-radius:24px; border: 1px solid rgba(255,255,255,0.05); max-width:600px; margin: 0 auto;">
+                    <div class="badge badge-asset" style="margin-bottom:15px;">NOW READY TO PLAY</div>
+                    <h3 style="color:white; margin-bottom:20px; font-size:20px;">HD Stream - Online Movie</h3>
+                    <p style="color:#64748b; font-size:13px; line-height:1.6; margin-bottom:25px;">
+                        नोट: भिडियो साइटले सिधै हाम्रो सिस्टमभित्र चल्न अनुमति नदिएकोले, हामीले यसलाई <b>"Gold Theater Mode"</b> मा खोल्ने व्यवस्था मिलाएका छौँ।
+                        तलको बटन थिच्नुहोस् र फिल्मको आनन्द लिनुहोस्।
+                    </p>
+                    <button class="btn btn-primary" onclick="window.open('https://hdstream4u.com/file/xe6shy18d2iy', 'GoldCinema', 'width=1200,height=700')" style="width:100%; padding:20px; font-size:18px; box-shadow: 0 10px 30px rgba(212,175,55,0.3);">
+                        <i class="fas fa-play-circle"></i> WATCH IN GOLD THEATER
+                    </button>
                 </div>
-                <div class="card-footer" style="padding:15px; background:rgba(255,255,255,0.05); text-align:center;">
-                    <p style="color:#94a3b8; font-size:12px; margin:0;">Note: Some movie links might open ads in a new tab. Simply close them and return here to watch.</p>
+
+                <div style="margin-top:40px; display:flex; justify-content:center; gap:30px;">
+                    <div style="text-align:center;">
+                        <i class="fas fa-tv" style="color:#94a3b8; margin-bottom:10px;"></i>
+                        <div style="color:white; font-size:12px; font-weight:700;">4K ULTRA HD</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <i class="fas fa-volume-up" style="color:#94a3b8; margin-bottom:10px;"></i>
+                        <div style="color:white; font-size:12px; font-weight:700;">DOLBY AUDIO</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <i class="fas fa-closed-captioning" style="color:#94a3b8; margin-bottom:10px;"></i>
+                        <div style="color:white; font-size:12px; font-weight:700;">SUBTITLES</div>
+                    </div>
                 </div>
             </div>
         </div>
