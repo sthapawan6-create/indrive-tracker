@@ -416,15 +416,33 @@
         </div>
 
         <div id="tab-journal" class="tab-content hidden">
-            <div class="card" style="text-align: center; padding: 60px 20px;">
-                <div style="background: rgba(212, 175, 55, 0.1); width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 30px auto;">
-                    <i class="fas fa-file-invoice-dollar" style="font-size: 40px; color: var(--accent);"></i>
+            <div style="display: grid; grid-template-columns: 1fr 2.5fr; gap: 20px; align-items: start;">
+                <!-- Left: Create Options -->
+                <div class="card" style="text-align: center; padding: 40px 20px;">
+                    <div style="background: rgba(212, 175, 55, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto;">
+                        <i class="fas fa-file-invoice-dollar" style="font-size: 30px; color: var(--accent);"></i>
+                    </div>
+                    <h3 style="color: white; margin-bottom: 20px;">New Entry</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn btn-primary" onclick="openCreateModal()" style="width: 100%"><i class="fas fa-plus"></i> Create Voucher</button>
+                        <button class="btn btn-outline" onclick="showTab('reports', this)" style="width: 100%"><i class="fas fa-list"></i> View Day Book</button>
+                    </div>
                 </div>
-                <h2 style="color: white; margin-bottom: 10px;">Voucher Management</h2>
-                <p style="color: #94a3b8; margin-bottom: 40px;">Create and manage your double-entry journal vouchers.</p>
-                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="openCreateModal()"><i class="fas fa-plus"></i> Create New Voucher</button>
-                    <button class="btn btn-outline" onclick="showTab('reports', this)"><i class="fas fa-list"></i> View Day Book</button>
+
+                <!-- Right: Full History -->
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Voucher History (सबै कारोबारहरू)</h3>
+                        <input type="text" id="historySearch" placeholder="Search history..." onkeyup="filterHistoryTx()" style="padding:8px 15px; font-size:12px; width:200px; border-radius:10px;">
+                    </div>
+                    <div class="card-body" style="padding:0; max-height:600px; overflow-y:auto;">
+                        <table id="fullTxTable" style="margin:0;">
+                            <thead>
+                                <tr><th>Date & Time</th><th>Description</th><th class="text-right">Action</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1402,7 +1420,11 @@
             transactions = await r.json();
             localStorage.setItem('erp_gold_t', JSON.stringify(transactions));
         } catch(e) { transactions = JSON.parse(localStorage.getItem('erp_gold_t') || "[]"); }
-        document.querySelector('#recentTxTable tbody').innerHTML = transactions.slice(0,15).map(t => {
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todaysTx = transactions.filter(t => t.date === todayStr);
+
+        document.querySelector('#recentTxTable tbody').innerHTML = todaysTx.length > 0 ? todaysTx.map(t => {
             const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
             return `<tr><td>
                 <small style="color:var(--accent); font-family:'JetBrains Mono'">${t.date}</small><br>
@@ -1411,7 +1433,29 @@
                 <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="openEditModal('${t._id}')"></i>
                 <i class="fas fa-trash-can text-danger" style="cursor:pointer; padding:5px 10px" onclick="delTx('${t._id}')"></i>
             </td></tr>`
-        }).join('');
+        }).join('') : `<tr><td colspan="3" style="text-align:center; padding:30px; color:#94a3b8;">आज कुनै कारोबार भएको छैन।</td></tr>`;
+
+        // Update Full History Table in Journal Tab
+        const histBody = document.querySelector('#fullTxTable tbody');
+        if(histBody) {
+            histBody.innerHTML = transactions.map(t => {
+                const timeStr = t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                return `<tr><td>
+                    <small style="color:var(--accent); font-family:'JetBrains Mono'">${t.date}</small><br>
+                    <small style="color:#94a3b8; font-size:10px;">${timeStr}</small>
+                </td><td><b>${t.description}</b></td><td class="text-right">
+                    <i class="fas fa-edit text-success" style="cursor:pointer; padding:5px 10px;" onclick="openEditModal('${t._id}')"></i>
+                    <i class="fas fa-trash-can text-danger" style="cursor:pointer; padding:5px 10px" onclick="delTx('${t._id}')"></i>
+                </td></tr>`
+            }).join('');
+        }
+    }
+
+    function filterHistoryTx() {
+        const q = document.getElementById('historySearch').value.toLowerCase();
+        document.querySelectorAll('#fullTxTable tbody tr').forEach(tr => {
+            tr.style.display = tr.innerText.toLowerCase().includes(q) ? '' : 'none';
+        });
     }
 
     // --- Edit Voucher Logic ---
