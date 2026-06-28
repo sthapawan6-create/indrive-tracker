@@ -330,14 +330,15 @@ app.get('/api/goals', async (req, res) => {
 
 app.post('/api/goals', async (req, res) => {
     try {
-        const { userId, name, target, deadline } = req.body;
+        const { userId, name, target, deadline, accountId } = req.body;
         let goal = await Goal.findOne({ userId });
         if (goal) {
             goal.name = name;
             goal.target = target;
             goal.deadline = deadline;
+            goal.accountId = accountId;
         } else {
-            goal = new Goal({ userId, name, target, deadline });
+            goal = new Goal({ userId, name, target, deadline, accountId });
         }
         await goal.save();
         res.json(goal);
