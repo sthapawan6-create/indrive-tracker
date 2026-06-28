@@ -409,49 +409,45 @@ app.post('/api/stocks/sync', async (req, res) => {
     try {
         const { userId } = req.body;
         const https = require('https');
+        const urls = [
+            'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
+            'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json'
+        ];
 
-        // Fetching live data from a reliable public source (NEPSE Alpha or similar proxy)
-        // For this implementation, we use a proxy that returns NEPSE data
-        https.get('https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json', (resp) => {
-            let data = '';
-            resp.on('data', (chunk) => { data += chunk; });
-            resp.on('end', async () => {
-                try {
-                    const liveData = JSON.parse(data);
-                    const stocks = await Stock.find({ userId });
-                    let count = 0;
-
-                    for (const stock of stocks) {
-                        const sym = stock.symbol.toUpperCase().trim();
-                        let livePrice = 0;
-
-                        // Flexible matching for both Array and Object formats
-                        if (Array.isArray(liveData)) {
-                            const found = liveData.find(item =>
-                                (item.symbol && item.symbol.toUpperCase() === sym) ||
-                                (item.scrip && item.scrip.toUpperCase() === sym)
-                            );
-                            livePrice = found ? (found.ltp || found.lastPrice || found.price) : 0;
-                        } else {
-                            livePrice = liveData[sym] || liveData[sym + ".NEPSE"];
-                        }
-
-                        if (livePrice && !isNaN(livePrice)) {
-                            stock.currentPrice = Number(livePrice);
-                            stock.updatedAt = new Date();
-                            await stock.save();
-                            count++;
-                        }
-                    }
-                    res.json({ success: true, updatedCount: count });
-                } catch (e) {
-                    res.status(500).json({ success: false, error: "Data parsing failed" });
-                }
-            });
-        }).on("error", (err) => {
-            res.status(500).json({ error: "Live fetch failed: " + err.message });
+        const fetchData = (url) => new Promise((res, rej) => {
+            https.get(url, r => {
+                let d = '';
+                r.on('data', c => d += c);
+                r.on('end', () => { try{res(JSON.parse(d))}catch(e){rej(e)} });
+            }).on('error', e => rej(e));
         });
-    } catch (err) { res.status(500).json({ error: "Sync failed" }); }
+
+        let liveData = null;
+        for(let u of urls) {
+            try { liveData = await fetchData(u); if(liveData) break; } catch(e) {}
+        }
+
+        if(!liveData) return res.status(500).json({success:false, error:"Source Down"});
+
+        const stocks = await Stock.find({ userId });
+        let count = 0;
+        for (const s of stocks) {
+            const sym = s.symbol.toUpperCase().trim();
+            let lp = 0;
+            if (Array.isArray(liveData)) {
+                const f = liveData.find(i => (i.symbol||i.scrip||i.Symbol||'').toUpperCase() === sym);
+                lp = f ? (f.ltp || f.lastPrice || f.price || f.LTP || f.Close) : 0;
+            } else { lp = liveData[sym] || liveData[sym + ".NEPSE"]; }
+
+            if (lp && !isNaN(lp)) {
+                s.currentPrice = Number(lp);
+                s.updatedAt = new Date();
+                await s.save();
+                count++;
+            }
+        }
+        res.json({ success: true, updatedCount: count });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.delete('/api/stocks/:id', async (req, res) => {

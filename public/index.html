@@ -387,10 +387,22 @@
                 </div>
                 <h4 style="color:var(--accent); margin-bottom:15px;">Add New Script</h4>
                 <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
-                    <input type="text" id="stockSymbol" placeholder="SYMBOL (NICA)">
-                    <input type="number" id="stockQty" placeholder="QTY">
-                    <input type="number" id="stockBuyPrice" placeholder="BUY PRICE">
-                    <input type="number" id="stockCurrentPrice" placeholder="LTP">
+                    <div>
+                        <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:5px;">SYMBOL</label>
+                        <input type="text" id="stockSymbol" placeholder="NICA" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:5px;">QTY</label>
+                        <input type="number" id="stockQty" placeholder="10" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:5px;">BUY PRICE</label>
+                        <input type="number" id="stockBuyPrice" placeholder="500" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#94a3b8; display:block; margin-bottom:5px;">LIVE (LTP)</label>
+                        <input type="number" id="stockCurrentPrice" placeholder="510" style="width:100%;">
+                    </div>
                 </div>
                 <button class="btn btn-primary" onclick="addStock()" style="width: 100%; padding:18px; background:#10b981; border:none;"><i class="fas fa-plus"></i> ADD TO PORTFOLIO</button>
             </div>
