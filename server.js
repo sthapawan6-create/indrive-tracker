@@ -83,6 +83,26 @@ const GoalSchema = new mongoose.Schema({
 });
 const Goal = mongoose.model('Goal', GoalSchema);
 
+const BikeLogSchema = new mongoose.Schema({
+    userId: String,
+    type: { type: String, enum: ['Fuel', 'Service', 'Repair', 'Tax'] },
+    amount: Number,
+    odometer: Number,
+    description: String,
+    date: { type: Date, default: Date.now }
+});
+const BikeLog = mongoose.model('BikeLog', BikeLogSchema);
+
+const StockSchema = new mongoose.Schema({
+    userId: String,
+    symbol: String,
+    qty: Number,
+    buyPrice: Number,
+    currentPrice: Number,
+    updatedAt: { type: Date, default: Date.now }
+});
+const Stock = mongoose.model('Stock', StockSchema);
+
 // --- APIs ---
 
 const checkLock = async (userId, date) => {
@@ -343,6 +363,53 @@ app.post('/api/goals', async (req, res) => {
         await goal.save();
         res.json(goal);
     } catch (err) { res.status(500).json({ error: "Goal save failed" }); }
+});
+
+// ६. बाइक लग (Bike Log)
+app.get('/api/bike', async (req, res) => {
+    try {
+        const logs = await BikeLog.find({ userId: req.query.userId }).sort({ date: -1 });
+        res.json(logs);
+    } catch (err) { res.status(500).json({ error: "Bike log load failed" }); }
+});
+
+app.post('/api/bike', async (req, res) => {
+    try {
+        const log = new BikeLog({ ...req.body });
+        await log.save();
+        res.json(log);
+    } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
+});
+
+// ७. सेयर बजार (Stocks)
+app.get('/api/stocks', async (req, res) => {
+    try {
+        const stocks = await Stock.find({ userId: req.query.userId });
+        res.json(stocks);
+    } catch (err) { res.status(500).json({ error: "Stock load failed" }); }
+});
+
+app.post('/api/stocks', async (req, res) => {
+    try {
+        const { userId, symbol } = req.body;
+        let stock = await Stock.findOne({ userId, symbol });
+        if (stock) {
+            stock.qty = req.body.qty;
+            stock.buyPrice = req.body.buyPrice;
+            stock.currentPrice = req.body.currentPrice;
+        } else {
+            stock = new Stock({ ...req.body });
+        }
+        await stock.save();
+        res.json(stock);
+    } catch (err) { res.status(500).json({ error: "Stock save failed" }); }
+});
+
+app.delete('/api/stocks/:id', async (req, res) => {
+    try {
+        await Stock.findByIdAndDelete(req.params.id);
+        res.json({ message: "Stock removed" });
+    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
 });
 
 // --- Automated Cloud Backup System ---

@@ -333,10 +333,62 @@
         </div>
     </div>
 
-    <!-- Quick Breakdown Modal -->
-    <div id="breakdownModal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width:600px; background: #0f172a; border: 1px solid var(--accent);">
-            <div id="breakdownContent"></div>
+    <!-- Bike Log Modal -->
+    <div id="bikeModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 style="margin:0; color:#f59e0b;"><i class="fas fa-motorcycle"></i> Bike Expense Log</h2>
+                <button onclick="document.getElementById('bikeModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">EXPENSE TYPE (खर्चको प्रकार)</label>
+                    <select id="bikeExpType" style="width:100%; padding:12px; background:var(--primary); color:white; border:1px solid var(--border); border-radius:12px;">
+                        <option value="Fuel">Fuel (पेट्रोल)</option>
+                        <option value="Service">Service (सर्भिसिङ)</option>
+                        <option value="Repair">Repair (मर्मत)</option>
+                        <option value="Tax">Tax/Bluebook (कर/नवीकरण)</option>
+                    </select>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">AMOUNT (रकम)</label>
+                        <input type="number" id="bikeAmount" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">ODOMETER (कि.मि.)</label>
+                        <input type="number" id="bikeOdo" placeholder="Current KM">
+                    </div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">REMARKS (विवरण)</label>
+                    <input type="text" id="bikeDesc" placeholder="Full servicing, Mobil change etc.">
+                </div>
+                <button class="btn btn-primary" onclick="saveBikeLog()" style="width: 100%; padding:18px; background:#f59e0b; border:none;"><i class="fas fa-save"></i> SAVE BIKE LOG</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Market Modal -->
+    <div id="stockModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="margin:0; color:#10b981;"><i class="fas fa-chart-line"></i> Investment Portfolio</h2>
+                <button onclick="document.getElementById('stockModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="stockList" style="margin-bottom:20px; max-height:300px; overflow-y:auto; background:rgba(0,0,0,0.2); border-radius:15px;">
+                    <!-- Stocks will appear here -->
+                </div>
+                <h4 style="color:var(--accent); margin-bottom:15px;">Add New Script</h4>
+                <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <input type="text" id="stockSymbol" placeholder="SYMBOL (NICA)">
+                    <input type="number" id="stockQty" placeholder="QTY">
+                    <input type="number" id="stockBuyPrice" placeholder="BUY PRICE">
+                    <input type="number" id="stockCurrentPrice" placeholder="LTP">
+                </div>
+                <button class="btn btn-primary" onclick="addStock()" style="width: 100%; padding:18px; background:#10b981; border:none;"><i class="fas fa-plus"></i> ADD TO PORTFOLIO</button>
+            </div>
         </div>
     </div>
 
@@ -447,6 +499,36 @@
                     <span class="label">Net Profit/Loss (नाफा/नोक्सान)</span>
                     <div class="value" id="dash-profit">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-chart-line"></i></div>
+                </div>
+
+                <!-- Bike Tracker Card -->
+                <div class="stat-card" style="border-bottom: 4px solid #f59e0b; background: rgba(245,158,11,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <span class="label" style="color:#f59e0b;">My Bike (मर्मत र इन्धन)</span>
+                            <div class="value" id="bike-monthly-exp" style="font-size:24px; margin-top:5px;">Rs. 0.00</div>
+                            <small style="color:#94a3b8; font-weight:700;">THIS MONTH'S SPEND</small>
+                        </div>
+                        <button class="btn btn-outline" onclick="openBikeModal()" style="padding:5px 10px; font-size:10px; border-color:#f59e0b; color:#f59e0b;"><i class="fas fa-motorcycle"></i> LOG</button>
+                    </div>
+                    <div id="bike-reminders" style="margin-top:15px; font-size:11px; color:#fbbf24; font-weight:700;">
+                        <i class="fas fa-info-circle"></i> Service due: Update log
+                    </div>
+                </div>
+
+                <!-- Share Market Card -->
+                <div class="stat-card" style="border-bottom: 4px solid #10b981; background: rgba(16,185,129,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <span class="label" style="color:#10b981;">Share Market (सेयर बजार)</span>
+                            <div class="value" id="share-profit" style="font-size:24px; margin-top:5px;">Rs. 0.00</div>
+                            <small id="share-total-invest" style="color:#94a3b8; font-weight:700;">Invested: Rs. 0.00</small>
+                        </div>
+                        <button class="btn btn-outline" onclick="openStockModal()" style="padding:5px 10px; font-size:10px; border-color:#10b981; color:#10b981;"><i class="fas fa-chart-line"></i> TRACK</button>
+                    </div>
+                    <div id="share-pl-perc" style="margin-top:15px; font-size:11px; color:#10b981; font-weight:700;">
+                        Overall P/L: 0% <i class="fas fa-arrow-up"></i>
+                    </div>
                 </div>
             </div>
 
@@ -1291,8 +1373,132 @@
         await fetchAcc();
         await fetchTx();
         await fetchGoal();
+        await fetchBikeLogs();
+        await fetchStocks();
         updateDash();
         resetJ();
+    }
+
+    let bikeLogs = [];
+    let stocks = [];
+
+    async function fetchBikeLogs() {
+        try {
+            const r = await fetch(`/api/bike?userId=${currentUser.uid}`);
+            bikeLogs = await r.json();
+            updateBikeUI();
+        } catch(e) { console.error("Bike logs failed", e); }
+    }
+
+    async function fetchStocks() {
+        try {
+            const r = await fetch(`/api/stocks?userId=${currentUser.uid}`);
+            stocks = await r.json();
+            updateStockUI();
+        } catch(e) { console.error("Stocks failed", e); }
+    }
+
+    function openBikeModal() { document.getElementById('bikeModal').classList.remove('hidden'); }
+    function openStockModal() { document.getElementById('stockModal').classList.remove('hidden'); }
+
+    async function saveBikeLog() {
+        const type = document.getElementById('bikeExpType').value;
+        const amount = Number(document.getElementById('bikeAmount').value);
+        const odo = Number(document.getElementById('bikeOdo').value);
+        const desc = document.getElementById('bikeDesc').value;
+
+        if(!amount) return alert("Enter amount");
+
+        await fetch('/api/bike', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, type, amount, odometer: odo, description: desc, date: new Date() })
+        });
+
+        document.getElementById('bikeModal').classList.add('hidden');
+        fetchBikeLogs();
+    }
+
+    async function addStock() {
+        const symbol = document.getElementById('stockSymbol').value.toUpperCase();
+        const qty = Number(document.getElementById('stockQty').value);
+        const buyPrice = Number(document.getElementById('stockBuyPrice').value);
+        const ltp = Number(document.getElementById('stockCurrentPrice').value);
+
+        if(!symbol || !qty) return alert("Check inputs");
+
+        await fetch('/api/stocks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, symbol, qty, buyPrice, currentPrice: ltp })
+        });
+
+        // Clear inputs
+        document.getElementById('stockSymbol').value = '';
+        document.getElementById('stockQty').value = '';
+        document.getElementById('stockBuyPrice').value = '';
+        document.getElementById('stockCurrentPrice').value = '';
+
+        fetchStocks();
+    }
+
+    async function deleteStock(id) {
+        if(!confirm("Are you sure to remove this stock from portfolio?")) return;
+        await fetch(`/api/stocks/${id}`, { method: 'DELETE' });
+        fetchStocks();
+    }
+
+    function updateBikeUI() {
+        const monthly = bikeLogs.reduce((acc, log) => {
+            const logDate = new Date(log.date);
+            if(logDate.getMonth() === new Date().getMonth()) return acc + log.amount;
+            return acc;
+        }, 0);
+        document.getElementById('bike-monthly-exp').innerText = `Rs. ${monthly.toLocaleString()}`;
+    }
+
+    function updateStockUI() {
+        let totalInvest = 0, currentVal = 0;
+        let html = '';
+        stocks.forEach(s => {
+            const invest = (s.qty * s.buyPrice);
+            const current = (s.qty * s.currentPrice);
+            const pl = current - invest;
+            const perc = ((current - invest) / invest * 100).toFixed(2);
+
+            totalInvest += invest;
+            currentVal += current;
+
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02); margin-bottom:5px; border-radius:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="background:var(--accent); color:black; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px;">${s.symbol.substring(0,3)}</div>
+                    <div>
+                        <b style="color:white; font-size:16px;">${s.symbol}</b><br>
+                        <small style="color:#94a3b8;">${s.qty} Units @ Rs. ${s.buyPrice}</small>
+                    </div>
+                </div>
+                <div style="text-align:right; display:flex; align-items:center; gap:15px;">
+                    <div>
+                        <div style="color:white; font-weight:700;">Rs. ${current.toLocaleString()}</div>
+                        <small style="color:${pl >= 0 ? '#10b981' : '#f43f5e'}; font-weight:bold;">
+                            ${pl >= 0 ? '+' : ''}${perc}% (${pl >= 0 ? '+' : ''}${pl.toLocaleString()})
+                        </small>
+                    </div>
+                    <button onclick="deleteStock('${s._id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:5px;"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('stockList').innerHTML = html || '<p style="padding:40px; text-align:center; opacity:0.5;">No stocks in portfolio. Add your first script above!</p>';
+        document.getElementById('share-total-invest').innerText = `Invested: Rs. ${totalInvest.toLocaleString()}`;
+        const totalPL = currentVal - totalInvest;
+        const totalPerc = totalInvest > 0 ? (totalPL / totalInvest * 100).toFixed(2) : 0;
+
+        document.getElementById('share-profit').innerText = `Rs. ${totalPL.toLocaleString()}`;
+        document.getElementById('share-profit').style.color = totalPL >= 0 ? '#10b981' : '#f43f5e';
+
+        const plPercEl = document.getElementById('share-pl-perc');
+        plPercEl.innerHTML = `Overall P/L: ${totalPerc}% ${totalPL >= 0 ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'}`;
+        plPercEl.style.color = totalPL >= 0 ? '#10b981' : '#f43f5e';
     }
 
     let currentGoal = null;
