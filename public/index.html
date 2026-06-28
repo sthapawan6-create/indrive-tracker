@@ -838,24 +838,38 @@
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Connecting to Google...';
         }
 
-        // Using standard syntax for maximum compatibility
-        auth.signInWithRedirect(provider).catch(function(e) {
-            alert("Login Failed: " + e.message);
-            if(btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fab fa-google"></i> Launch Gold Workspace';
-            }
+        // Try popup first as it's more reliable on modern browsers, fallback to redirect
+        auth.signInWithPopup(provider).then((result) => {
+            console.log("Login Success:", result.user.email);
+        }).catch(function(e) {
+            console.error("Popup failed, trying redirect:", e);
+            auth.signInWithRedirect(provider).catch(function(err) {
+                alert("Login Failed: " + err.message);
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fab fa-google"></i> Launch Gold Workspace';
+                }
+            });
         });
     }
 
     auth.onAuthStateChanged(function(user) {
         if (user) {
+            console.log("Auth State Changed: User detected", user.email);
             if (user.email !== 'sthapawan6@gmail.com') {
-                alert("Unauthorized Access!");
+                alert("Unauthorized Access! This system is restricted to " + user.email);
                 auth.signOut();
                 return;
             }
             currentUser = user;
+
+            // Immediately hide login and show a loading state
+            var btn = document.getElementById('loginBtn');
+            if(btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-shield-alt fa-spin"></i> Verifying Identity...';
+            }
+
             checkSecurity();
 
             if(document.getElementById('userName')) {
@@ -915,18 +929,26 @@
 
     async function checkSecurity() {
         try {
+            console.log("Checking security for:", currentUser.uid);
             const r = await fetch(`/api/settings?userId=${currentUser.uid}`);
+            if (!r.ok) throw new Error("Server response error");
             const s = await r.json();
             systemPin = s.accessPin || "";
 
+            document.getElementById('loginSection').classList.add('hidden');
+
             if (systemPin) {
-                document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('pinModal').classList.remove('hidden');
                 document.getElementById('inputPin').focus();
             } else {
                 unlockSystem();
             }
-        } catch(e) { unlockSystem(); }
+        } catch(e) {
+            console.error("Security check failed:", e);
+            // If server fails, we still allow entry but log it
+            document.getElementById('loginSection').classList.add('hidden');
+            unlockSystem();
+        }
     }
 
     function verifyPin() {
