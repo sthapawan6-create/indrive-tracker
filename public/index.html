@@ -1304,9 +1304,14 @@
             document.getElementById('goal-required-disp').innerText = "Rs. " + daily.toLocaleString(undefined, {maximumFractionDigits:0}) + " / day";
             document.getElementById('goal-advice-disp').innerHTML = `
                 <div>लक्ष्य भेट्टाउन अब दैनिक Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})} बचत गर्नुपर्छ।</div>
-                <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:5px;">
-                    <b style="font-size:10px; color:var(--accent);">RECENT DEPOSITS:</b>
-                    ${depositHtml || '<div style="font-size:10px;">No deposits yet</div>'}
+                <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+                    <button onclick="quickDepositToGoal()" style="background:var(--accent); color:var(--primary); border:none; padding:8px 15px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                        <i class="fas fa-plus-circle"></i> QUICK DEPOSIT
+                    </button>
+                </div>
+                <div style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                    <b style="font-size:10px; color:#94a3b8; letter-spacing:1px;">RECENT DEPOSITS (भर्खरैको बचत)</b>
+                    ${depositHtml || '<div style="font-size:10px; margin-top:5px; color:#64748b;">No deposits yet</div>'}
                 </div>
             `;
         } else if (remainingAmount <= 0) {
@@ -1316,6 +1321,26 @@
         } else {
             document.getElementById('goal-required-disp').innerText = "Expired";
             document.getElementById('goal-advice-disp').innerText = "लक्ष्यको समय समाप्त भयो। कृपया नयाँ मिति सेट गर्नुहोस्।";
+        }
+    }
+
+    function quickDepositToGoal() {
+        if(!currentGoal || !currentGoal.accountId) return;
+
+        showTab('vouchers');
+        openTxModal();
+
+        // Clear default rows and add one for the goal account
+        document.getElementById('j-rows').innerHTML = '';
+        addJRow(); // First row (From)
+        addJRow(); // Second row (To - Goal Account)
+
+        const rows = document.querySelectorAll('.j-row');
+        if(rows.length >= 2) {
+            const selectTo = rows[1].querySelector('select');
+            selectTo.value = currentGoal.accountId;
+            // Focus on the first row's amount
+            rows[0].querySelector('input[placeholder="Debit"]').focus();
         }
     }
 
