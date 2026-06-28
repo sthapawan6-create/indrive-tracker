@@ -1416,7 +1416,10 @@
     }
 
     function openBikeModal() { document.getElementById('bikeModal').classList.remove('hidden'); }
-    function openStockModal() { document.getElementById('stockModal').classList.remove('hidden'); }
+    function openStockModal() {
+        document.getElementById('stockModal').classList.remove('hidden');
+        syncLivePrices(); // मोडाल खोल्ने बित्तिकै अटो-सिंक सुरु गर्ने
+    }
 
     async function saveBikeLog() {
         const type = document.getElementById('bikeExpType').value;
@@ -1576,7 +1579,7 @@
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="background:var(--accent); color:black; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px;">${s.symbol.substring(0,3)}</div>
                     <div>
-                        <b style="color:white; font-size:16px;">${s.symbol}</b><br>
+                        <b style="color:white; font-size:16px; cursor:pointer; text-decoration:underline;" title="Click to view on ShareSansar" onclick="window.open('https://www.sharesansar.com/company/${s.symbol}', '_blank')">${s.symbol} <i class="fas fa-external-link-alt" style="font-size:10px; opacity:0.6;"></i></b><br>
                         <small style="color:#94a3b8;">${s.qty} Units @ <span style="color:#fbbf24;">Rs. ${s.buyPrice}</span> | LTP: ${s.currentPrice || 0}</small>
                     </div>
                 </div>
@@ -1585,7 +1588,8 @@
                         <div style="color:white; font-weight:700;">Rs. ${current.toLocaleString()}</div>
                         <small style="color:${pl >= 0 ? '#10b981' : '#f43f5e'}; font-weight:bold;">
                             ${pl >= 0 ? '+' : ''}${perc}% (${pl >= 0 ? '+' : ''}${pl.toLocaleString()})
-                        </small>
+                        </small><br>
+                        <small style="font-size:9px; color:#64748b;">Updated: ${s.updatedAt ? new Date(s.updatedAt).toLocaleTimeString() : 'N/A'}</small>
                     </div>
                     <button onclick="deleteStock('${s._id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:5px;"><i class="fas fa-trash"></i></button>
                 </div>
