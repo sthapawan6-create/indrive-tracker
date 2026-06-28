@@ -410,11 +410,11 @@ app.post('/api/stocks/sync', async (req, res) => {
         const { userId } = req.body;
         const https = require('https');
 
-        // Multi-source fallback for NEPSE data
         const urls = [
             'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
             'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json',
-            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json'
+            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json',
+            'https://raw.githubusercontent.com/samirphuyal/nepse-api/master/data.json'
         ];
 
         const fetchData = (url) => new Promise((resolve, reject) => {
@@ -423,45 +423,41 @@ app.post('/api/stocks/sync', async (req, res) => {
                 resp.on('data', (chunk) => { data += chunk; });
                 resp.on('end', () => {
                     try { resolve(JSON.parse(data)); }
-                    catch(e) { reject(e); }
+                    catch(e) { reject(new Error("Parse error")); }
                 });
             });
             req.on('error', (err) => reject(err));
-            req.setTimeout(8000, () => { req.destroy(); reject(new Error("Timeout")); });
+            req.setTimeout(10000, () => { req.destroy(); reject(new Error("Timeout")); });
         });
 
         let rawData = null;
         for(let url of urls) {
-            try {
-                rawData = await fetchData(url);
-                if(rawData) break;
-            } catch(e) { }
+            try { rawData = await fetchData(url); if(rawData) break; } catch(e) { }
         }
 
-        if(!rawData) return res.status(500).json({ success: false, error: "Market data currently unavailable." });
+        if(!rawData) return res.status(500).json({ success: false, error: "Market data source offline." });
 
-        let liveData = Array.isArray(rawData) ? rawData : (rawData.data || rawData.stocks || Object.values(rawData));
+        let priceList = [];
+        if (Array.isArray(rawData)) priceList = rawData;
+        else if (rawData.data && Array.isArray(rawData.data)) priceList = rawData.data;
+        else if (typeof rawData === 'object') {
+            Object.keys(rawData).forEach(k => {
+                if (typeof rawData[k] === 'number') priceList.push({ symbol: k, ltp: rawData[k] });
+                else priceList.push({ symbol: k, ...rawData[k] });
+            });
+        }
 
         const stocks = await Stock.find({ userId });
         let count = 0;
 
         for (const stock of stocks) {
             const sym = stock.symbol.toUpperCase().trim();
-            let found = null;
+            const found = priceList.find(i =>
+                (i.symbol || i.scrip || i.Symbol || '').toUpperCase() === sym ||
+                (i.companyName || '').toUpperCase().includes(sym)
+            );
 
-            if (Array.isArray(liveData)) {
-                found = liveData.find(i =>
-                    (i.symbol || i.scrip || i.Symbol || '').toUpperCase() === sym ||
-                    (i.companyName || '').toUpperCase().includes(sym)
-                );
-            }
-
-            let price = 0;
-            if (found) {
-                price = found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice;
-            } else if (!Array.isArray(rawData) && rawData[sym]) {
-                price = rawData[sym];
-            }
+            let price = found ? (found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice) : 0;
 
             if (price) {
                 const cleanPrice = Number(price.toString().replace(/,/g, ''));
@@ -474,9 +470,7 @@ app.post('/api/stocks/sync', async (req, res) => {
             }
         }
         res.json({ success: true, updatedCount: count });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.delete('/api/stocks/:id', async (req, res) => {
