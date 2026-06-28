@@ -423,9 +423,20 @@ app.post('/api/stocks/sync', async (req, res) => {
 
                     for (const stock of stocks) {
                         const sym = stock.symbol.toUpperCase().trim();
-                        // Try to find match in live data
-                        const livePrice = liveData[sym] || liveData[sym + ".NEPSE"];
-                        if (livePrice) {
+                        let livePrice = 0;
+
+                        // Flexible matching for both Array and Object formats
+                        if (Array.isArray(liveData)) {
+                            const found = liveData.find(item =>
+                                (item.symbol && item.symbol.toUpperCase() === sym) ||
+                                (item.scrip && item.scrip.toUpperCase() === sym)
+                            );
+                            livePrice = found ? (found.ltp || found.lastPrice || found.price) : 0;
+                        } else {
+                            livePrice = liveData[sym] || liveData[sym + ".NEPSE"];
+                        }
+
+                        if (livePrice && !isNaN(livePrice)) {
                             stock.currentPrice = Number(livePrice);
                             stock.updatedAt = new Date();
                             await stock.save();
@@ -434,7 +445,7 @@ app.post('/api/stocks/sync', async (req, res) => {
                     }
                     res.json({ success: true, updatedCount: count });
                 } catch (e) {
-                    res.status(500).json({ success: false, error: "Data sync failed" });
+                    res.status(500).json({ success: false, error: "Data parsing failed" });
                 }
             });
         }).on("error", (err) => {
