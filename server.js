@@ -3,6 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const cron = require('node-cron');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 app.use(express.json());
@@ -30,6 +32,15 @@ const connectDB = async () => {
 connectDB();
 
 // --- Models ---
+const BackupLogSchema = new mongoose.Schema({
+    userId: String,
+    status: String,
+    timestamp: { type: Date, default: Date.now },
+    fileKey: String,
+    error: String
+});
+const BackupLog = mongoose.model('BackupLog', BackupLogSchema);
+
 const AccountSchema = new mongoose.Schema({
     userId: String,
     name: { type: String, required: true },
@@ -331,6 +342,77 @@ app.post('/api/goals', async (req, res) => {
         await goal.save();
         res.json(goal);
     } catch (err) { res.status(500).json({ error: "Goal save failed" }); }
+});
+
+// --- Automated Cloud Backup System ---
+
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+    }
+});
+
+const performBackup = async (userId = 'sthapawan6@gmail.com') => {
+    try {
+        console.log(`[Backup] Starting backup for ${userId}...`);
+        const accounts = await Account.find({ userId });
+        const transactions = await Transaction.find({ userId });
+        const settings = await Setting.findOne({ userId });
+        const goals = await Goal.find({ userId });
+
+        const backupData = JSON.stringify({
+            version: "ERP_GOLD_V1",
+            timestamp: new Date().toISOString(),
+            userId,
+            data: { accounts, transactions, settings, goals }
+        });
+
+        const fileName = `backups/${userId}/${Date.now()}.json`;
+
+        if (process.env.AWS_ACCESS_KEY_ID) {
+            const command = new PutObjectCommand({
+                Bucket: process.env.AWS_BUCKET_NAME,
+                Key: fileName,
+                Body: backupData,
+                ContentType: "application/json"
+            });
+            await s3Client.send(command);
+            console.log(`[Backup] Uploaded to S3: ${fileName}`);
+        } else {
+            console.warn("[Backup] AWS credentials not found. Skipping S3 upload.");
+        }
+
+        await new BackupLog({ userId, status: 'Success', fileKey: fileName }).save();
+    } catch (err) {
+        console.error(`[Backup] Failed: ${err.message}`);
+        await new BackupLog({ userId, status: 'Failed', error: err.message }).save();
+    }
+};
+
+// Schedule backup every day at midnight
+cron.schedule('0 0 * * *', () => {
+    performBackup();
+});
+
+// Manual backup trigger API
+app.post('/api/backup/trigger', async (req, res) => {
+    try {
+        await performBackup(req.body.userId);
+        res.json({ message: "Backup initiated successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/backup/logs', async (req, res) => {
+    try {
+        const logs = await BackupLog.find({ userId: req.query.userId }).sort({ timestamp: -1 }).limit(10);
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 const PORT = process.env.PORT || 3000;

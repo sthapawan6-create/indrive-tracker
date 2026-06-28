@@ -428,12 +428,15 @@
                         </div>
                     </div>
 
-                    <div style="margin-top: 20px; padding: 15px; background: rgba(212,175,55,0.05); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed rgba(212,175,55,0.2);">
-                        <div>
-                            <i class="fas fa-lightbulb" style="color: var(--accent); margin-right: 10px;"></i>
-                            <span id="goal-advice-disp" style="color: #e2e8f0; font-size: 13px;">Set a goal to see daily saving advice.</span>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(212,175,55,0.05); border-radius: 12px; border: 1px dashed rgba(212,175,55,0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center;">
+                                <i class="fas fa-lightbulb" style="color: var(--accent); margin-right: 10px;"></i>
+                                <div id="goal-advice-disp" style="color: #e2e8f0; font-size: 13px;">Set a goal to see daily saving advice.</div>
+                            </div>
+                            <div id="goal-required-disp" style="text-align: right; color: var(--success); font-weight: 800; font-size: 16px;">Rs. 0.00 / day</div>
                         </div>
-                        <div id="goal-required-disp" style="text-align: right; color: var(--success); font-weight: 800; font-size: 16px;">Rs. 0.00 / day</div>
+                        <div id="goal-action-area" style="margin-top: 15px;"></div>
                     </div>
                 </div>
             </div>
@@ -1303,46 +1306,90 @@
             const daily = remainingAmount / diffDays;
             document.getElementById('goal-required-disp').innerText = "Rs. " + daily.toLocaleString(undefined, {maximumFractionDigits:0}) + " / day";
             document.getElementById('goal-advice-disp').innerHTML = `
-                <div>लक्ष्य भेट्टाउन अब दैनिक Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})} बचत गर्नुपर्छ।</div>
-                <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
-                    <button onclick="quickDepositToGoal()" style="background:var(--accent); color:var(--primary); border:none; padding:8px 15px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
-                        <i class="fas fa-plus-circle"></i> QUICK DEPOSIT
-                    </button>
+                <div style="color:#e2e8f0; margin-bottom:12px;">लक्ष्य भेट्टाउन अब दैनिक <b>Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})}</b> बचत गर्नुपर्छ।</div>
+                <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                    <b style="font-size:10px; color:#94a3b8; letter-spacing:1px; display:block; margin-bottom:5px;">RECENT DEPOSITS (भर्खरैको बचत)</b>
+                    ${depositHtml || '<div style="font-size:10px; color:#64748b;">No deposits yet</div>'}
                 </div>
-                <div style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
-                    <b style="font-size:10px; color:#94a3b8; letter-spacing:1px;">RECENT DEPOSITS (भर्खरैको बचत)</b>
-                    ${depositHtml || '<div style="font-size:10px; margin-top:5px; color:#64748b;">No deposits yet</div>'}
-                </div>
+            `;
+
+            document.getElementById('goal-action-area').innerHTML = `
+                <button type="button" onclick="event.stopPropagation(); window.quickDepositToGoal(this)" style="background:var(--accent); color:var(--primary); border:none; padding:14px 20px; border-radius:12px; font-size:12px; font-weight:900; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow: 0 6px 20px rgba(212,175,55,0.3); position:relative; z-index:9999; pointer-events:auto !important;">
+                    <i class="fas fa-plus-circle" style="font-size:16px;"></i> QUICK DEPOSIT (बचत गर्नुहोस्)
+                </button>
             `;
         } else if (remainingAmount <= 0) {
             document.getElementById('goal-required-disp').innerText = "Rs. 0.00";
             document.getElementById('goal-advice-disp').innerText = "बधाई छ! तपाईंले आफ्नो लक्ष्य प्राप्त गर्नुभयो। 🎉";
             document.getElementById('goal-required-disp').style.color = "var(--success)";
+            document.getElementById('goal-action-area').innerHTML = '';
         } else {
             document.getElementById('goal-required-disp').innerText = "Expired";
             document.getElementById('goal-advice-disp').innerText = "लक्ष्यको समय समाप्त भयो। कृपया नयाँ मिति सेट गर्नुहोस्।";
+            document.getElementById('goal-action-area').innerHTML = '';
         }
     }
 
-    function quickDepositToGoal() {
-        if(!currentGoal || !currentGoal.accountId) return;
+    window.quickDepositToGoal = function(btn) {
+        console.log("Quick Deposit Triggered");
 
-        showTab('vouchers');
-        openTxModal();
-
-        // Clear default rows and add one for the goal account
-        document.getElementById('j-rows').innerHTML = '';
-        addJRow(); // First row (From)
-        addJRow(); // Second row (To - Goal Account)
-
-        const rows = document.querySelectorAll('.j-row');
-        if(rows.length >= 2) {
-            const selectTo = rows[1].querySelector('select');
-            selectTo.value = currentGoal.accountId;
-            // Focus on the first row's amount
-            rows[0].querySelector('input[placeholder="Debit"]').focus();
+        if(!currentGoal || !currentGoal.accountId) {
+            alert("Goal account not linked! Please edit goal settings.");
+            return;
         }
-    }
+
+        const targetAcc = accounts.find(a => a._id === currentGoal.accountId);
+        if(!targetAcc) {
+            alert("Linked account not found in database.");
+            return;
+        }
+
+        if(btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.style.opacity = '0.8';
+        }
+
+        try {
+            // Switch to Journal
+            const journalNav = document.querySelector('.nav-item[onclick*="journal"]');
+            showTab('journal', journalNav);
+
+            // Open Modal
+            openCreateModal();
+
+            // Populate Rows
+            setTimeout(() => {
+                const entriesContainer = document.getElementById('jEntries');
+                if(entriesContainer) {
+                    entriesContainer.innerHTML = '';
+
+                    // Row 1: Source (Credit)
+                    addJRow();
+                    const rows = document.querySelectorAll('.voucher-row');
+                    rows[0].querySelector('.r-type').value = 'cr';
+                    sync(rows[0].querySelector('.r-type'));
+
+                    // Row 2: Goal Savings Account (Debit)
+                    addJRow();
+                    const row2 = document.querySelectorAll('.voucher-row')[1];
+                    row2.querySelector('.r-type').value = 'dr';
+                    sync(row2.querySelector('.r-type'));
+                    row2.querySelector('.r-acc').value = targetAcc.name;
+                    showBal(row2.querySelector('.r-acc'));
+
+                    // Set focus to source account
+                    rows[0].querySelector('.r-acc').focus();
+                }
+                if(btn) {
+                    btn.innerHTML = '<i class="fas fa-plus-circle"></i> QUICK DEPOSIT (बचत गर्नुहोस्)';
+                    btn.style.opacity = '1';
+                }
+            }, 300);
+        } catch (e) {
+            console.error(e);
+            alert("Could not open voucher: " + e.message);
+        }
+    };
 
     async function fetchSettings() {
         try {
