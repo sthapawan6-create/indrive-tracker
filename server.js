@@ -411,43 +411,69 @@ app.post('/api/stocks/sync', async (req, res) => {
         const https = require('https');
         const urls = [
             'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
-            'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json'
+            'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json',
+            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json'
         ];
 
-        const fetchData = (url) => new Promise((res, rej) => {
-            https.get(url, r => {
-                let d = '';
-                r.on('data', c => d += c);
-                r.on('end', () => { try{res(JSON.parse(d))}catch(e){rej(e)} });
-            }).on('error', e => rej(e));
+        const fetchData = (url) => new Promise((resolve, reject) => {
+            const request = https.get(url, (resp) => {
+                if (resp.statusCode !== 200) reject(new Error("Status: " + resp.statusCode));
+                let data = '';
+                resp.on('data', (chunk) => { data += chunk; });
+                resp.on('end', () => {
+                    try { resolve(JSON.parse(data)); }
+                    catch(e) { reject(e); }
+                });
+            });
+            request.on('error', (err) => reject(err));
+            request.setTimeout(5000, () => { request.destroy(); reject(new Error("Timeout")); });
         });
 
         let liveData = null;
-        for(let u of urls) {
-            try { liveData = await fetchData(u); if(liveData) break; } catch(e) {}
+        for(let url of urls) {
+            try {
+                liveData = await fetchData(url);
+                if(liveData) break;
+            } catch(e) { console.error("Sync Source Failed:", url, e.message); }
         }
 
-        if(!liveData) return res.status(500).json({success:false, error:"Source Down"});
+        if(!liveData) return res.status(500).json({ success: false, error: "All data sources are currently offline." });
 
         const stocks = await Stock.find({ userId });
         let count = 0;
-        for (const s of stocks) {
-            const sym = s.symbol.toUpperCase().trim();
-            let lp = 0;
-            if (Array.isArray(liveData)) {
-                const f = liveData.find(i => (i.symbol||i.scrip||i.Symbol||'').toUpperCase() === sym);
-                lp = f ? (f.ltp || f.lastPrice || f.price || f.LTP || f.Close) : 0;
-            } else { lp = liveData[sym] || liveData[sym + ".NEPSE"]; }
 
-            if (lp && !isNaN(lp)) {
-                s.currentPrice = Number(lp);
-                s.updatedAt = new Date();
-                await s.save();
-                count++;
+        for (const stock of stocks) {
+            const sym = stock.symbol.toUpperCase().trim();
+            let lp = 0;
+
+            if (Array.isArray(liveData)) {
+                const found = liveData.find(i =>
+                    (i.symbol || i.scrip || i.Symbol || i.stockSymbol || '').toUpperCase() === sym
+                );
+                if (found) lp = found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice;
+            } else {
+                // Check direct keys, then case-insensitive keys
+                lp = liveData[sym] || liveData[sym + ".NEPSE"];
+                if (!lp) {
+                    const key = Object.keys(liveData).find(k => k.toUpperCase().includes(sym));
+                    if (key) lp = liveData[key];
+                }
+            }
+
+            if (lp) {
+                const cleanPrice = Number(lp.toString().replace(/,/g, ''));
+                if (!isNaN(cleanPrice) && cleanPrice > 0) {
+                    stock.currentPrice = cleanPrice;
+                    stock.updatedAt = new Date();
+                    await stock.save();
+                    count++;
+                }
             }
         }
         res.json({ success: true, updatedCount: count });
-    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 app.delete('/api/stocks/:id', async (req, res) => {
