@@ -409,6 +409,8 @@ app.post('/api/stocks/sync', async (req, res) => {
     try {
         const { userId } = req.body;
         const https = require('https');
+
+        // Multi-source fallback for NEPSE data
         const urls = [
             'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
             'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json',
@@ -416,8 +418,7 @@ app.post('/api/stocks/sync', async (req, res) => {
         ];
 
         const fetchData = (url) => new Promise((resolve, reject) => {
-            const request = https.get(url, (resp) => {
-                if (resp.statusCode !== 200) reject(new Error("Status: " + resp.statusCode));
+            const req = https.get(url, (resp) => {
                 let data = '';
                 resp.on('data', (chunk) => { data += chunk; });
                 resp.on('end', () => {
@@ -425,43 +426,45 @@ app.post('/api/stocks/sync', async (req, res) => {
                     catch(e) { reject(e); }
                 });
             });
-            request.on('error', (err) => reject(err));
-            request.setTimeout(5000, () => { request.destroy(); reject(new Error("Timeout")); });
+            req.on('error', (err) => reject(err));
+            req.setTimeout(8000, () => { req.destroy(); reject(new Error("Timeout")); });
         });
 
-        let liveData = null;
+        let rawData = null;
         for(let url of urls) {
             try {
-                liveData = await fetchData(url);
-                if(liveData) break;
-            } catch(e) { console.error("Sync Source Failed:", url, e.message); }
+                rawData = await fetchData(url);
+                if(rawData) break;
+            } catch(e) { }
         }
 
-        if(!liveData) return res.status(500).json({ success: false, error: "All data sources are currently offline." });
+        if(!rawData) return res.status(500).json({ success: false, error: "Market data currently unavailable." });
+
+        let liveData = Array.isArray(rawData) ? rawData : (rawData.data || rawData.stocks || Object.values(rawData));
 
         const stocks = await Stock.find({ userId });
         let count = 0;
 
         for (const stock of stocks) {
             const sym = stock.symbol.toUpperCase().trim();
-            let lp = 0;
+            let found = null;
 
             if (Array.isArray(liveData)) {
-                const found = liveData.find(i =>
-                    (i.symbol || i.scrip || i.Symbol || i.stockSymbol || '').toUpperCase() === sym
+                found = liveData.find(i =>
+                    (i.symbol || i.scrip || i.Symbol || '').toUpperCase() === sym ||
+                    (i.companyName || '').toUpperCase().includes(sym)
                 );
-                if (found) lp = found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice;
-            } else {
-                // Check direct keys, then case-insensitive keys
-                lp = liveData[sym] || liveData[sym + ".NEPSE"];
-                if (!lp) {
-                    const key = Object.keys(liveData).find(k => k.toUpperCase().includes(sym));
-                    if (key) lp = liveData[key];
-                }
             }
 
-            if (lp) {
-                const cleanPrice = Number(lp.toString().replace(/,/g, ''));
+            let price = 0;
+            if (found) {
+                price = found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice;
+            } else if (!Array.isArray(rawData) && rawData[sym]) {
+                price = rawData[sym];
+            }
+
+            if (price) {
+                const cleanPrice = Number(price.toString().replace(/,/g, ''));
                 if (!isNaN(cleanPrice) && cleanPrice > 0) {
                     stock.currentPrice = cleanPrice;
                     stock.updatedAt = new Date();
