@@ -340,6 +340,53 @@
         </div>
     </div>
 
+    <!-- Create Account Modal -->
+    <div id="createAccModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 style="margin:0; color:var(--accent);"><i class="fas fa-plus-circle"></i> Create New Account Head</h2>
+                <button onclick="closeCreateAccModal()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">ACCOUNT NAME</label>
+                        <input type="text" id="aName" placeholder="Ledger Name (उदा: राम स्टोर)">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">GROUP / CATEGORY</label>
+                        <select id="aGroup">
+                            <option value="Bank Accounts">Bank Accounts (बैंक)</option>
+                            <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
+                            <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
+                            <option value="Payables">Party - Payables (दिनुपर्ने)</option>
+                            <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
+                            <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
+                            <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
+                            <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
+                            <option value="Capital Account">Capital Account (पूँजी)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                    <div>
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">OPENING BAL</label>
+                        <input type="number" id="aOp" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PHONE (OPTIONAL)</label>
+                        <input type="text" id="aPhone" placeholder="98XXXXXXXX">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PAN/VAT (OPTIONAL)</label>
+                        <input type="text" id="aPan" placeholder="PAN Number">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="handleCreateAcc()" style="width: 100%; padding: 16px;"><i class="fas fa-save"></i> CREATE ACCOUNT</button>
+            </div>
+        </div>
+    </div>
+
     <div class="main">
         <div class="header">
             <div>
@@ -615,48 +662,11 @@
             </div>
 
             <div class="card">
-                <div class="card-header"><h3><i class="fas fa-plus-circle"></i> Create New Account Head (नयाँ खाता)</h3></div>
-                <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 1.5fr 1fr 0.8fr 1fr 1fr auto; gap: 12px; align-items: end;">
-                        <div>
-                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">ACCOUNT NAME</label>
-                            <input type="text" id="aName" placeholder="Ledger Name (उदा: राम स्टोर)">
-                        </div>
-                        <div>
-                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">GROUP / CATEGORY</label>
-                            <select id="aGroup">
-                                <option value="Bank Accounts">Bank Accounts (बैंक)</option>
-                                <option value="Cash-in-hand">Cash-in-hand (नगद)</option>
-                                <option value="Receivables">Party - Receivables (लिनुपर्ने)</option>
-                                <option value="Payables">Party - Payables (दिनुपर्ने)</option>
-                                <option value="Direct Expenses">Direct Expenses (प्रत्यक्ष खर्च)</option>
-                                <option value="Indirect Expenses">Indirect Expenses (अप्रत्यक्ष खर्च)</option>
-                                <option value="Sales Accounts">Sales Accounts (आम्दानी)</option>
-                                <option value="Fixed Assets">Fixed Assets (सम्पत्ति)</option>
-                                <option value="Capital Account">Capital Account (पूँजी)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">OPENING BAL</label>
-                            <input type="number" id="aOp" placeholder="0.00">
-                        </div>
-                        <div>
-                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PHONE (OPTIONAL)</label>
-                            <input type="text" id="aPhone" placeholder="98XXXXXXXX">
-                        </div>
-                        <div>
-                            <label style="font-size:11px; color:#94a3b8; font-weight:800; display:block; margin-bottom:5px;">PAN/VAT (OPTIONAL)</label>
-                            <input type="text" id="aPan" placeholder="PAN Number">
-                        </div>
-                        <button class="btn btn-primary" onclick="createAcc()" style="padding: 16px;"><i class="fas fa-save"></i> CREATE</button>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <h3><i class="fas fa-list-ul"></i> Chart of Accounts (खाता सूची)</h3>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="accSearch" placeholder="Search accounts..." onkeyup="filterAccs()" style="width:250px; padding:8px 15px; border-radius:10px; font-size:12px;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="accSearch" placeholder="Search accounts..." onkeyup="filterAccs()" style="width:200px; padding:8px 15px; border-radius:10px; font-size:12px; margin:0;">
+                        <button class="btn btn-primary" onclick="openCreateAccModal()" style="padding: 8px 15px; font-size: 12px;"><i class="fas fa-plus"></i> NEW ACCOUNT</button>
                     </div>
                 </div>
                 <div class="card-body" style="padding:0">
@@ -2099,6 +2109,14 @@
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
+    }
+
+    function openCreateAccModal() { document.getElementById('createAccModal').classList.remove('hidden'); }
+    function closeCreateAccModal() { document.getElementById('createAccModal').classList.add('hidden'); }
+
+    async function handleCreateAcc() {
+        await createAcc();
+        closeCreateAccModal();
     }
 
     async function createAcc() {
