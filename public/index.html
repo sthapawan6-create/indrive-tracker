@@ -406,7 +406,7 @@
                 </div>
                 <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="color: var(--accent);"><i class="fas fa-trophy"></i> My Financial Goal (मेरो आर्थिक लक्ष्य)</h3>
-                    <button class="btn btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="document.getElementById('goalModal').classList.remove('hidden')"><i class="fas fa-edit"></i> Edit Goal</button>
+                    <button class="btn btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="openGoalModal()"><i class="fas fa-edit"></i> Edit Goal</button>
                 </div>
                 <div class="card-body">
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px;">
@@ -1275,6 +1275,26 @@
             currentGoal = await r.json();
             updateGoalUI();
         } catch(e) { console.error("Goal load failed", e); }
+    }
+
+    function openGoalModal() {
+        const select = document.getElementById('goalAccount');
+        select.innerHTML = '<option value="">Select an account...</option>';
+        accounts.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a._id;
+            opt.innerText = a.name;
+            if(currentGoal && currentGoal.accountId === a._id) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        if(currentGoal) {
+            document.getElementById('goalName').value = currentGoal.name || '';
+            document.getElementById('goalTarget').value = currentGoal.target || '';
+            document.getElementById('goalDeadline').value = currentGoal.deadline ? currentGoal.deadline.split('T')[0] : '';
+        }
+
+        document.getElementById('goalModal').classList.remove('hidden');
     }
 
     async function saveGoal() {
