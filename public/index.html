@@ -1469,10 +1469,15 @@
                 body: JSON.stringify({ userId: currentUser.uid })
             });
             const res = await r.json();
-            alert(res.message || "Sync Complete!");
+
+            if (res.updatedCount === 0) {
+                alert("Live data not found for these symbols in our database. Try symbols like NICA, UPPER, or NABIL to test.");
+            } else {
+                alert(`Successfully updated ${res.updatedCount} stocks!`);
+            }
             await fetchStocks();
         } catch(e) {
-            alert("Sync failed: " + e.message);
+            alert("Sync failed: Check internet or Server error.");
         } finally {
             btn.disabled = false;
             icon.classList.remove('fa-spin');
