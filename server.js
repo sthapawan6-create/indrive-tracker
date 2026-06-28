@@ -405,6 +405,41 @@ app.post('/api/stocks', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Stock save failed" }); }
 });
 
+app.post('/api/stocks/sync', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const https = require('https');
+
+        // Fetching live data from a reliable public source (NEPSE Alpha or similar proxy)
+        // For this implementation, we use a proxy that returns NEPSE data
+        https.get('https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json', (resp) => {
+            let data = '';
+            resp.on('data', (chunk) => { data += chunk; });
+            resp.on('end', async () => {
+                try {
+                    const liveData = JSON.parse(data); // Expecting { "SYMBOL": price }
+                    const stocks = await Stock.find({ userId });
+                    let updatedCount = 0;
+
+                    for (const stock of stocks) {
+                        if (liveData[stock.symbol]) {
+                            stock.currentPrice = liveData[stock.symbol];
+                            stock.updatedAt = new Date();
+                            await stock.save();
+                            updatedCount++;
+                        }
+                    }
+                    res.json({ message: `Successfully synced ${updatedCount} stocks with live market!`, updatedCount });
+                } catch (e) {
+                    res.status(500).json({ error: "Data parsing failed" });
+                }
+            });
+        }).on("error", (err) => {
+            res.status(500).json({ error: "Live fetch failed: " + err.message });
+        });
+    } catch (err) { res.status(500).json({ error: "Sync failed" }); }
+});
+
 app.delete('/api/stocks/:id', async (req, res) => {
     try {
         await Stock.findByIdAndDelete(req.params.id);

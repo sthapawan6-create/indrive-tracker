@@ -374,7 +374,12 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h2 style="margin:0; color:#10b981;"><i class="fas fa-chart-line"></i> Investment Portfolio</h2>
-                <button onclick="document.getElementById('stockModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="syncLivePrices()" style="background:#065f46; color:#10b981; border:1px solid #10b981; padding:5px 15px; font-size:12px; font-weight:800; border-radius:8px;">
+                        <i class="fas fa-sync-alt" id="sync-icon"></i> SYNC LIVE
+                    </button>
+                    <button onclick="document.getElementById('stockModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+                </div>
             </div>
             <div class="modal-body">
                 <div id="stockList" style="margin-bottom:20px; max-height:300px; overflow-y:auto; background:rgba(0,0,0,0.2); border-radius:15px;">
@@ -1446,6 +1451,34 @@
         if(!confirm("Are you sure to remove this stock from portfolio?")) return;
         await fetch(`/api/stocks/${id}`, { method: 'DELETE' });
         fetchStocks();
+    }
+
+    async function syncLivePrices() {
+        const btn = document.querySelector('[onclick="syncLivePrices()"]');
+        const icon = document.getElementById('sync-icon');
+
+        btn.disabled = true;
+        icon.classList.add('fa-spin');
+        btn.innerText = ' SYNCING...';
+        btn.prepend(icon);
+
+        try {
+            const r = await fetch('/api/stocks/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: currentUser.uid })
+            });
+            const res = await r.json();
+            alert(res.message || "Sync Complete!");
+            await fetchStocks();
+        } catch(e) {
+            alert("Sync failed: " + e.message);
+        } finally {
+            btn.disabled = false;
+            icon.classList.remove('fa-spin');
+            btn.innerText = ' SYNC LIVE';
+            btn.prepend(icon);
+        }
     }
 
     function updateBikeUI() {
