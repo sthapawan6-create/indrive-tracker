@@ -67,6 +67,7 @@ const GoalSchema = new mongoose.Schema({
     name: String,
     target: Number,
     deadline: String,
+    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' }, // Linked Account
     createdAt: { type: Date, default: Date.now }
 });
 const Goal = mongoose.model('Goal', GoalSchema);

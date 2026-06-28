@@ -312,8 +312,21 @@
                     <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">DEADLINE DATE (कहिले सम्म?)</label>
                     <input type="date" id="goalDeadline">
                 </div>
+                <div style="margin-bottom:15px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">LINKED SAVINGS ACCOUNT (बचत हुने खाता)</label>
+                    <select id="goalAccount" style="width:100%; padding:12px; background:var(--primary); color:white; border:1px solid var(--border); border-radius:12px;">
+                        <option value="">Select an account...</option>
+                    </select>
+                </div>
                 <button class="btn btn-primary" onclick="saveGoal()" style="width: 100%; padding:18px;"><i class="fas fa-check-circle"></i> SET MY GOAL</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Quick Breakdown Modal -->
+    <div id="breakdownModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width:600px; background: #0f172a; border: 1px solid var(--accent);">
+            <div id="breakdownContent"></div>
         </div>
     </div>
 
@@ -1233,14 +1246,15 @@
         const name = document.getElementById('goalName').value;
         const target = Number(document.getElementById('goalTarget').value);
         const deadline = document.getElementById('goalDeadline').value;
+        const accountId = document.getElementById('goalAccount').value;
 
-        if(!name || !target || !deadline) return alert("सबै विवरण भर्नुहोस्!");
+        if(!name || !target || !deadline || !accountId) return alert("सबै विवरण र बचत खाता छान्नुहोस्!");
 
         try {
             const res = await fetch('/api/goals', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.uid, name, target, deadline })
+                body: JSON.stringify({ userId: currentUser.uid, name, target, deadline, accountId })
             });
             if(res.ok) {
                 alert("लक्ष्य सुरक्षित गरियो!");
@@ -1253,11 +1267,9 @@
     function updateGoalUI() {
         if(!currentGoal || !currentGoal.name) return;
 
-        let netWorth = 0;
-        accounts.forEach(a => {
-            if(a.type === 'Asset') netWorth += a.balance;
-            if(a.type === 'Liability') netWorth -= a.balance;
-        });
+        // Find the linked account's balance
+        const linkedAcc = accounts.find(a => a._id === currentGoal.accountId);
+        const totalSaved = linkedAcc ? Number(linkedAcc.balance || 0) : 0;
 
         document.getElementById('goal-name-disp').innerText = currentGoal.name;
         document.getElementById('goal-target-disp').innerText = "Rs. " + currentGoal.target.toLocaleString();
@@ -1271,15 +1283,32 @@
 
         document.getElementById('goal-days-disp').innerText = (diffDays > 0 ? diffDays : 0) + " Days";
 
-        const percent = Math.min(100, Math.max(0, (netWorth / currentGoal.target) * 100));
+        const percent = Math.min(100, Math.max(0, (totalSaved / currentGoal.target) * 100));
         document.getElementById('goal-percent-disp').innerText = percent.toFixed(1) + "%";
         document.getElementById('goal-progress-bar').style.width = percent + "%";
 
-        const remainingAmount = currentGoal.target - netWorth;
+        const remainingAmount = currentGoal.target - totalSaved;
+
+        // Show recent deposits for this goal
+        const goalTxs = transactions.filter(t => t.entries.some(e => (e.account?._id || e.account) === currentGoal.accountId))
+                                   .sort((a,b) => new Date(b.date) - new Date(a.date))
+                                   .slice(0, 3); // Last 3 deposits
+
+        let depositHtml = goalTxs.map(t => {
+            const entry = t.entries.find(e => (e.account?._id || e.account) === currentGoal.accountId);
+            return `<div style="font-size:10px; color:#94a3b8; margin-top:5px;">• ${t.date}: Rs. ${(entry.debit||0).toLocaleString()}</div>`;
+        }).join('');
+
         if(remainingAmount > 0 && diffDays > 0) {
             const daily = remainingAmount / diffDays;
             document.getElementById('goal-required-disp').innerText = "Rs. " + daily.toLocaleString(undefined, {maximumFractionDigits:0}) + " / day";
-            document.getElementById('goal-advice-disp').innerText = `लक्ष्य भेट्टाउन अब दैनिक Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})} बचत गर्नुपर्छ।`;
+            document.getElementById('goal-advice-disp').innerHTML = `
+                <div>लक्ष्य भेट्टाउन अब दैनिक Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})} बचत गर्नुपर्छ।</div>
+                <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:5px;">
+                    <b style="font-size:10px; color:var(--accent);">RECENT DEPOSITS:</b>
+                    ${depositHtml || '<div style="font-size:10px;">No deposits yet</div>'}
+                </div>
+            `;
         } else if (remainingAmount <= 0) {
             document.getElementById('goal-required-disp').innerText = "Rs. 0.00";
             document.getElementById('goal-advice-disp').innerText = "बधाई छ! तपाईंले आफ्नो लक्ष्य प्राप्त गर्नुभयो। 🎉";
@@ -1449,6 +1478,13 @@
         } catch(e) { accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]"); }
 
         // Render Summary Mini-Cards
+        const goalAccSelect = document.getElementById('goalAccount');
+        if(goalAccSelect) {
+            const currentVal = goalAccSelect.value;
+            goalAccSelect.innerHTML = '<option value="">Select an account...</option>' +
+                accounts.map(a => `<option value="${a._id}" ${currentVal===a._id?'selected':''}>${a.name} (Rs. ${a.balance.toLocaleString()})</option>`).join('');
+        }
+
         let totalReceivable = 0;
         let totalPayable = 0;
         accounts.forEach(a => {
@@ -1534,6 +1570,54 @@
         document.getElementById('sAcc').value = accId;
         showTab('statement', document.querySelector('[onclick*="statement"]'));
         genStat();
+    }
+
+    function viewBreakdown(accId) {
+        const acc = accounts.find(a => a._id === accId);
+        if(!acc) return;
+
+        const txs = transactions.filter(t => t.entries.some(e => (e.account?._id || e.account) === accId))
+                                .sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        let html = `
+            <div style="padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:15px;">
+                    <h3 style="color:var(--accent); margin:0;">${acc.name} - Breakdown</h3>
+                    <button onclick="document.getElementById('breakdownModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
+                </div>
+                <div style="max-height:400px; overflow-y:auto;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="text-align:left; color:#94a3b8; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                                <th style="padding:10px;">Date</th>
+                                <th style="padding:10px;">Particulars</th>
+                                <th style="padding:10px;" class="text-right">Amount (Rs.)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${txs.length > 0 ? txs.map(t => {
+                                const entry = t.entries.find(e => (e.account?._id || e.account) === accId);
+                                const amt = (entry.debit || entry.credit || 0);
+                                return `
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding:10px; font-size:13px; font-family:'JetBrains Mono';">${t.date}</td>
+                                        <td style="padding:10px; font-size:13px;">${t.description}</td>
+                                        <td style="padding:10px; font-size:13px; font-weight:700; color:var(--accent);" class="text-right">${amt.toLocaleString()}</td>
+                                    </tr>`;
+                            }).join('') : '<tr><td colspan="3" style="text-align:center; padding:20px; color:#64748b;">No details found.</td></tr>'}
+                        </tbody>
+                        <tfoot style="border-top:2px solid var(--accent);">
+                            <tr>
+                                <td colspan="2" style="padding:10px; font-weight:800;">TOTAL</td>
+                                <td class="text-right" style="padding:10px; font-weight:800; color:white;">Rs. ${acc.balance.toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>`;
+
+        document.getElementById('breakdownContent').innerHTML = html;
+        document.getElementById('breakdownModal').classList.remove('hidden');
     }
 
     function filterAccs() {
@@ -2283,7 +2367,13 @@
 
             const renderGroups = (groups) => Object.entries(groups).map(([name, data]) => `
                 <tr style="background:rgba(255,255,255,0.03);"><td colspan="2" style="padding:10px 20px; color:var(--accent); font-weight:800; font-size:11px;">${name.toUpperCase()}</td></tr>
-                ${data.items.map(i => `<tr style="background:transparent;"><td style="padding-left:40px; color:#cbd5e1;">${i.name}</td><td class="text-right" style="font-family:'JetBrains Mono';">${i.balance.toLocaleString()}</td></tr>`).join('')}
+                ${data.items.map(i => `
+                    <tr style="background:transparent; cursor:pointer;" class="pl-item-row" onclick="viewBreakdown('${i._id}')">
+                        <td style="padding-left:40px; color:#cbd5e1;">
+                            <i class="fas fa-search-plus" style="font-size:10px; margin-right:8px; opacity:0.5;"></i>${i.name}
+                        </td>
+                        <td class="text-right" style="font-family:'JetBrains Mono';">${i.balance.toLocaleString()}</td>
+                    </tr>`).join('')}
                 <tr style="background:rgba(0,0,0,0.1); font-weight:700;"><td style="padding-left:40px;">Sub-total</td><td class="text-right">Rs. ${data.total.toLocaleString()}</td></tr>
                 <tr><td colspan="2" style="height:10px;"></td></tr>
             `).join('');
