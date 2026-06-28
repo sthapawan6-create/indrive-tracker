@@ -344,7 +344,11 @@
         <div class="header">
             <div>
                 <h2 id="pageTitle" style="margin:0; font-size: 1.7rem; font-weight: 800; color:white; letter-spacing: -0.5px;">Command Center</h2>
-                <div id="currentDateDisp" style="color:var(--accent); font-weight: 700; font-size: 11px; margin-top:2px; text-transform: uppercase; letter-spacing: 1px;"></div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                    <div id="currentDateDisp" style="color:var(--accent); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;"></div>
+                    <div style="width: 4px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 50%;"></div>
+                    <div id="currentTimeDisp" style="font-family: 'JetBrains Mono', monospace; color: white; font-weight: 700; font-size: 12px; letter-spacing: 1px;">00:00:00</div>
+                </div>
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <div style="text-align: right;">
@@ -886,7 +890,21 @@
                 document.getElementById('userName').innerText = user.displayName;
                 document.getElementById('userEmail').innerText = user.email;
                 document.getElementById('userImg').src = user.photoURL;
-                document.getElementById('currentDateDisp').innerText = new Date().toDateString();
+    function updateClock() {
+        const now = new Date();
+        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        document.getElementById('currentDateDisp').innerText = now.toLocaleDateString('en-US', dateOptions);
+
+        const timeString = now.toLocaleTimeString('en-US', {
+            hour12: true,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('currentTimeDisp').innerText = timeString;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
             }
             applyConfig();
         } else {
