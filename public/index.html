@@ -292,6 +292,31 @@
         </div>
     </div>
 
+    <!-- Savings Goal Modal -->
+    <div id="goalModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 style="margin:0; color:var(--accent);"><i class="fas fa-bullseye"></i> Set Financial Goal</h2>
+                <button onclick="document.getElementById('goalModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">GOAL NAME (लक्ष्यको नाम)</label>
+                    <input type="text" id="goalName" placeholder="उदा: नयाँ गाडी, घर जग्गा, भ्रमण">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">TARGET AMOUNT (लक्ष्य रकम)</label>
+                    <input type="number" id="goalTarget" placeholder="0.00">
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="font-weight: 700; font-size: 11px; color:#94a3b8; margin-bottom:8px; display:block;">DEADLINE DATE (कहिले सम्म?)</label>
+                    <input type="date" id="goalDeadline">
+                </div>
+                <button class="btn btn-primary" onclick="saveGoal()" style="width: 100%; padding:18px;"><i class="fas fa-check-circle"></i> SET MY GOAL</button>
+            </div>
+        </div>
+    </div>
+
     <div class="main">
         <div class="header">
             <div>
@@ -348,6 +373,55 @@
                     <span class="label">Net Profit/Loss (नाफा/नोक्सान)</span>
                     <div class="value" id="dash-profit">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-chart-line"></i></div>
+                </div>
+            </div>
+
+            <!-- Savings Goal Tracker (मेरो लक्ष्य) -->
+            <div class="card" style="margin-bottom:40px; background: linear-gradient(135deg, #0f172a, #1e293b); border: 1px solid var(--accent); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -20px; right: -20px; font-size: 100px; color: rgba(212,175,55,0.05); transform: rotate(-15deg); pointer-events: none;">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="color: var(--accent);"><i class="fas fa-trophy"></i> My Financial Goal (मेरो आर्थिक लक्ष्य)</h3>
+                    <button class="btn btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="document.getElementById('goalModal').classList.remove('hidden')"><i class="fas fa-edit"></i> Edit Goal</button>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px;">
+                        <div>
+                            <small style="color: #94a3b8; font-weight: 700; text-transform:uppercase; font-size:10px;">Goal Purpose</small>
+                            <div id="goal-name-disp" style="color: white; font-size: 18px; font-weight: 800;">Not Set</div>
+                        </div>
+                        <div>
+                            <small style="color: #94a3b8; font-weight: 700; text-transform:uppercase; font-size:10px;">Target Amount</small>
+                            <div id="goal-target-disp" style="color: var(--accent); font-size: 18px; font-weight: 800;">Rs. 0.00</div>
+                        </div>
+                        <div>
+                            <small style="color: #94a3b8; font-weight: 700; text-transform:uppercase; font-size:10px;">Deadline</small>
+                            <div id="goal-date-disp" style="color: white; font-size: 18px; font-weight: 800;">-</div>
+                        </div>
+                        <div>
+                            <small style="color: #94a3b8; font-weight: 700; text-transform:uppercase; font-size:10px;">Days Remaining</small>
+                            <div id="goal-days-disp" style="color: #fbbf24; font-size: 18px; font-weight: 800;">0 Days</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 25px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <small style="color: #94a3b8; font-weight: 700; font-size:10px;">PROGRESS (प्रगति)</small>
+                            <small id="goal-percent-disp" style="color: var(--accent); font-weight: 800;">0%</small>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;">
+                            <div id="goal-progress-bar" style="width: 0%; height: 100%; background: var(--accent); transition: width 1s ease;"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(212,175,55,0.05); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed rgba(212,175,55,0.2);">
+                        <div>
+                            <i class="fas fa-lightbulb" style="color: var(--accent); margin-right: 10px;"></i>
+                            <span id="goal-advice-disp" style="color: #e2e8f0; font-size: 13px;">Set a goal to see daily saving advice.</span>
+                        </div>
+                        <div id="goal-required-disp" style="text-align: right; color: var(--success); font-weight: 800; font-size: 16px;">Rs. 0.00 / day</div>
+                    </div>
                 </div>
             </div>
 
@@ -427,7 +501,18 @@
                 </div>
 
                 <div style="background: rgba(255,255,255,0.03); padding:30px; border-radius:24px; border: 1px solid rgba(255,255,255,0.05); max-width:600px; margin: 0 auto;">
-                    <div class="badge badge-asset" style="margin-bottom:15px;">NOW READY TO PLAY</div>
+                    <div class="badge badge-asset" style="margin-bottom:20px;">NOW READY TO PLAY</div>
+
+                    <!-- Movie Poster Area -->
+                    <div style="width: 100%; height: 300px; border-radius: 16px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.5); border: 1px solid rgba(212,175,55,0.3); background: url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1000&auto=format&fit=crop') center/cover;">
+                        <div style="width:100%; height:100%; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.8)); display:flex; align-items:flex-end; padding:20px;">
+                            <div style="text-align:left;">
+                                <div style="color:var(--accent); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:2px;">ACTION / THRILLER</div>
+                                <div style="color:white; font-size:24px; font-weight:900;">BLAST (2026)</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <h3 style="color:white; margin-bottom:20px; font-size:18px; line-height:1.4;">Blast (2026) WEB-DL [Hindi & Tamil] 4K Dual Audio | Full Movie</h3>
                     <p style="color:#64748b; font-size:13px; line-height:1.6; margin-bottom:25px;">
                         नोट: भिडियो साइटले सिधै हाम्रो सिस्टमभित्र चल्न अनुमति नदिएकोले, हामीले यसलाई <b>"Gold Theater Mode"</b> मा खोल्ने व्यवस्था मिलाएका छौँ।
@@ -1129,8 +1214,80 @@
         await fetchSettings();
         await fetchAcc();
         await fetchTx();
+        await fetchGoal();
         updateDash();
         resetJ();
+    }
+
+    let currentGoal = null;
+
+    async function fetchGoal() {
+        try {
+            const r = await fetch(`/api/goals?userId=${currentUser.uid}`);
+            currentGoal = await r.json();
+            updateGoalUI();
+        } catch(e) { console.error("Goal load failed", e); }
+    }
+
+    async function saveGoal() {
+        const name = document.getElementById('goalName').value;
+        const target = Number(document.getElementById('goalTarget').value);
+        const deadline = document.getElementById('goalDeadline').value;
+
+        if(!name || !target || !deadline) return alert("सबै विवरण भर्नुहोस्!");
+
+        try {
+            const res = await fetch('/api/goals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.uid, name, target, deadline })
+            });
+            if(res.ok) {
+                alert("लक्ष्य सुरक्षित गरियो!");
+                document.getElementById('goalModal').classList.add('hidden');
+                fetchGoal();
+            }
+        } catch(e) { alert("Save failed"); }
+    }
+
+    function updateGoalUI() {
+        if(!currentGoal || !currentGoal.name) return;
+
+        let netWorth = 0;
+        accounts.forEach(a => {
+            if(a.type === 'Asset') netWorth += a.balance;
+            if(a.type === 'Liability') netWorth -= a.balance;
+        });
+
+        document.getElementById('goal-name-disp').innerText = currentGoal.name;
+        document.getElementById('goal-target-disp').innerText = "Rs. " + currentGoal.target.toLocaleString();
+        document.getElementById('goal-date-disp').innerText = currentGoal.deadline;
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const deadline = new Date(currentGoal.deadline);
+        const diffTime = deadline - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        document.getElementById('goal-days-disp').innerText = (diffDays > 0 ? diffDays : 0) + " Days";
+
+        const percent = Math.min(100, Math.max(0, (netWorth / currentGoal.target) * 100));
+        document.getElementById('goal-percent-disp').innerText = percent.toFixed(1) + "%";
+        document.getElementById('goal-progress-bar').style.width = percent + "%";
+
+        const remainingAmount = currentGoal.target - netWorth;
+        if(remainingAmount > 0 && diffDays > 0) {
+            const daily = remainingAmount / diffDays;
+            document.getElementById('goal-required-disp').innerText = "Rs. " + daily.toLocaleString(undefined, {maximumFractionDigits:0}) + " / day";
+            document.getElementById('goal-advice-disp').innerText = `लक्ष्य भेट्टाउन अब दैनिक Rs. ${daily.toLocaleString(undefined, {maximumFractionDigits:0})} बचत गर्नुपर्छ।`;
+        } else if (remainingAmount <= 0) {
+            document.getElementById('goal-required-disp').innerText = "Rs. 0.00";
+            document.getElementById('goal-advice-disp').innerText = "बधाई छ! तपाईंले आफ्नो लक्ष्य प्राप्त गर्नुभयो। 🎉";
+            document.getElementById('goal-required-disp').style.color = "var(--success)";
+        } else {
+            document.getElementById('goal-required-disp').innerText = "Expired";
+            document.getElementById('goal-advice-disp').innerText = "लक्ष्यको समय समाप्त भयो। कृपया नयाँ मिति सेट गर्नुहोस्।";
+        }
     }
 
     async function fetchSettings() {
@@ -1864,9 +2021,9 @@
         const topD = sortedAccounts.filter(a => ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance > 0) || ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance < 0)).slice(0,3);
         const topC = sortedAccounts.filter(a => ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance > 0) || ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance < 0)).slice(0,3);
 
-        document.getElementById('top-debtors').innerHTML = topD.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--accent)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
         document.getElementById('top-creditors').innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
 
+        updateGoalUI();
         renderChart();
         renderTrendChart();
     }

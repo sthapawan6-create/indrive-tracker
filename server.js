@@ -62,6 +62,15 @@ const SettingSchema = new mongoose.Schema({
 });
 const Setting = mongoose.model('Setting', SettingSchema);
 
+const GoalSchema = new mongoose.Schema({
+    userId: String,
+    name: String,
+    target: Number,
+    deadline: String,
+    createdAt: { type: Date, default: Date.now }
+});
+const Goal = mongoose.model('Goal', GoalSchema);
+
 // --- APIs ---
 
 const checkLock = async (userId, date) => {
@@ -297,6 +306,30 @@ app.post('/api/settings/update-pin', async (req, res) => {
         await s.save();
         res.json({ message: "PIN Updated" });
     } catch (err) { res.status(500).json({ error: "PIN Update Failed" }); }
+});
+
+// ५. आर्थिक लक्ष्य (Goals)
+app.get('/api/goals', async (req, res) => {
+    try {
+        const goal = await Goal.findOne({ userId: req.query.userId }).sort({ createdAt: -1 });
+        res.json(goal || {});
+    } catch (err) { res.status(500).json({ error: "Goal load failed" }); }
+});
+
+app.post('/api/goals', async (req, res) => {
+    try {
+        const { userId, name, target, deadline } = req.body;
+        let goal = await Goal.findOne({ userId });
+        if (goal) {
+            goal.name = name;
+            goal.target = target;
+            goal.deadline = deadline;
+        } else {
+            goal = new Goal({ userId, name, target, deadline });
+        }
+        await goal.save();
+        res.json(goal);
+    } catch (err) { res.status(500).json({ error: "Goal save failed" }); }
 });
 
 const PORT = process.env.PORT || 3000;
