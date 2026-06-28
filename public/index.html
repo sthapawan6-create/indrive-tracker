@@ -1425,17 +1425,19 @@
     }
 
     async function addStock() {
-        const symbol = document.getElementById('stockSymbol').value.toUpperCase();
+        const symbol = document.getElementById('stockSymbol').value.toUpperCase().trim();
         const qty = Number(document.getElementById('stockQty').value);
         const buyPrice = Number(document.getElementById('stockBuyPrice').value);
         const ltp = Number(document.getElementById('stockCurrentPrice').value);
 
-        if(!symbol || !qty) return alert("Check inputs");
+        if(!symbol || qty <= 0 || buyPrice <= 0) {
+            return alert("कृपया SYMBOL, QTY र BUY PRICE (प्रति कित्ता मूल्य) सहि भर्नुहोस्।");
+        }
 
         await fetch('/api/stocks', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, symbol, qty, buyPrice, currentPrice: ltp })
+            body: JSON.stringify({ userId: currentUser.uid, symbol, qty, buyPrice, currentPrice: ltp || buyPrice })
         });
 
         // Clear inputs
@@ -1470,10 +1472,10 @@
             });
             const res = await r.json();
 
-            if (res.updatedCount === 0) {
-                alert("Live data not found for these symbols in our database. Try symbols like NICA, UPPER, or NABIL to test.");
+            if (res.updatedCount > 0) {
+                alert(`सफलतापूर्वक ${res.updatedCount} वटा सेयरको मूल्य अपडेट भयो!`);
             } else {
-                alert(`Successfully updated ${res.updatedCount} stocks!`);
+                alert("अहिले लाइभ डाटा उपलब्ध भएन वा सिम्बोल मिलेन।");
             }
             await fetchStocks();
         } catch(e) {
@@ -1512,7 +1514,7 @@
                     <div style="background:var(--accent); color:black; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:10px;">${s.symbol.substring(0,3)}</div>
                     <div>
                         <b style="color:white; font-size:16px;">${s.symbol}</b><br>
-                        <small style="color:#94a3b8;">${s.qty} Units @ Rs. ${s.buyPrice || 0} <span style="color:var(--accent);">(LTP: ${s.currentPrice || 0})</span></small>
+                        <small style="color:#94a3b8;">${s.qty} Units @ <span style="color:#fbbf24;">Rs. ${s.buyPrice}</span> | LTP: ${s.currentPrice || 0}</small>
                     </div>
                 </div>
                 <div style="text-align:right; display:flex; align-items:center; gap:15px;">

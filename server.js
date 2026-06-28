@@ -417,21 +417,24 @@ app.post('/api/stocks/sync', async (req, res) => {
             resp.on('data', (chunk) => { data += chunk; });
             resp.on('end', async () => {
                 try {
-                    const liveData = JSON.parse(data); // Expecting { "SYMBOL": price }
+                    const liveData = JSON.parse(data);
                     const stocks = await Stock.find({ userId });
-                    let updatedCount = 0;
+                    let count = 0;
 
                     for (const stock of stocks) {
-                        if (liveData[stock.symbol]) {
-                            stock.currentPrice = liveData[stock.symbol];
+                        const sym = stock.symbol.toUpperCase().trim();
+                        // Try to find match in live data
+                        const livePrice = liveData[sym] || liveData[sym + ".NEPSE"];
+                        if (livePrice) {
+                            stock.currentPrice = Number(livePrice);
                             stock.updatedAt = new Date();
                             await stock.save();
-                            updatedCount++;
+                            count++;
                         }
                     }
-                    res.json({ message: `Successfully synced ${updatedCount} stocks with live market!`, updatedCount });
+                    res.json({ success: true, updatedCount: count });
                 } catch (e) {
-                    res.status(500).json({ error: "Data parsing failed" });
+                    res.status(500).json({ success: false, error: "Data sync failed" });
                 }
             });
         }).on("error", (err) => {
