@@ -411,10 +411,10 @@ app.post('/api/stocks/sync', async (req, res) => {
         const https = require('https');
 
         const urls = [
+            'https://raw.githubusercontent.com/yadavraju/nepse-api-1-latest/master/data/date/latest.json',
             'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
             'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json',
-            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json',
-            'https://raw.githubusercontent.com/samirphuyal/nepse-api/master/data.json'
+            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json'
         ];
 
         const fetchData = (url) => new Promise((resolve, reject) => {

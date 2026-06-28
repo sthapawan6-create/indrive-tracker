@@ -528,9 +528,9 @@
                         </div>
                         <button class="btn btn-outline" onclick="openBikeModal()" style="padding:5px 10px; font-size:10px; border-color:#f59e0b; color:#f59e0b;"><i class="fas fa-motorcycle"></i> LOG</button>
                     </div>
-                    <div id="bike-reminders" style="margin-top:15px; font-size:11px; color:#fbbf24; font-weight:700;">
-                        <i class="fas fa-info-circle"></i> Service due: Update log
-                    </div>
+                <div id="bike-reminders" style="margin-top:15px; font-size:11px; color:#fbbf24; font-weight:700; border-top: 1px solid rgba(245,158,11,0.1); padding-top:10px;">
+                    <i class="fas fa-info-circle"></i> Service due: Update log
+                </div>
                 </div>
 
                 <!-- Share Market Card -->
@@ -1501,12 +1501,63 @@
     }
 
     function updateBikeUI() {
+        // Sort logs by date ascending for sequential calculations
+        const sortedLogs = [...bikeLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // Monthly Expense Calculation
         const monthly = bikeLogs.reduce((acc, log) => {
             const logDate = new Date(log.date);
-            if(logDate.getMonth() === new Date().getMonth()) return acc + log.amount;
+            const now = new Date();
+            if(logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear()) return acc + log.amount;
             return acc;
         }, 0);
         document.getElementById('bike-monthly-exp').innerText = `Rs. ${monthly.toLocaleString()}`;
+
+        // Mileage and Service Logic
+        let mileageInfo = 'Mileage: N/A';
+        let serviceInfo = 'Service due: Update log';
+
+        // 1. Calculate Mileage (KM per unit) between 'Fuel' entries
+        const fuelLogs = sortedLogs.filter(l => l.type.toLowerCase() === 'fuel');
+        if (fuelLogs.length >= 2) {
+            const lastFuel = fuelLogs[fuelLogs.length - 1];
+            const prevFuel = fuelLogs[fuelLogs.length - 2];
+            const kmDiff = lastFuel.odometer - prevFuel.odometer;
+
+            // Calculate fuel economy if we assume "Amount" is spent on fuel at a fixed price
+            // or just show the KM interval between refills.
+            // Using a guestimate for price per liter (e.g., Rs. 175) to show economy
+            const estimatedLiters = lastFuel.amount / 175;
+            const economy = (kmDiff / estimatedLiters).toFixed(1);
+
+            mileageInfo = `<i class="fas fa-gas-pump"></i> ${kmDiff} KM run (${economy} kmpl)`;
+        } else if (fuelLogs.length === 1) {
+            mileageInfo = `<i class="fas fa-gas-pump"></i> Odo: ${fuelLogs[0].odometer}`;
+        }
+
+        // 2. Service Interval Countdown (3,000 KM)
+        const serviceLogs = sortedLogs.filter(l => l.type.toLowerCase() === 'service');
+        const currentOdo = sortedLogs.length > 0 ? Math.max(...sortedLogs.map(l => l.odometer)) : 0;
+
+        if (serviceLogs.length > 0) {
+            const lastService = serviceLogs[serviceLogs.length - 1];
+            const nextServiceAt = lastService.odometer + 3000;
+            const remaining = nextServiceAt - currentOdo;
+
+            if (remaining <= 0) {
+                serviceInfo = `<span style="color:#ef4444; background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px;"><i class="fas fa-exclamation-triangle"></i> SERVICE OVERDUE (${Math.abs(remaining)} KM)</span>`;
+            } else {
+                serviceInfo = `<i class="fas fa-tools"></i> Service in: <b>${remaining} KM</b>`;
+            }
+        } else if (currentOdo > 0) {
+            const estNext = Math.ceil(currentOdo / 3000) * 3000;
+            serviceInfo = `<i class="fas fa-tools"></i> Next service: ~${estNext - currentOdo} KM`;
+        }
+
+        document.getElementById('bike-reminders').innerHTML = `<div style="display:flex; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.05); pt-10 mt-10">
+            <span>${serviceInfo}</span>
+            <span>${mileageInfo}</span>
+        </div>`;
     }
 
     function updateStockUI() {
