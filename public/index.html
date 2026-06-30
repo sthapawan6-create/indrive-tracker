@@ -1986,37 +1986,60 @@
         });
 
         let html = '';
-        // Group Header and Rows
         Object.keys(groups).sort().forEach(gName => {
             const gAccs = groups[gName];
             const gTotal = gAccs.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+            const gSlug = gName.replace(/\s/g,'_');
 
             html += `
-                <tr style="background: rgba(59, 130, 246, 0.05); cursor:pointer;" onclick="toggleGroup('${gName.replace(/\s/g,'_')}')">
-                    <td colspan="3" style="font-weight:800; color:var(--accent); padding:15px;">
-                        <i class="fas fa-chevron-down" id="icon-${gName.replace(/\s/g,'_')}"></i> ${gName.toUpperCase()} (${gAccs.length})
+                <tr style="background: rgba(59, 130, 246, 0.08); cursor:pointer;" onclick="toggleGroup('${gSlug}')">
+                    <td colspan="3" style="font-weight:800; color:var(--accent); padding:15px; border-left: 4px solid var(--accent);">
+                        <i class="fas fa-chevron-down" id="icon-${gSlug}"></i> ${gName.toUpperCase()} <span style="font-size:10px; opacity:0.6; margin-left:10px;">(${gAccs.length} ACCOUNTS)</span>
                     </td>
-                    <td class="text-right" style="font-weight:800; color:var(--accent); padding:15px;">Rs. ${gTotal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                    <td></td>
+                    <td class="text-right" style="font-weight:800; color:var(--accent); padding:15px; font-family:'JetBrains Mono';">Rs. ${gTotal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td class="text-right" style="padding:15px;">
+                         <span style="font-size:10px; background:var(--accent); color:black; padding:2px 8px; border-radius:10px; font-weight:900;">GROUP TOTAL</span>
+                    </td>
                 </tr>
             `;
 
             gAccs.forEach(a => {
-                html += `<tr class="group-row-${gName.replace(/\s/g,'_')}">
-                    <td style="padding-left:30px;">
-                        <div style="font-weight:800; color:white; font-size:15px;">${a.name}</div>
-                        ${a.panVat ? `<small style="color:var(--accent); font-size:10px; font-weight:700;">PAN: ${a.panVat}</small>` : ''}
+                const bal = Number(a.balance || 0);
+                const isDr = ['Asset', 'Expense'].includes(a.type);
+                const drCr = bal >= 0 ? (isDr ? 'Dr' : 'Cr') : (isDr ? 'Cr' : 'Dr');
+                const typeColor = isDr ? '#3b82f6' : '#f43f5e';
+
+                html += `<tr class="group-row-${gSlug}" style="transition: all 0.3s;">
+                    <td style="padding-left:35px; padding-top:12px; padding-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="background:${typeColor}22; color:${typeColor}; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px;">
+                                <i class="fas ${a.type==='Asset'?'fa-wallet':(a.type==='Expense'?'fa-arrow-up-right-from-square':'fa-file-invoice-dollar')}"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:800; color:white; font-size:15px; cursor:pointer;" onclick="viewLedgerStatement('${a._id}')">${a.name}</div>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                     <span style="font-size:9px; color:#64748b; text-transform:uppercase;">${a.type}</span>
+                                     ${a.panVat ? `<span style="font-size:9px; background:rgba(16,185,129,0.1); color:#10b981; padding:1px 5px; border-radius:3px;">PAN: ${a.panVat}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        <div style="font-size:11px; color:#94a3b8; font-weight:600;"><i class="fas fa-phone-alt" style="font-size:9px;"></i> ${a.phone || 'N/A'}</div>
-                        <div style="font-size:10px; color:#64748b;"><i class="fas fa-map-marker-alt" style="font-size:9px;"></i> ${a.address || 'N/A'}</div>
+                        <div style="font-size:11px; color:#94a3b8;"><i class="fas fa-phone-alt" style="font-size:9px; width:12px;"></i> ${a.phone || '---'}</div>
+                        <div style="font-size:10px; color:#64748b;"><i class="fas fa-map-marker-alt" style="font-size:9px; width:12px;"></i> ${a.address || '---'}</div>
                     </td>
-                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
-                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent); font-size:16px;">Rs. ${Number(a.balance||0).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-size:12px; color:#94a3b8;">Rs. ${(a.openingBalance || 0).toLocaleString()}</td>
                     <td class="text-right">
-                        <i class="fas fa-history text-success" title="View Statement" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="viewLedgerStatement('${a._id}')"></i>
-                        <i class="fas fa-edit text-warning" title="Edit Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
-                        <i class="fas fa-trash text-danger" title="Delete Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="delAcc('${a._id}')"></i>
+                        <div style="font-family:'JetBrains Mono'; font-weight:800; color:white; font-size:15px;">Rs. ${Math.abs(bal).toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+                        <div style="font-size:10px; font-weight:900; color:${typeColor};">${drCr}</div>
+                    </td>
+                    <td class="text-right">
+                        <div style="display:flex; gap:5px; justify-content:flex-end;">
+                            <i class="fas fa-history text-success" title="View Statement" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="viewLedgerStatement('${a._id}')"></i>
+                            <i class="fas fa-edit text-warning" title="Edit Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="editAccPrompt('${a._id}', '${a.name}', '${a.group}', ${a.openingBalance || 0})"></i>
+                            <i class="fas fa-code-branch text-info" title="Merge" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="openMergeModal('${a._id}')"></i>
+                            <i class="fas fa-trash text-danger" title="Delete Account" style="cursor:pointer; padding:5px 10px; font-size:16px;" onclick="delAcc('${a._id}')"></i>
+                        </div>
                     </td>
                 </tr>`;
             });
@@ -2025,6 +2048,12 @@
         document.querySelector('#aTable tbody').innerHTML = html;
         document.getElementById('sAcc').innerHTML = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.getElementById('lOpts').innerHTML = accounts.map(a => `<option value="${a.name}">`).join('');
+
+        // Update Stats
+        const totalAsset = accounts.filter(a => ['Asset', 'Expense'].includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
+        const totalLiab = accounts.filter(a => ['Liability', 'Revenue', 'Equity'].includes(a.type)).reduce((s, a) => s + (a.balance || 0), 0);
+        const netWorth = totalAsset - totalLiab;
+        document.getElementById('net-worth').innerText = `Rs. ${netWorth.toLocaleString()}`;
 
         // Populate Merge Dropdowns
         const mergeOpts = accounts.map(a => `<option value="${a._id}">${a.name} (${a.group})</option>`).join('');
