@@ -2608,14 +2608,19 @@
         if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ');
         if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ');
         if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ');
-    }
 
         // New: Top Debtors/Creditors logic
         const sortedAccounts = [...accounts].sort((a,b) => Math.abs(b.balance) - Math.abs(a.balance));
-        const topD = sortedAccounts.filter(a => ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance > 0) || ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance < 0)).slice(0,3);
-        const topC = sortedAccounts.filter(a => ((a.group==='Sundry Creditors' || a.group==='Payables') && a.balance > 0) || ((a.group==='Sundry Debtors' || a.group==='Receivables') && a.balance < 0)).slice(0,3);
+        const topC = sortedAccounts.filter(a => {
+            const g = (a.group || "").toLowerCase();
+            const b = Number(a.balance || 0);
+            return (g==='sundry creditors' || g==='payables') && b > 0;
+        }).slice(0,3);
 
-        document.getElementById('top-creditors').innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
+        const tcEl = document.getElementById('top-creditors');
+        if(tcEl) {
+            tcEl.innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
+        }
 
         updateGoalUI();
         renderChart();
