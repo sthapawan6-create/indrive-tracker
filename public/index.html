@@ -2512,45 +2512,66 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0, cashList=[], arList=[], apList=[];
-        accounts.forEach(a => {
-            if(a.type === 'Asset') assets += a.balance;
-            if(a.type === 'Liability') liabilities += a.balance;
-            if(a.type === 'Equity') equity += a.balance;
+        if (!accounts || accounts.length === 0) return;
 
-            if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') {
-                cash += a.balance;
-                if(a.balance !== 0) cashList.push(`${a.name}: ${a.balance.toLocaleString()}`);
+        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0, cashList=[], arList=[], apList=[];
+
+        accounts.forEach(a => {
+            const bal = Number(a.balance || 0);
+            const type = a.type;
+            const group = a.group;
+
+            if(type === 'Asset') assets += bal;
+            if(type === 'Liability') liabilities += bal;
+            if(type === 'Equity') equity += bal;
+
+            if(group==='Bank Accounts' || group==='Cash-in-hand') {
+                cash += bal;
+                if(bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
-            else if(a.group==='Sundry Debtors' || a.group==='Receivables') {
-                if(a.balance > 0) {
-                    ar += a.balance;
-                    arList.push(`${a.name}: ${a.balance.toLocaleString()}`);
-                } else if(a.balance < 0) {
-                    ap += Math.abs(a.balance);
-                    apList.push(`${a.name}: ${Math.abs(a.balance).toLocaleString()}`);
+            else if(group==='Sundry Debtors' || group==='Receivables' || group==='Sundry Creditors' || group==='Payables') {
+                // Asset types (Debtors/Receivables) normally have +ve balance as AR
+                // Liability types (Creditors/Payables) normally have +ve balance as AP
+                if (type === 'Asset') {
+                    if (bal >= 0) ar += bal;
+                    else ap += Math.abs(bal);
+                } else {
+                    if (bal >= 0) ap += bal;
+                    else ar += Math.abs(bal);
+                }
+
+                if (bal !== 0) {
+                    if (type === 'Asset' ? bal > 0 : bal < 0) arList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
+                    else apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
                 }
             }
-            else if(a.group==='Sundry Creditors' || a.group==='Payables') {
-                if(a.balance > 0) {
-                    ap += a.balance;
-                    apList.push(`${a.name}: ${a.balance.toLocaleString()}`);
-                } else if(a.balance < 0) {
-                    ar += Math.abs(a.balance);
-                    arList.push(`${a.name}: ${Math.abs(a.balance).toLocaleString()}`);
-                }
-            }
-            if(a.type==='Revenue') rev += a.balance;
-            if(a.type==='Expense') exp += a.balance;
+
+            if(type==='Revenue') rev += bal;
+            if(type==='Expense') exp += bal;
         });
 
-        document.getElementById('dash-total-income').innerText = "Rs. " + rev.toLocaleString(undefined,{minimumFractionDigits:2});
-        document.getElementById('dash-total-expense').innerText = "Rs. " + exp.toLocaleString(undefined,{minimumFractionDigits:2});
-
         const netWorth = assets - liabilities;
-        document.getElementById('dash-networth').innerText = "Rs. " + netWorth.toLocaleString(undefined,{minimumFractionDigits:2});
 
-        // Calculate History for Growth Comparison
+        // Safety updates with null checks
+        const setVal = (id, val, colorClass) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerText = "Rs. " + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2});
+                if (colorClass) el.className = colorClass;
+            }
+        };
+
+        setVal('dash-networth', netWorth);
+        setVal('dash-cash', cash);
+        setVal('dash-ar', ar);
+        setVal('dash-ap', ap);
+        setVal('dash-profit', (rev - exp), (rev - exp) >= 0 ? "value text-success" : "value text-danger");
+
+        // Top mini-stats if they exist
+        setVal('dash-total-income', rev);
+        setVal('dash-total-expense', exp);
+
+        // Growth Comparison Logic
         const calcStatsAtDate = (dateStr) => {
             let nw = 0, csh = 0, rec = 0;
             accounts.forEach(a => {
@@ -2560,20 +2581,14 @@
                     t.entries.forEach(e => {
                         const accId = e.account?._id || e.account;
                         if(accId === a._id) {
-                            bal += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                            bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
                         }
                     });
                 });
                 if(a.type === 'Asset') nw += bal;
                 if(a.type === 'Liability') nw -= bal;
-
                 if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') csh += bal;
-                if(a.group==='Sundry Debtors' || a.group==='Receivables') {
-                    if(bal > 0) rec += bal;
-                }
-                if(a.group==='Sundry Creditors' || a.group==='Payables') {
-                    if(bal < 0) rec += Math.abs(bal);
-                }
+                if(['Sundry Debtors', 'Receivables'].includes(a.group)) if(bal > 0) rec += bal;
             });
             return { nw, csh, rec };
         };
@@ -2586,38 +2601,27 @@
         const stats30 = calcStatsAtDate(d30.toISOString().split('T')[0]);
 
         const updateGrowth = (id, current, old, label) => {
-            const diff = current - old;
             const el = document.getElementById(id);
             if(!el) return;
+            const diff = current - old;
             if(old === 0 && diff === 0) { el.innerText = `${label}: --`; el.style.background="transparent"; return; }
             const perc = old !== 0 ? ((diff/Math.abs(old)) * 100).toFixed(1) : (diff > 0 ? 100 : 0);
             el.innerHTML = `${label}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
-            el.style.background = diff >= 0 ? "rgba(16,185,129,0.2)" : "rgba(244,63,94,0.2)";
+            el.style.background = diff >= 0 ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)";
             el.style.color = diff >= 0 ? "#10b981" : "#ff4d6d";
-            el.style.border = diff >= 0 ? "1px solid rgba(16,185,129,0.3)" : "1px solid rgba(244,63,94,0.3)";
         };
 
         updateGrowth('nw-weekly', netWorth, stats7.nw, '7D');
         updateGrowth('nw-monthly', netWorth, stats30.nw, '30D');
-
         updateGrowth('cash-weekly', cash, stats7.csh, '7D');
         updateGrowth('cash-monthly', cash, stats30.csh, '30D');
-
         updateGrowth('ar-weekly', ar, stats7.rec, '7D');
         updateGrowth('ar-monthly', ar, stats30.rec, '30D');
 
-        document.getElementById('dash-cash').innerText = "Rs. " + cash.toLocaleString(undefined,{minimumFractionDigits:2});
-        document.getElementById('dash-ar').innerText = "Rs. " + ar.toLocaleString(undefined,{minimumFractionDigits:2});
-        document.getElementById('dash-ap').innerText = "Rs. " + ap.toLocaleString(undefined,{minimumFractionDigits:2});
-
-        const netProfit = rev - exp;
-        const pElem = document.getElementById('dash-profit');
-        pElem.innerText = "Rs. " + netProfit.toLocaleString(undefined,{minimumFractionDigits:2});
-        pElem.className = netProfit >= 0 ? "value text-success" : "value text-danger";
-
-        document.getElementById('cash-breakdown').innerHTML = cashList.join(' • ');
-        document.getElementById('ar-breakdown').innerHTML = arList.join(' • ');
-        document.getElementById('ap-breakdown').innerHTML = apList.join(' • ');
+        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ') + (cashList.length > 3 ? '...' : '');
+        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ') + (arList.length > 3 ? '...' : '');
+        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ') + (apList.length > 3 ? '...' : '');
+    }
 
         // New: Top Debtors/Creditors logic
         const sortedAccounts = [...accounts].sort((a,b) => Math.abs(b.balance) - Math.abs(a.balance));
