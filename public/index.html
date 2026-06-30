@@ -2512,52 +2512,68 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        // यदि डाटा लोड भएको छैन भने पुनः प्रयास गर्ने
         if (!accounts || accounts.length === 0) {
             setTimeout(updateDash, 500);
             return;
         }
 
-        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0;
+        let rev=0, exp=0, cash=0, ar=0, ap=0;
         let cashList=[], arList=[], apList=[];
+
+        // Calculate Net Profit first (PL Logic)
+        accounts.forEach(a => {
+            if(a.type === 'Revenue') rev += Number(a.balance || 0);
+            if(a.type === 'Expense') exp += Number(a.balance || 0);
+        });
+        const netProfit = rev - exp;
+
+        // Balance Sheet Logic for Assets/Liabilities
+        // Asset with +ve bal = AR, Asset with -ve bal = AP
+        // Liability with +ve bal = AP, Liability with -ve bal = AR
+        let aTotal = 0, lTotal = 0, eTotal = 0;
 
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
-            const type = (a.type || "").trim().toLowerCase();
-            const group = (a.group || "").trim().toLowerCase();
+            const type = a.type;
+            const group = (a.group || "").toLowerCase();
 
-            // Totals by type (Exact same as Balance Sheet/PL)
-            if(type === 'asset') assets += bal;
-            else if(type === 'liability') liabilities += bal;
-            else if(type === 'equity') equity += bal;
-            else if(type === 'revenue') rev += bal;
-            else if(type === 'expense') exp += bal;
+            if (type === 'Asset') {
+                if (bal >= 0) { aTotal += bal; } else { lTotal += Math.abs(bal); }
+            } else if (type === 'Liability') {
+                if (bal >= 0) { lTotal += bal; } else { aTotal += Math.abs(bal); }
+            } else if (type === 'Equity') {
+                eTotal += bal;
+            }
 
-            // Dashboard Specific Cards mapping
-            if(group.includes('bank') || group.includes('cash')) {
+            // Cash & Bank mapping
+            if (group.includes('bank') || group.includes('cash')) {
                 cash += bal;
                 if(bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
 
-            if(group.includes('debtor') || group.includes('receivable')) {
-                ar += bal;
-                if(bal > 0) arList.push(`${a.name}: ${bal.toLocaleString()}`);
-            }
-
-            if(group.includes('creditor') || group.includes('payable')) {
-                ap += Math.abs(bal);
-                if(bal !== 0) apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
+            // AR/AP mapping based on group names
+            if (group.includes('debtor') || group.includes('receivable') || group.includes('creditor') || group.includes('payable')) {
+                if (type === 'Asset') {
+                    if (bal >= 0) { ar += bal; arList.push(`${a.name}: ${bal.toLocaleString()}`); }
+                    else { ap += Math.abs(bal); apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
+                } else {
+                    if (bal >= 0) { ap += bal; apList.push(`${a.name}: ${bal.toLocaleString()}`); }
+                    else { ar += Math.abs(bal); arList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
+                }
             }
         });
 
-        const netWorth = assets - liabilities;
-        const netProfit = rev - exp;
+        // Net Worth = Total Assets - Total Liabilities (excluding Equity & Profit)
+        // Matching BS: Total Assets = aTotal; Total Liab = lTotal + eTotal + netProfit
+        const netWorth = aTotal - (lTotal + eTotal + netProfit);
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
             if (el) {
-                el.innerText = "Rs. " + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2});
+                el.innerText = "Rs. " + Math.abs(Number(val)).toLocaleString(undefined, {minimumFractionDigits: 2});
                 if (colorClass) el.className = "value " + colorClass;
+                // If networth is negative, maybe show in red
+                if (id === 'dash-networth') el.style.color = val >= 0 ? 'white' : 'var(--danger)';
             }
         };
 
@@ -2567,16 +2583,13 @@
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
 
-        // Mini stats
         if(document.getElementById('dash-total-income')) setVal('dash-total-income', rev);
         if(document.getElementById('dash-total-expense')) setVal('dash-total-expense', exp);
 
-        // Breakdown updates
         if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ') || 'No active accounts';
-        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ') || 'No receivables';
-        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ') || 'No payables';
+        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,2).join(' • ') || 'No receivables';
+        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,2).join(' • ') || 'No payables';
 
-        // Update other UI components
         updateGoalUI();
         renderChart();
         renderTrendChart();
