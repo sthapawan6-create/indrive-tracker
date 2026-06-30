@@ -2518,77 +2518,66 @@
 
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
-            const type = a.type;
-            const group = a.group;
+            const type = (a.type || "").trim().toLowerCase();
+            const group = (a.group || "").trim().toLowerCase();
 
-            if(type === 'Asset') assets += bal;
-            if(type === 'Liability') liabilities += bal;
-            if(type === 'Equity') equity += bal;
+            if(type === 'asset') assets += bal;
+            if(type === 'liability') liabilities += bal;
+            if(type === 'equity') equity += bal;
+            if(type === 'revenue') rev += bal;
+            if(type === 'expense') exp += bal;
 
-            if(group==='Bank Accounts' || group==='Cash-in-hand') {
+            if(group === 'bank accounts' || group === 'cash-in-hand') {
                 cash += bal;
                 if(bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
-            else if(group==='Sundry Debtors' || group==='Receivables' || group==='Sundry Creditors' || group==='Payables') {
-                // Asset types (Debtors/Receivables) normally have +ve balance as AR
-                // Liability types (Creditors/Payables) normally have +ve balance as AP
-                if (type === 'Asset') {
-                    if (bal >= 0) ar += bal;
-                    else ap += Math.abs(bal);
+            else if(['sundry debtors', 'receivables', 'sundry creditors', 'payables'].includes(group)) {
+                if (type === 'asset') {
+                    if (bal >= 0) ar += bal; else ap += Math.abs(bal);
                 } else {
-                    if (bal >= 0) ap += bal;
-                    else ar += Math.abs(bal);
+                    if (bal >= 0) ap += bal; else ar += Math.abs(bal);
                 }
-
                 if (bal !== 0) {
-                    if (type === 'Asset' ? bal > 0 : bal < 0) arList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
+                    if (bal > 0) arList.push(`${a.name}: ${bal.toLocaleString()}`);
                     else apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
                 }
             }
-
-            if(type==='Revenue') rev += bal;
-            if(type==='Expense') exp += bal;
         });
 
         const netWorth = assets - liabilities;
+        const netProfit = rev - exp;
 
-        // Safety updates with null checks
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
             if (el) {
                 el.innerText = "Rs. " + Number(val).toLocaleString(undefined, {minimumFractionDigits: 2});
-                if (colorClass) el.className = colorClass;
+                if (colorClass) el.className = "value " + colorClass;
             }
         };
 
         setVal('dash-networth', netWorth);
-        setVal('dash-cash', cash);
+        setVal('dash-cash', cash, "text-success");
         setVal('dash-ar', ar);
-        setVal('dash-ap', ap);
-        setVal('dash-profit', (rev - exp), (rev - exp) >= 0 ? "value text-success" : "value text-danger");
-
-        // Top mini-stats if they exist
+        setVal('dash-ap', ap, "text-danger");
+        setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
         setVal('dash-total-income', rev);
         setVal('dash-total-expense', exp);
 
-        // Growth Comparison Logic
         const calcStatsAtDate = (dateStr) => {
             let nw = 0, csh = 0, rec = 0;
             accounts.forEach(a => {
-                let bal = Number(a.openingBalance || 0);
-                const isDebitInc = ['Asset', 'Expense'].includes(a.type);
+                let b = Number(a.openingBalance || 0);
+                const isDr = ['asset', 'expense'].includes(a.type?.toLowerCase());
                 transactions.filter(t => t.date <= dateStr).forEach(t => {
                     t.entries.forEach(e => {
-                        const accId = e.account?._id || e.account;
-                        if(accId === a._id) {
-                            bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
-                        }
+                        const aid = e.account?._id || e.account;
+                        if(aid === a._id) b += isDr ? (Number(e.debit||0) - Number(e.credit||0)) : (Number(e.credit||0) - Number(e.debit||0));
                     });
                 });
-                if(a.type === 'Asset') nw += bal;
-                if(a.type === 'Liability') nw -= bal;
-                if(a.group==='Bank Accounts' || a.group==='Cash-in-hand') csh += bal;
-                if(['Sundry Debtors', 'Receivables'].includes(a.group)) if(bal > 0) rec += bal;
+                if(a.type?.toLowerCase() === 'asset') nw += b;
+                if(a.type?.toLowerCase() === 'liability') nw -= b;
+                if(['bank accounts', 'cash-in-hand'].includes(a.group?.toLowerCase())) csh += b;
+                if(['sundry debtors', 'receivables'].includes(a.group?.toLowerCase()) && b > 0) rec += b;
             });
             return { nw, csh, rec };
         };
@@ -2596,18 +2585,16 @@
         const today = new Date();
         const d7 = new Date(today); d7.setDate(today.getDate() - 7);
         const d30 = new Date(today); d30.setDate(today.getDate() - 30);
-
         const stats7 = calcStatsAtDate(d7.toISOString().split('T')[0]);
         const stats30 = calcStatsAtDate(d30.toISOString().split('T')[0]);
 
-        const updateGrowth = (id, current, old, label) => {
+        const updateGrowth = (id, cur, old, lbl) => {
             const el = document.getElementById(id);
             if(!el) return;
-            const diff = current - old;
-            if(old === 0 && diff === 0) { el.innerText = `${label}: --`; el.style.background="transparent"; return; }
+            const diff = cur - old;
+            if(old === 0 && diff === 0) { el.innerText = `${lbl}: --`; return; }
             const perc = old !== 0 ? ((diff/Math.abs(old)) * 100).toFixed(1) : (diff > 0 ? 100 : 0);
-            el.innerHTML = `${label}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
-            el.style.background = diff >= 0 ? "rgba(16,185,129,0.1)" : "rgba(244,63,94,0.1)";
+            el.innerHTML = `${lbl}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
             el.style.color = diff >= 0 ? "#10b981" : "#ff4d6d";
         };
 
@@ -2618,9 +2605,9 @@
         updateGrowth('ar-weekly', ar, stats7.rec, '7D');
         updateGrowth('ar-monthly', ar, stats30.rec, '30D');
 
-        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ') + (cashList.length > 3 ? '...' : '');
-        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ') + (arList.length > 3 ? '...' : '');
-        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ') + (apList.length > 3 ? '...' : '');
+        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ');
+        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ');
+        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ');
     }
 
         // New: Top Debtors/Creditors logic
