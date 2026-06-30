@@ -983,6 +983,18 @@
         });
     }
 
+    // Global Clock
+    function updateClock() {
+        const elDate = document.getElementById('currentDateDisp');
+        const elTime = document.getElementById('currentTimeDisp');
+        if(!elDate || !elTime) return;
+
+        const now = new Date();
+        elDate.innerText = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        elTime.innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+
     auth.onAuthStateChanged(function(user) {
         if (user) {
             console.log("Auth State Changed: User detected", user.email);
@@ -1006,23 +1018,9 @@
                 document.getElementById('userName').innerText = user.displayName;
                 document.getElementById('userEmail').innerText = user.email;
                 document.getElementById('userImg').src = user.photoURL;
-    function updateClock() {
-        const now = new Date();
-        const dateOptions = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-        document.getElementById('currentDateDisp').innerText = now.toLocaleDateString('en-US', dateOptions);
-
-        const timeString = now.toLocaleTimeString('en-US', {
-            hour12: true,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        document.getElementById('currentTimeDisp').innerText = timeString;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
             }
             applyConfig();
+            init(); // <--- यो छुटेको थियो, जसले डाटा लोड गर्छ
         } else {
             var ls = document.getElementById('loginSection');
             var ms = document.getElementById('mainSection');
