@@ -1020,7 +1020,7 @@
                 document.getElementById('userImg').src = user.photoURL;
             }
             applyConfig();
-            init(); // <--- यो छुटेको थियो, जसले डाटा लोड गर्छ
+            // checkSecurity ले सफल भएपछि आफै init() कल गर्छ, यहाँबाट हटाउँदा दोहोरिदैन
         } else {
             var ls = document.getElementById('loginSection');
             var ms = document.getElementById('mainSection');
@@ -2511,45 +2511,50 @@
 
     function updateDash() {
         if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-            console.log("Dashboard Update: No accounts found yet...");
             setTimeout(updateDash, 1000);
             return;
         }
 
-        console.log("Updating Dash with accounts:", accounts.length);
-
-        let rev=0, exp=0, cash=0, ar=0, ap=0, aTotal=0, lTotal=0, eTotal=0;
+        let rev=0, exp=0, cash=0, ar=0, ap=0, aTotal=0, lTotal=0;
         let cashList=[], arList=[], apList=[];
 
         accounts.forEach(a => {
-            const bal = Number(a.balance || 0);
-            const type = (a.type || "").trim().toLowerCase();
-            const group = (a.group || "").trim().toLowerCase();
+            // Force conversion to absolute number to prevent calculation errors
+            const bal = parseFloat(a.balance) || 0;
+            const type = (a.type || "").toString().trim().toLowerCase();
+            const group = (a.group || "").toString().toLowerCase();
+            const name = a.name || "";
 
+            // 1. Profit & Loss (Revenue - Expense)
             if (type === 'revenue') rev += bal;
             if (type === 'expense') exp += bal;
 
+            // 2. Net Worth Calculation (Assets - Liabilities)
             if (type === 'asset') {
                 if (bal >= 0) aTotal += bal; else lTotal += Math.abs(bal);
+
+                // Cash & Bank tracking
+                if (group.includes('bank') || group.includes('cash')) {
+                    cash += bal;
+                    if (Math.abs(bal) > 0) cashList.push(`${name}: ${bal.toLocaleString()}`);
+                }
             } else if (type === 'liability') {
                 if (bal >= 0) lTotal += bal; else aTotal += Math.abs(bal);
             } else if (type === 'equity') {
-                eTotal += bal;
+                // Equity is part of net worth (Capital + Profit)
+                aTotal += bal;
             }
 
-            if (group.includes('bank') || group.includes('cash')) {
-                cash += bal;
-                if (bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
-            }
+            // 3. Receivables & Payables
+            const isRec = group.includes('debtor') || group.includes('receivable');
+            const isPay = group.includes('creditor') || group.includes('payable');
 
-            if (group.includes('debtor') || group.includes('receivable') || group.includes('creditor') || group.includes('payable')) {
-                if (type === 'asset') {
-                    if (bal >= 0) { ar += bal; arList.push(`${a.name}: ${bal.toLocaleString()}`); }
-                    else { ap += Math.abs(bal); apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
-                } else if (type === 'liability') {
-                    if (bal >= 0) { ap += bal; apList.push(`${a.name}: ${bal.toLocaleString()}`); }
-                    else { ar += Math.abs(bal); arList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
-                }
+            if (isRec) {
+                if (bal >= 0) { ar += bal; arList.push(name); }
+                else { ap += Math.abs(bal); apList.push(name); }
+            } else if (isPay) {
+                if (bal >= 0) { ap += bal; apList.push(name); }
+                else { ar += Math.abs(bal); arList.push(name); }
             }
         });
 
@@ -2572,13 +2577,14 @@
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
 
+        // UI Refresh for secondary modules
         if (typeof updateBikeUI === 'function') updateBikeUI();
         if (typeof updateStockUI === 'function') updateStockUI();
         if (typeof updateGoalUI === 'function') updateGoalUI();
 
         const updateList = (id, list) => {
             const el = document.getElementById(id);
-            if (el) el.innerHTML = list.length > 0 ? list.slice(0,2).join(' • ') : 'No active accounts';
+            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No active items';
         };
         updateList('cash-breakdown', cashList);
         updateList('ar-breakdown', arList);
