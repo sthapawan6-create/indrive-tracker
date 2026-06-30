@@ -2512,35 +2512,41 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        if (!accounts || accounts.length === 0) return;
+        // यदि डाटा लोड भएको छैन भने पुनः प्रयास गर्ने
+        if (!accounts || accounts.length === 0) {
+            setTimeout(updateDash, 500);
+            return;
+        }
 
-        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0, cashList=[], arList=[], apList=[];
+        let cash=0, ar=0, ap=0, rev=0, exp=0, assets=0, liabilities=0, equity=0;
+        let cashList=[], arList=[], apList=[];
 
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
             const type = (a.type || "").trim().toLowerCase();
             const group = (a.group || "").trim().toLowerCase();
 
+            // Totals by type (Exact same as Balance Sheet/PL)
             if(type === 'asset') assets += bal;
-            if(type === 'liability') liabilities += bal;
-            if(type === 'equity') equity += bal;
-            if(type === 'revenue') rev += bal;
-            if(type === 'expense') exp += bal;
+            else if(type === 'liability') liabilities += bal;
+            else if(type === 'equity') equity += bal;
+            else if(type === 'revenue') rev += bal;
+            else if(type === 'expense') exp += bal;
 
-            if(group === 'bank accounts' || group === 'cash-in-hand') {
+            // Dashboard Specific Cards mapping
+            if(group.includes('bank') || group.includes('cash')) {
                 cash += bal;
                 if(bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
-            else if(['sundry debtors', 'receivables', 'sundry creditors', 'payables'].includes(group)) {
-                if (type === 'asset') {
-                    if (bal >= 0) ar += bal; else ap += Math.abs(bal);
-                } else {
-                    if (bal >= 0) ap += bal; else ar += Math.abs(bal);
-                }
-                if (bal !== 0) {
-                    if (bal > 0) arList.push(`${a.name}: ${bal.toLocaleString()}`);
-                    else apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
-                }
+
+            if(group.includes('debtor') || group.includes('receivable')) {
+                ar += bal;
+                if(bal > 0) arList.push(`${a.name}: ${bal.toLocaleString()}`);
+            }
+
+            if(group.includes('creditor') || group.includes('payable')) {
+                ap += Math.abs(bal);
+                if(bal !== 0) apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`);
             }
         });
 
@@ -2560,68 +2566,17 @@
         setVal('dash-ar', ar);
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
-        setVal('dash-total-income', rev);
-        setVal('dash-total-expense', exp);
 
-        const calcStatsAtDate = (dateStr) => {
-            let nw = 0, csh = 0, rec = 0;
-            accounts.forEach(a => {
-                let b = Number(a.openingBalance || 0);
-                const isDr = ['asset', 'expense'].includes(a.type?.toLowerCase());
-                transactions.filter(t => t.date <= dateStr).forEach(t => {
-                    t.entries.forEach(e => {
-                        const aid = e.account?._id || e.account;
-                        if(aid === a._id) b += isDr ? (Number(e.debit||0) - Number(e.credit||0)) : (Number(e.credit||0) - Number(e.debit||0));
-                    });
-                });
-                if(a.type?.toLowerCase() === 'asset') nw += b;
-                if(a.type?.toLowerCase() === 'liability') nw -= b;
-                if(['bank accounts', 'cash-in-hand'].includes(a.group?.toLowerCase())) csh += b;
-                if(['sundry debtors', 'receivables'].includes(a.group?.toLowerCase()) && b > 0) rec += b;
-            });
-            return { nw, csh, rec };
-        };
+        // Mini stats
+        if(document.getElementById('dash-total-income')) setVal('dash-total-income', rev);
+        if(document.getElementById('dash-total-expense')) setVal('dash-total-expense', exp);
 
-        const today = new Date();
-        const d7 = new Date(today); d7.setDate(today.getDate() - 7);
-        const d30 = new Date(today); d30.setDate(today.getDate() - 30);
-        const stats7 = calcStatsAtDate(d7.toISOString().split('T')[0]);
-        const stats30 = calcStatsAtDate(d30.toISOString().split('T')[0]);
+        // Breakdown updates
+        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ') || 'No active accounts';
+        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ') || 'No receivables';
+        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ') || 'No payables';
 
-        const updateGrowth = (id, cur, old, lbl) => {
-            const el = document.getElementById(id);
-            if(!el) return;
-            const diff = cur - old;
-            if(old === 0 && diff === 0) { el.innerText = `${lbl}: --`; return; }
-            const perc = old !== 0 ? ((diff/Math.abs(old)) * 100).toFixed(1) : (diff > 0 ? 100 : 0);
-            el.innerHTML = `${lbl}: ${diff >= 0 ? '+' : ''}${Math.abs(diff).toLocaleString()} (${diff >= 0 ? '↑' : '↓'} ${perc}%)`;
-            el.style.color = diff >= 0 ? "#10b981" : "#ff4d6d";
-        };
-
-        updateGrowth('nw-weekly', netWorth, stats7.nw, '7D');
-        updateGrowth('nw-monthly', netWorth, stats30.nw, '30D');
-        updateGrowth('cash-weekly', cash, stats7.csh, '7D');
-        updateGrowth('cash-monthly', cash, stats30.csh, '30D');
-        updateGrowth('ar-weekly', ar, stats7.rec, '7D');
-        updateGrowth('ar-monthly', ar, stats30.rec, '30D');
-
-        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ');
-        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,3).join(' • ');
-        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,3).join(' • ');
-
-        // New: Top Debtors/Creditors logic
-        const sortedAccounts = [...accounts].sort((a,b) => Math.abs(b.balance) - Math.abs(a.balance));
-        const topC = sortedAccounts.filter(a => {
-            const g = (a.group || "").toLowerCase();
-            const b = Number(a.balance || 0);
-            return (g==='sundry creditors' || g==='payables') && b > 0;
-        }).slice(0,3);
-
-        const tcEl = document.getElementById('top-creditors');
-        if(tcEl) {
-            tcEl.innerHTML = topC.map(a => `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${a.name}</span><span style="color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</span></div>`).join('') || 'No data';
-        }
-
+        // Update other UI components
         updateGoalUI();
         renderChart();
         renderTrendChart();
