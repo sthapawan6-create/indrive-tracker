@@ -378,7 +378,7 @@
                     <button class="btn" onclick="syncLivePrices()" style="background:#065f46; color:#10b981; border:1px solid #10b981; padding:5px 15px; font-size:12px; font-weight:800; border-radius:8px;">
                         <i class="fas fa-sync-alt" id="sync-icon"></i> SYNC LIVE
                     </button>
-                    <button onclick="document.getElementById('stockModal').classList.add('hidden')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+                    <button onclick="closeStockModal()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
                 </div>
             </div>
             <div class="modal-body">
@@ -406,6 +406,13 @@
                 </div>
                 <button class="btn btn-primary" onclick="addStock()" style="width: 100%; padding:18px; background:#10b981; border:none;"><i class="fas fa-plus"></i> ADD TO PORTFOLIO</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Account Breakdown Modal -->
+    <div id="breakdownModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 700px; padding:0;" id="breakdownContent">
+            <!-- JavaScript will inject content here -->
         </div>
     </div>
 
@@ -1416,9 +1423,17 @@
     }
 
     function openBikeModal() { document.getElementById('bikeModal').classList.remove('hidden'); }
+    let stockInterval;
     function openStockModal() {
         document.getElementById('stockModal').classList.remove('hidden');
-        syncLivePrices(); // मोडाल खोल्ने बित्तिकै अटो-सिंक सुरु गर्ने
+        syncLivePrices();
+        // हरेक ६० सेकेन्डमा अटो-सिंक गर्ने
+        stockInterval = setInterval(syncLivePrices, 60000);
+    }
+
+    function closeStockModal() {
+        document.getElementById('stockModal').classList.add('hidden');
+        if(stockInterval) clearInterval(stockInterval); // बन्द भएपछि रोक्ने
     }
 
     async function saveBikeLog() {
