@@ -2835,32 +2835,70 @@
         } else if(type==='trial') {
             let tDr=0, tCr=0;
             const rows = accounts.sort((a,b) => a.group.localeCompare(b.group)).map(a => {
-                const dr = a.balance > 0 ? a.balance : 0;
-                const cr = a.balance < 0 ? Math.abs(a.balance) : 0;
+                const bal = Number(a.balance || 0);
+                const isDrType = ['Asset', 'Expense'].includes(a.type);
+
+                let dr = 0, cr = 0;
+                // If Asset/Expense has +ve balance, it's Dr. If Liability/Revenue has +ve balance, it's Cr.
+                if(isDrType) {
+                    dr = bal >= 0 ? bal : 0;
+                    cr = bal < 0 ? Math.abs(bal) : 0;
+                } else {
+                    cr = bal >= 0 ? bal : 0;
+                    dr = bal < 0 ? Math.abs(bal) : 0;
+                }
+
                 tDr += dr; tCr += cr;
-                return `<tr style="background:rgba(255,255,255,0.01);">
-                    <td style="font-weight:600;">${a.name}</td>
+                return `<tr style="background:rgba(255,255,255,0.01); border-bottom:1px solid rgba(255,255,255,0.03);">
+                    <td style="padding:12px 25px;">
+                        <div style="font-weight:600; color:white;">${a.name}</div>
+                        <small style="color:#64748b; font-size:9px; text-transform:uppercase;">${a.type}</small>
+                    </td>
                     <td style="font-size:11px; color:#94a3b8; font-weight:700;">${a.group.toUpperCase()}</td>
-                    <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--success);">${dr?dr.toLocaleString(undefined,{minimumFractionDigits:2}):''}</td>
-                    <td class="text-right" style="font-family:'JetBrains Mono'; color:var(--danger);">${cr?cr.toLocaleString(undefined,{minimumFractionDigits:2}):''}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:#10b981;">${dr?dr.toLocaleString(undefined,{minimumFractionDigits:2}):'—'}</td>
+                    <td class="text-right" style="font-family:'JetBrains Mono'; font-weight:700; color:#f43f5e; padding-right:25px;">${cr?cr.toLocaleString(undefined,{minimumFractionDigits:2}):'—'}</td>
                 </tr>`;
             }).join('');
+
+            const diff = Math.abs(tDr - tCr);
+            const isBalanced = diff < 0.01;
+
             html = `<div class="card-body" style="padding:40px;">
-                ${headerHtml('Trial Balance Summary', `As of ${new Date().toDateString()}`)}
-                <table style="border-spacing:0 5px;">
-                    <thead><tr style="background:rgba(0,0,0,0.2);">
-                        <th style="padding:15px 25px; border-radius:15px 0 0 15px;">Account Head</th>
-                        <th>Group Category</th>
-                        <th class="text-right">Debit (Rs)</th>
-                        <th class="text-right" style="padding-right:25px; border-radius:0 15px 15px 0;">Credit (Rs)</th>
+                ${headerHtml('Trial Balance Summary', `Financial Position as of ${new Date().toLocaleDateString()}`)}
+
+                ${!isBalanced ? `
+                    <div style="background:rgba(244,63,94,0.1); border:1px solid #f43f5e; padding:15px; border-radius:12px; margin-bottom:25px; display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-exclamation-triangle" style="color:#f43f5e; font-size:24px;"></i>
+                        <div>
+                            <b style="color:#f43f5e; display:block;">TRIAL BALANCE MISMATCH!</b>
+                            <small style="color:#94a3b8;">Difference detected: <b style="color:white;">Rs. ${diff.toLocaleString()}</b>. Please check your journal entries.</small>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; padding:15px; border-radius:12px; margin-bottom:25px; display:flex; align-items:center; gap:15px;">
+                        <i class="fas fa-check-circle" style="color:#10b981; font-size:24px;"></i>
+                        <div>
+                            <b style="color:#10b981; display:block;">PERFECTLY BALANCED</b>
+                            <small style="color:#94a3b8;">All accounts are in equilibrium. Total Debit matches Total Credit.</small>
+                        </div>
+                    </div>
+                `}
+
+                <table style="border-spacing:0; width:100%; border-collapse:collapse;">
+                    <thead><tr style="background:rgba(255,255,255,0.05);">
+                        <th style="padding:15px 25px; text-align:left; border-radius:12px 0 0 0; color:#94a3b8; font-size:11px;">ACCOUNT HEAD</th>
+                        <th style="text-align:left; color:#94a3b8; font-size:11px;">CATEGORY</th>
+                        <th class="text-right" style="color:#94a3b8; font-size:11px;">DEBIT (DR)</th>
+                        <th class="text-right" style="padding-right:25px; border-radius:0 12px 0 0; color:#94a3b8; font-size:11px;">CREDIT (CR)</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
-                    <tfoot><tr style="background:rgba(212,175,55,0.1); font-weight:900; color:white;">
-                        <td colspan="2" style="padding:20px 25px; border-radius:15px 0 0 15px;">GRAND TOTAL</td>
-                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:16px;">${tDr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:16px; padding-right:25px; border-radius:0 15px 15px 0;">${tCr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                    <tfoot><tr style="background:rgba(212,175,55,0.15); font-weight:900; color:white;">
+                        <td colspan="2" style="padding:20px 25px; border-radius:0 0 0 12px; font-size:14px;">GRAND TOTAL</td>
+                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:18px; color:#10b981;">Rs. ${tDr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                        <td class="text-right" style="font-family:'JetBrains Mono'; font-size:18px; padding-right:25px; border-radius:0 0 12px 0; color:#f43f5e;">Rs. ${tCr.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
                     </tr></tfoot>
                 </table>
+                <p style="margin-top:20px; font-size:10px; color:#64748b; text-align:center;">Generated by Gold Workspace Accounting Engine • ${new Date().toLocaleString()}</p>
             </div>`;
 
         } else if(type==='pl') {
