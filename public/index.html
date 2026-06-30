@@ -2512,47 +2512,42 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        if (!accounts || accounts.length === 0) {
-            setTimeout(updateDash, 500);
+        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+            setTimeout(updateDash, 800);
             return;
         }
 
-        let rev=0, exp=0, cash=0, ar=0, ap=0;
+        let rev=0, exp=0, cash=0, ar=0, ap=0, aTotal=0, lTotal=0, eTotal=0;
         let cashList=[], arList=[], apList=[];
-
-        // Calculate Net Profit first (PL Logic)
-        accounts.forEach(a => {
-            if(a.type === 'Revenue') rev += Number(a.balance || 0);
-            if(a.type === 'Expense') exp += Number(a.balance || 0);
-        });
-        const netProfit = rev - exp;
-
-        // Balance Sheet Logic for Assets/Liabilities
-        // Asset with +ve bal = AR, Asset with -ve bal = AP
-        // Liability with +ve bal = AP, Liability with -ve bal = AR
-        let aTotal = 0, lTotal = 0, eTotal = 0;
 
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
-            const type = a.type;
-            const group = (a.group || "").toLowerCase();
+            const type = (a.type || "").trim();
+            const group = (a.group || "").trim();
+            const gLower = group.toLowerCase();
 
+            // 1. PL Calculation (Revenue/Expense)
+            if (type === 'Revenue') rev += bal;
+            if (type === 'Expense') exp += bal;
+
+            // 2. Net Worth Calculation (Asset/Liability/Equity) - Matching Balance Sheet
             if (type === 'Asset') {
-                if (bal >= 0) { aTotal += bal; } else { lTotal += Math.abs(bal); }
+                if (bal >= 0) aTotal += bal; else lTotal += Math.abs(bal);
             } else if (type === 'Liability') {
-                if (bal >= 0) { lTotal += bal; } else { aTotal += Math.abs(bal); }
+                if (bal >= 0) lTotal += bal; else aTotal += Math.abs(bal);
             } else if (type === 'Equity') {
                 eTotal += bal;
             }
 
-            // Cash & Bank mapping
-            if (group.includes('bank') || group.includes('cash')) {
+            // 3. Dashboard Cards Logic
+            // Cash & Bank
+            if (gLower.includes('bank') || gLower.includes('cash')) {
                 cash += bal;
-                if(bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
+                if (bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
 
-            // AR/AP mapping based on group names
-            if (group.includes('debtor') || group.includes('receivable') || group.includes('creditor') || group.includes('payable')) {
+            // Receivables (AR) & Payables (AP)
+            if (gLower.includes('debtor') || gLower.includes('receivable') || gLower.includes('creditor') || gLower.includes('payable')) {
                 if (type === 'Asset') {
                     if (bal >= 0) { ar += bal; arList.push(`${a.name}: ${bal.toLocaleString()}`); }
                     else { ap += Math.abs(bal); apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
@@ -2563,17 +2558,22 @@
             }
         });
 
-        // Net Worth = Total Assets - Total Liabilities (excluding Equity & Profit)
-        // Matching BS: Total Assets = aTotal; Total Liab = lTotal + eTotal + netProfit
-        const netWorth = aTotal - (lTotal + eTotal + netProfit);
+        const netProfit = rev - exp;
+        // Total Net Worth = Equity + Profit (Which is Assets - external Liabilities)
+        const netWorth = aTotal - lTotal;
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
             if (el) {
-                el.innerText = "Rs. " + Math.abs(Number(val)).toLocaleString(undefined, {minimumFractionDigits: 2});
-                if (colorClass) el.className = "value " + colorClass;
-                // If networth is negative, maybe show in red
-                if (id === 'dash-networth') el.style.color = val >= 0 ? 'white' : 'var(--danger)';
+                el.innerText = "Rs. " + Math.abs(val).toLocaleString(undefined, {minimumFractionDigits: 2});
+                if (colorClass) {
+                    el.className = "value " + colorClass;
+                } else {
+                    el.className = "value";
+                    el.style.color = "white";
+                }
+                // Special case for Net Worth
+                if (id === 'dash-networth') el.style.color = val >= 0 ? 'white' : '#f43f5e';
             }
         };
 
@@ -2583,12 +2583,18 @@
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
 
-        if(document.getElementById('dash-total-income')) setVal('dash-total-income', rev);
-        if(document.getElementById('dash-total-expense')) setVal('dash-total-expense', exp);
+        if (document.getElementById('dash-total-income')) setVal('dash-total-income', rev);
+        if (document.getElementById('dash-total-expense')) setVal('dash-total-expense', exp);
 
-        if(document.getElementById('cash-breakdown')) document.getElementById('cash-breakdown').innerHTML = cashList.slice(0,3).join(' • ') || 'No active accounts';
-        if(document.getElementById('ar-breakdown')) document.getElementById('ar-breakdown').innerHTML = arList.slice(0,2).join(' • ') || 'No receivables';
-        if(document.getElementById('ap-breakdown')) document.getElementById('ap-breakdown').innerHTML = apList.slice(0,2).join(' • ') || 'No payables';
+        // Breakdown updates
+        const updateList = (id, list) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = list.length > 0 ? list.slice(0,3).join(' • ') : 'No active accounts';
+        };
+
+        updateList('cash-breakdown', cashList);
+        updateList('ar-breakdown', arList);
+        updateList('ap-breakdown', apList);
 
         updateGoalUI();
         renderChart();
