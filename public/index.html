@@ -2512,7 +2512,7 @@
     async function delAcc(id) { if(confirm("Permanently wipe account master from ledger database?")) { const r = await fetch(`/api/accounts/${id}`, {method:'DELETE'}); const data=await r.json(); if(data.error) alert(data.error); else init(); } }
 
     function updateDash() {
-        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+        if (!accounts || !Array.isArray(accounts)) {
             setTimeout(updateDash, 800);
             return;
         }
@@ -2520,17 +2520,15 @@
         let rev=0, exp=0, cash=0, ar=0, ap=0, aTotal=0, lTotal=0, eTotal=0;
         let cashList=[], arList=[], apList=[];
 
+        // 1. Core Financial Calculations
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
             const type = (a.type || "").trim();
-            const group = (a.group || "").trim();
-            const gLower = group.toLowerCase();
+            const group = (a.group || "").trim().toLowerCase();
 
-            // 1. PL Calculation (Revenue/Expense)
             if (type === 'Revenue') rev += bal;
             if (type === 'Expense') exp += bal;
 
-            // 2. Net Worth Calculation (Asset/Liability/Equity) - Matching Balance Sheet
             if (type === 'Asset') {
                 if (bal >= 0) aTotal += bal; else lTotal += Math.abs(bal);
             } else if (type === 'Liability') {
@@ -2539,15 +2537,12 @@
                 eTotal += bal;
             }
 
-            // 3. Dashboard Cards Logic
-            // Cash & Bank
-            if (gLower.includes('bank') || gLower.includes('cash')) {
+            if (group.includes('bank') || group.includes('cash')) {
                 cash += bal;
                 if (bal !== 0) cashList.push(`${a.name}: ${bal.toLocaleString()}`);
             }
 
-            // Receivables (AR) & Payables (AP)
-            if (gLower.includes('debtor') || gLower.includes('receivable') || gLower.includes('creditor') || gLower.includes('payable')) {
+            if (group.includes('debtor') || group.includes('receivable') || group.includes('creditor') || group.includes('payable')) {
                 if (type === 'Asset') {
                     if (bal >= 0) { ar += bal; arList.push(`${a.name}: ${bal.toLocaleString()}`); }
                     else { ap += Math.abs(bal); apList.push(`${a.name}: ${Math.abs(bal).toLocaleString()}`); }
@@ -2558,47 +2553,43 @@
             }
         });
 
+        // Net Worth Matching Balance Sheet
         const netProfit = rev - exp;
-        // Total Net Worth = Equity + Profit (Which is Assets - external Liabilities)
         const netWorth = aTotal - lTotal;
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
             if (el) {
                 el.innerText = "Rs. " + Math.abs(val).toLocaleString(undefined, {minimumFractionDigits: 2});
-                if (colorClass) {
-                    el.className = "value " + colorClass;
-                } else {
-                    el.className = "value";
-                    el.style.color = "white";
-                }
-                // Special case for Net Worth
-                if (id === 'dash-networth') el.style.color = val >= 0 ? 'white' : '#f43f5e';
+                if (colorClass) el.className = "value " + colorClass;
+                else el.className = "value";
             }
         };
 
         setVal('dash-networth', netWorth);
+        if(netWorth < 0 && document.getElementById('dash-networth')) document.getElementById('dash-networth').style.color = '#f43f5e';
+
         setVal('dash-cash', cash, "text-success");
         setVal('dash-ar', ar);
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
 
-        if (document.getElementById('dash-total-income')) setVal('dash-total-income', rev);
-        if (document.getElementById('dash-total-expense')) setVal('dash-total-expense', exp);
+        // 2. Bike & Stock UI Integration
+        if (typeof updateBikeUI === 'function') updateBikeUI();
+        if (typeof updateStockUI === 'function') updateStockUI();
+        if (typeof updateGoalUI === 'function') updateGoalUI();
 
-        // Breakdown updates
+        // 3. Mini Breakdowns
         const updateList = (id, list) => {
             const el = document.getElementById(id);
-            if (el) el.innerHTML = list.length > 0 ? list.slice(0,3).join(' • ') : 'No active accounts';
+            if (el) el.innerHTML = list.length > 0 ? list.slice(0,2).join(' • ') : 'No active accounts';
         };
-
         updateList('cash-breakdown', cashList);
         updateList('ar-breakdown', arList);
         updateList('ap-breakdown', apList);
 
-        updateGoalUI();
-        renderChart();
-        renderTrendChart();
+        if (typeof renderChart === 'function') renderChart();
+        if (typeof renderTrendChart === 'function') renderTrendChart();
     }
 
     function renderTrendChart() {
