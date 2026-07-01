@@ -2595,7 +2595,7 @@
         // Breakdown Update
         const updateList = (id, list) => {
             const el = document.getElementById(id);
-            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No data';
+            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No active items';
         };
         updateList('cash-breakdown', cashList);
         updateList('ar-breakdown', arList);
@@ -2605,14 +2605,6 @@
         if (typeof updateBikeUI === 'function') updateBikeUI();
         if (typeof updateStockUI === 'function') updateStockUI();
         if (typeof updateGoalUI === 'function') updateGoalUI();
-
-        const updateList = (id, list) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No active items';
-        };
-        updateList('cash-breakdown', cashList);
-        updateList('ar-breakdown', arList);
-        updateList('ap-breakdown', apList);
 
         if (typeof renderChart === 'function') renderChart();
         if (typeof renderTrendChart === 'function') renderTrendChart();
