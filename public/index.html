@@ -1950,12 +1950,25 @@
         document.getElementById('pageTitle').innerText = t.charAt(0).toUpperCase() + t.slice(1).replace('-', ' ') + " Engine";
     }
 
+    let accounts = [];
+    let transactions = [];
+    let currentUser = null;
+    let systemPin = "";
+
     async function fetchAcc() {
         try {
+            console.log("Fetching accounts for:", currentUser.uid);
             const r = await fetch(`/api/accounts?userId=${currentUser.uid}`);
+            if (!r.ok) throw new Error("Fetch failed");
             accounts = await r.json();
             localStorage.setItem('erp_gold_a', JSON.stringify(accounts));
-        } catch(e) { accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]"); }
+            console.log("Accounts loaded:", accounts.length);
+            updateDash(); // Force update dash after data arrival
+        } catch(e) {
+            console.error("Account fetch error:", e);
+            accounts = JSON.parse(localStorage.getItem('erp_gold_a') || "[]");
+            updateDash();
+        }
 
         // Render Summary Mini-Cards
         const goalAccSelect = document.getElementById('goalAccount');
@@ -2209,7 +2222,13 @@
             const r = await fetch(`/api/transactions?userId=${currentUser.uid}`);
             transactions = await r.json();
             localStorage.setItem('erp_gold_t', JSON.stringify(transactions));
-        } catch(e) { transactions = JSON.parse(localStorage.getItem('erp_gold_t') || "[]"); }
+            console.log("Transactions loaded:", transactions.length);
+        } catch(e) {
+            transactions = JSON.parse(localStorage.getItem('erp_gold_t') || "[]");
+        }
+
+        // Trigger dashboard update once data is ready
+        if (typeof updateDash === 'function') updateDash();
 
         const todayStr = new Date().toISOString().split('T')[0];
         const todaysTx = transactions.filter(t => t.date === todayStr);
