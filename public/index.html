@@ -2511,48 +2511,61 @@
 
     function updateDash() {
         if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-            setTimeout(updateDash, 1000);
+            console.warn("Dashboard: Accounts array is empty or not loaded yet.");
+            // If it's empty, we might need to fetch it again if init was bypassed
+            if (currentUser && (!accounts || accounts.length === 0)) {
+                fetchAcc();
+            }
+            setTimeout(updateDash, 2000);
             return;
         }
+
+        console.log("Dashboard: Processing", accounts.length, "accounts");
 
         let rev=0, exp=0, cash=0, ar=0, ap=0, aTotal=0, lTotal=0;
         let cashList=[], arList=[], apList=[];
 
         accounts.forEach(a => {
-            // Force conversion to absolute number to prevent calculation errors
             const bal = parseFloat(a.balance) || 0;
             const type = (a.type || "").toString().trim().toLowerCase();
-            const group = (a.group || "").toString().toLowerCase();
+            const group = (a.group || "").toString().trim().toLowerCase();
             const name = a.name || "";
 
-            // 1. Profit & Loss (Revenue - Expense)
-            if (type === 'revenue') rev += bal;
-            if (type === 'expense') exp += bal;
+            // robust matching for singular/plural/mixed case
+            const isRev = type.includes('revenue');
+            const isExp = type.includes('expense');
+            const isAsset = type.includes('asset');
+            const isLiab = type.includes('liabilit'); // matches liability or liabilities
+            const isEq = type.includes('equity') || type.includes('capital');
 
-            // 2. Net Worth Calculation (Assets - Liabilities)
-            if (type === 'asset') {
+            // 1. Profit & Loss
+            if (isRev) rev += bal;
+            if (isExp) exp += bal;
+
+            // 2. Net Worth & Liquidity
+            if (isAsset) {
                 if (bal >= 0) aTotal += bal; else lTotal += Math.abs(bal);
 
-                // Cash & Bank tracking
+                // Bank/Cash groups
                 if (group.includes('bank') || group.includes('cash')) {
                     cash += bal;
-                    if (Math.abs(bal) > 0) cashList.push(`${name}: ${bal.toLocaleString()}`);
+                    if (Math.abs(bal) > 0.01) cashList.push(`${name}: ${bal.toLocaleString()}`);
                 }
-            } else if (type === 'liability') {
+            } else if (isLiab) {
                 if (bal >= 0) lTotal += bal; else aTotal += Math.abs(bal);
-            } else if (type === 'equity') {
-                // Equity is part of net worth (Capital + Profit)
-                aTotal += bal;
+            } else if (isEq) {
+                // For Net Worth (A - L = E), Equity is typically on the L side but represents value
+                // If you want Net Worth to equal total Assets minus Liabilities:
             }
 
-            // 3. Receivables & Payables
-            const isRec = group.includes('debtor') || group.includes('receivable');
-            const isPay = group.includes('creditor') || group.includes('payable');
+            // 3. Receivables & Payables (Debtors/Creditors)
+            const isRecGroup = group.includes('debtor') || group.includes('receivable');
+            const isPayGroup = group.includes('creditor') || group.includes('payable');
 
-            if (isRec) {
+            if (isRecGroup) {
                 if (bal >= 0) { ar += bal; arList.push(name); }
                 else { ap += Math.abs(bal); apList.push(name); }
-            } else if (isPay) {
+            } else if (isPayGroup) {
                 if (bal >= 0) { ap += bal; apList.push(name); }
                 else { ar += Math.abs(bal); arList.push(name); }
             }
@@ -2560,6 +2573,8 @@
 
         const netProfit = rev - exp;
         const netWorth = aTotal - lTotal;
+
+        console.log("Calculated:", {netWorth, cash, ar, ap, netProfit});
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
@@ -2576,6 +2591,8 @@
         setVal('dash-ar', ar);
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
+
+        console.log("Dashboard UI Updated Successfully");
 
         // UI Refresh for secondary modules
         if (typeof updateBikeUI === 'function') updateBikeUI();
