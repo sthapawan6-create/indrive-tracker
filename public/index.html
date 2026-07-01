@@ -517,7 +517,12 @@
                     <span class="label">Payables (तिर्नुपर्ने)</span>
                     <div class="value text-danger" id="dash-ap">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-file-invoice-dollar"></i></div>
-                    <div style="margin-top:15px; font-size:11px; font-weight:700; color:#94a3b8;" id="ap-breakdown"></div>
+                    <div style="display:flex; gap:10px; margin-top:10px; font-size:10px; font-weight:700;">
+                        <div id="ap-weekly" style="padding:2px 6px; border-radius:4px;">7D: --</div>
+                        <div id="ap-monthly" style="padding:2px 6px; border-radius:4px;">30D: --</div>
+                    </div>
+                    <div style="margin-top:10px; font-size:11px; font-weight:700; color:#94a3b8;" id="ap-breakdown"></div>
+                </div>
                 </div>
                 <div class="stat-card">
                     <span class="label">Net Profit/Loss (नाफा/नोक्सान)</span>
@@ -896,7 +901,6 @@
                 </div>
             </div>
 
-            <div class="grid-stats">
                 <div class="stat-card" style="border-bottom:4px solid var(--accent); background:rgba(255,193,7,0.05);">
                     <h3 style="color:var(--accent)">Master Sync & Merge</h3>
                     <p style="color:#94a3b8; margin:10px 0;">दुईवटा खाताहरूलाई एउटैमा मिसाउन (Merge) वा ब्यालेन्स सिंक गर्न:</p>
@@ -1517,19 +1521,22 @@
     }
 
     function updateBikeUI() {
-        // Sort logs by date ascending for sequential calculations
+        if (!bikeLogs) return;
+        // Sort logs by date ascending
         const sortedLogs = [...bikeLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
 
         // Monthly Expense Calculation
+        const now = new Date();
         const monthly = bikeLogs.reduce((acc, log) => {
             const logDate = new Date(log.date);
-            const now = new Date();
-            if(logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear()) return acc + log.amount;
+            if(logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear()) return acc + (Number(log.amount) || 0);
             return acc;
         }, 0);
-        document.getElementById('bike-monthly-exp').innerText = `Rs. ${monthly.toLocaleString()}`;
 
-        // Mileage and Service Logic
+        const el = document.getElementById('bike-monthly-exp');
+        if(el) el.innerText = `Rs. ${monthly.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+        // Update Reminder and Mileage
         let mileageInfo = 'Mileage: N/A';
         let serviceInfo = 'Service due: Update log';
 
@@ -2581,7 +2588,54 @@
         const netProfit = rev - exp;
         const netWorth = aTotal - lTotal;
 
-        console.log("Final Dash Data:", {netWorth, cash, ar, ap, netProfit});
+        // --- Trend Calculations (NW, AR, AP) ---
+        const getTrend = (days, groupMatch = null) => {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            let change = 0;
+            transactions.forEach(t => {
+                if (new Date(t.date) >= cutoff) {
+                    t.entries.forEach(e => {
+                        const acc = accounts.find(a => a._id === (e.account?._id || e.account));
+                        if (!acc) return;
+                        const grp = (acc.group || "").toLowerCase();
+                        const type = (acc.type || "").toLowerCase();
+                        const amt = Number(e.debit || 0) - Number(e.credit || 0);
+
+                        if (!groupMatch) { // Net Worth
+                            if (type.includes('asset')) change += amt;
+                            else if (type.includes('liabilit')) change -= amt;
+                        } else if (grp.includes(groupMatch)) {
+                            change += amt;
+                        }
+                    });
+                }
+            });
+            return change;
+        };
+
+        const setTrend = (id, val, isInverted = false) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const prefix = val >= 0 ? "+" : "";
+            // For Payables, positive change is usually "bad" (red), negative is "good" (green)
+            let colorClass = val >= 0 ? "text-success" : "text-danger";
+            if (isInverted) colorClass = val <= 0 ? "text-success" : "text-danger";
+
+            el.innerHTML = `${id.includes('weekly')?'7D':'30D'}: <span class="${colorClass}">${prefix}${Math.abs(val).toLocaleString()}</span>`;
+        };
+
+        setTrend('nw-weekly', getTrend(7));
+        setTrend('nw-monthly', getTrend(30));
+        setTrend('cash-weekly', getTrend(7, 'cash') || getTrend(7, 'bank'));
+        setTrend('cash-monthly', getTrend(30, 'cash') || getTrend(30, 'bank'));
+        setTrend('ar-weekly', getTrend(7, 'receivable') || getTrend(7, 'debtor'));
+        setTrend('ar-monthly', getTrend(30, 'receivable') || getTrend(30, 'debtor'));
+        setTrend('ap-weekly', getTrend(7, 'payable') || getTrend(7, 'creditor'), true);
+        setTrend('ap-monthly', getTrend(30, 'payable') || getTrend(30, 'creditor'), true);
+        // -------------------------------------
+
+        console.log("Final Dash Data:", {netWorth, cash, ar, ap, netProfit, nw7});
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
