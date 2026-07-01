@@ -486,7 +486,7 @@
             <div class="grid-stats">
                 <div class="stat-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(30,41,59,0.5)); border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
                     <span class="label" style="color:#d4af37; letter-spacing:1.5px; text-shadow: 0 0 10px rgba(212,175,55,0.2);">TOTAL NET WORTH (कुल सम्पत्ति)</span>
-                    <div class="value" id="dash-networth" style="font-size:36px; color:#ffffff; margin-top:8px; text-shadow: 0 0 20px rgba(255,255,255,0.1);">Rs. 0.00</div>
+                    <div class="value" id="dash-networth">Rs. 0.00</div>
                     <div class="icon-bg"><i class="fas fa-gem"></i></div>
                     <div style="display:flex; gap:12px; margin-top:18px; font-size:12px; font-weight:800;">
                         <div id="nw-weekly" style="padding:6px 12px; border-radius:10px; border: 1px solid rgba(255,255,255,0.05);">7D: --</div>
@@ -2592,7 +2592,14 @@
         setVal('dash-ap', ap, "text-danger");
         setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
 
-        console.log("Dashboard UI Updated Successfully");
+        // Breakdown Update
+        const updateList = (id, list) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No data';
+        };
+        updateList('cash-breakdown', cashList);
+        updateList('ar-breakdown', arList);
+        updateList('ap-breakdown', apList);
 
         // UI Refresh for secondary modules
         if (typeof updateBikeUI === 'function') updateBikeUI();
