@@ -1950,11 +1950,6 @@
         document.getElementById('pageTitle').innerText = t.charAt(0).toUpperCase() + t.slice(1).replace('-', ' ') + " Engine";
     }
 
-    let accounts = [];
-    let transactions = [];
-    let currentUser = null;
-    let systemPin = "";
-
     async function fetchAcc() {
         try {
             console.log("Fetching accounts for:", currentUser.uid);
@@ -2545,46 +2540,39 @@
         let cashList=[], arList=[], apList=[];
 
         accounts.forEach(a => {
-            const bal = parseFloat(a.balance) || 0;
+            // Clean balance: remove commas and ensure it's a number
+            let rawBal = a.balance !== undefined ? a.balance : (a.openingBalance || 0);
+            const bal = typeof rawBal === 'string' ? parseFloat(rawBal.replace(/,/g, '')) : parseFloat(rawBal) || 0;
+
             const type = (a.type || "").toString().trim().toLowerCase();
             const group = (a.group || "").toString().trim().toLowerCase();
             const name = a.name || "";
 
-            // robust matching for singular/plural/mixed case
-            const isRev = type.includes('revenue');
+            // Enhanced classification logic
+            const isRev = type.includes('revenue') || group.includes('income') || group.includes('sales');
             const isExp = type.includes('expense');
-            const isAsset = type.includes('asset');
-            const isLiab = type.includes('liabilit'); // matches liability or liabilities
-            const isEq = type.includes('equity') || type.includes('capital');
+            const isAsset = type.includes('asset') || group.includes('bank') || group.includes('cash') || group.includes('fixed') || group.includes('debtor') || group.includes('receivable');
+            const isLiab = type.includes('liabilit') || group.includes('payable') || group.includes('creditor') || group.includes('loan');
+            const isEq = type.includes('equity') || type.includes('capital') || group.includes('capital');
 
-            // 1. Profit & Loss
             if (isRev) rev += bal;
             if (isExp) exp += bal;
 
-            // 2. Net Worth & Liquidity
             if (isAsset) {
                 if (bal >= 0) aTotal += bal; else lTotal += Math.abs(bal);
-
-                // Bank/Cash groups
                 if (group.includes('bank') || group.includes('cash')) {
                     cash += bal;
-                    if (Math.abs(bal) > 0.01) cashList.push(`${name}: ${bal.toLocaleString()}`);
+                    if (Math.abs(bal) > 0.1) cashList.push(`${name}`);
                 }
             } else if (isLiab) {
                 if (bal >= 0) lTotal += bal; else aTotal += Math.abs(bal);
-            } else if (isEq) {
-                // For Net Worth (A - L = E), Equity is typically on the L side but represents value
-                // If you want Net Worth to equal total Assets minus Liabilities:
             }
 
-            // 3. Receivables & Payables (Debtors/Creditors)
-            const isRecGroup = group.includes('debtor') || group.includes('receivable');
-            const isPayGroup = group.includes('creditor') || group.includes('payable');
-
-            if (isRecGroup) {
+            // Receivables / Payables logic
+            if (group.includes('debtor') || group.includes('receivable')) {
                 if (bal >= 0) { ar += bal; arList.push(name); }
                 else { ap += Math.abs(bal); apList.push(name); }
-            } else if (isPayGroup) {
+            } else if (group.includes('creditor') || group.includes('payable')) {
                 if (bal >= 0) { ap += bal; apList.push(name); }
                 else { ar += Math.abs(bal); arList.push(name); }
             }
@@ -2593,7 +2581,7 @@
         const netProfit = rev - exp;
         const netWorth = aTotal - lTotal;
 
-        console.log("Calculated:", {netWorth, cash, ar, ap, netProfit});
+        console.log("Final Dash Data:", {netWorth, cash, ar, ap, netProfit});
 
         const setVal = (id, val, colorClass) => {
             const el = document.getElementById(id);
