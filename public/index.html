@@ -213,19 +213,19 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Net Worth</div>
-                <div id="val-networth" class="stat-value">Rs. 0.00</div>
+                <div id="val-networth" class="stat-value" style="color:var(--gold)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" style="color:var(--success)">Receivables (लिनु पर्ने)</div>
+                <div id="val-ar" class="stat-value" style="color:var(--success)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label" style="color:var(--danger)">Payables (दिनु पर्ने)</div>
+                <div id="val-ap" class="stat-value" style="color:var(--danger)">Rs. 0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Stock Portfolio</div>
-                <div id="val-stocks" class="stat-value" style="color:var(--gold)">Rs. 0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Receivables</div>
-                <div id="val-ar" class="stat-value">Rs. 0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Payables</div>
-                <div id="val-ap" class="stat-value" style="color:var(--danger)">Rs. 0.00</div>
+                <div id="val-stocks" class="stat-value">Rs. 0</div>
             </div>
         </div>
         <div class="recent-box">
@@ -278,10 +278,11 @@
 
     <!-- REPORTS -->
     <div id="tab-reports" class="tab-content hidden">
-        <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
             <button class="btn-gold" onclick="renderReport('trial')">Trial Balance</button>
             <button class="btn-gold" onclick="renderReport('pl')">Profit & Loss</button>
             <button class="btn-gold" onclick="renderReport('bs')">Balance Sheet</button>
+            <button class="btn-gold" style="background:#8e44ad" onclick="renderReport('rp')">Receivables & Payables</button>
             <button class="btn-gold" style="background:#27ae60" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
         </div>
         <div id="reportContainer" class="recent-box">
@@ -499,10 +500,11 @@
         });
 
         const stockVal = stocks.reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
+        const bikeExpTotal = bikeLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
 
-        // REAL NET WORTH = Total Assets - Total Liabilities
-        // This gives the actual value of your capital/equity.
-        const netWorth = asset - liab;
+        // REAL NET WORTH = (Accounting Assets - Accounting Liabilities) - Unposted Bike Expenses
+        // This ensures unrecorded daily expenses from the bike module are reflected.
+        const netWorth = (asset - liab) - bikeExpTotal;
 
         document.getElementById('val-networth').innerText = `Rs. ${netWorth.toLocaleString()}`;
         document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
@@ -611,6 +613,35 @@
         } else {
             const err = await res.json();
             alert("Error: " + err.error);
+        if(type === 'rp') {
+            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
+            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
+            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
+
+            cont.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
     }
 
@@ -651,10 +682,11 @@
             let dr = 0, cr = 0;
             const rows = accounts.map(a => {
                 const b = Number(a.balance || 0);
-                if(b >= 0) dr += b; else cr += Math.abs(b);
-                return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${b >= 0 ? b.toLocaleString() : '-'}</td><td style="text-align:right">${b < 0 ? Math.abs(b).toLocaleString() : '-'}</td></tr>`;
+                const isDebitSide = ['Asset', 'Expense'].includes(a.type);
+                if(isDebitSide) dr += b; else cr += b;
+                return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${isDebitSide ? b.toLocaleString() : '-'}</td><td style="text-align:right">${!isDebitSide ? b.toLocaleString() : '-'}</td></tr>`;
             }).join('');
-            cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody>
+            cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Debit (Dr)</th><th style="text-align:right">Credit (Cr)</th></tr></thead><tbody>${rows}</tbody>
             <tfoot><tr style="font-weight:bold; color:var(--gold)"><td>TOTAL</td><td></td><td style="text-align:right">${dr.toLocaleString()}</td><td style="text-align:right">${cr.toLocaleString()}</td></tr></tfoot></table>`;
         }
 
@@ -664,12 +696,13 @@
             const exps = accounts.filter(a => a.type === 'Expense');
             const totalRev = revs.reduce((s,a) => s + Math.abs(a.balance), 0);
             const totalExp = exps.reduce((s,a) => s + Math.abs(a.balance), 0);
-            const netProfit = totalRev - totalExp;
+            const totalBikeExp = bikeLogs.reduce((s, l) => s + (l.amount || 0), 0);
+            const netProfit = totalRev - totalExp - totalBikeExp;
 
             cont.innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                     <div>
-                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">REVENUES (INCOME)</h4>
+                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">REVENUES</h4>
                         <table style="font-size:0.9rem;">
                             ${revs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
                             <tr style="font-weight:bold; color:var(--success)"><td>Total Income</td><td style="text-align:right">${totalRev.toLocaleString()}</td></tr>
@@ -679,7 +712,8 @@
                         <h4 style="border-bottom:2px solid var(--danger); padding-bottom:5px;">EXPENSES</h4>
                         <table style="font-size:0.9rem;">
                             ${exps.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="font-weight:bold; color:var(--danger)"><td>Total Expenses</td><td style="text-align:right">${totalExp.toLocaleString()}</td></tr>
+                            <tr style="color:var(--danger)"><td>Bike Tracker Expenses</td><td style="text-align:right">${totalBikeExp.toLocaleString()}</td></tr>
+                            <tr style="font-weight:bold; color:var(--danger)"><td>Total Expenses</td><td style="text-align:right">${(totalExp + totalBikeExp).toLocaleString()}</td></tr>
                         </table>
                     </div>
                 </div>
@@ -700,9 +734,10 @@
             // Calculate Net Profit to balance the sheet (Retained Earnings)
             const revTotal = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + Math.abs(a.balance), 0);
             const expTotal = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + Math.abs(a.balance), 0);
-            const netProfit = revTotal - expTotal;
+            const totalBikeExp = bikeLogs.reduce((s, l) => s + (l.amount || 0), 0);
+            const netProfit = revTotal - expTotal - totalBikeExp;
 
-            const totalAssets = assets.reduce((s,a) => s + a.balance, 0);
+            const totalAssets = assets.reduce((s,a) => s + a.balance, 0) - totalBikeExp;
             const totalLiabEquities = liabs.reduce((s,a) => s + Math.abs(a.balance), 0) +
                                      equities.reduce((s,a) => s + Math.abs(a.balance), 0) + netProfit;
 
@@ -712,6 +747,7 @@
                         <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">ASSETS</h4>
                         <table style="font-size:0.9rem;">
                             ${assets.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${a.balance.toLocaleString()}</td></tr>`).join('')}
+                            <tr style="color:var(--danger)"><td>Less: Bike Expenses (Unposted)</td><td style="text-align:right">(${totalBikeExp.toLocaleString()})</td></tr>
                             <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL ASSETS</td><td style="text-align:right">${totalAssets.toLocaleString()}</td></tr>
                         </table>
                     </div>
@@ -720,7 +756,7 @@
                         <table style="font-size:0.9rem;">
                             ${liabs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
                             ${equities.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--gold)"><td>Current Net Profit (P&L)</td><td style="text-align:right">${netProfit.toLocaleString()}</td></tr>
+                            <tr style="color:var(--gold)"><td>Adjusted Net Profit</td><td style="text-align:right">${netProfit.toLocaleString()}</td></tr>
                             <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL LIABILITIES & EQUITY</td><td style="text-align:right">${totalLiabEquities.toLocaleString()}</td></tr>
                         </table>
                     </div>
@@ -729,6 +765,35 @@
                     <small style="color:${Math.abs(totalAssets - totalLiabEquities) < 1 ? 'var(--success)' : 'var(--danger)'}">
                         ${Math.abs(totalAssets - totalLiabEquities) < 1 ? '● Balance Sheet is Balanced' : '○ Warning: Balance Sheet Mismatch'}
                     </small>
+                </div>
+            `;
+        if(type === 'rp') {
+            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
+            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
+            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
+
+            cont.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
                 </div>
             `;
         }
@@ -850,6 +915,35 @@
 
         if (rows.length === 0 && !openingRow) {
             tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center">No records match filter.</td></tr>';
+        if(type === 'rp') {
+            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
+            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
+            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
+
+            cont.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
+                        <table>
+                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
+                            <tbody>
+                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
+                            </tbody>
+                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
     }
 
