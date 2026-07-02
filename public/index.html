@@ -639,30 +639,92 @@
     function renderReport(type) {
         const cont = document.getElementById('reportData');
         const title = document.getElementById('reportTitle');
+
         if(type === 'trial') {
             title.innerText = "Trial Balance";
             let dr = 0, cr = 0;
             const rows = accounts.map(a => {
-                const b = a.balance;
+                const b = Number(a.balance || 0);
                 if(b >= 0) dr += b; else cr += Math.abs(b);
                 return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${b >= 0 ? b.toLocaleString() : '-'}</td><td style="text-align:right">${b < 0 ? Math.abs(b).toLocaleString() : '-'}</td></tr>`;
             }).join('');
             cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody>
             <tfoot><tr style="font-weight:bold; color:var(--gold)"><td>TOTAL</td><td></td><td style="text-align:right">${dr.toLocaleString()}</td><td style="text-align:right">${cr.toLocaleString()}</td></tr></tfoot></table>`;
         }
+
         if(type === 'pl') {
             title.innerText = "Profit & Loss Account";
             const revs = accounts.filter(a => a.type === 'Revenue');
             const exps = accounts.filter(a => a.type === 'Expense');
-            const tr = revs.reduce((s,a) => s + Math.abs(a.balance), 0);
-            const te = exps.reduce((s,a) => s + Math.abs(a.balance), 0);
-            cont.innerHTML = `<h3>Income: Rs. ${tr.toLocaleString()}</h3><h3>Expenses: Rs. ${te.toLocaleString()}</h3><h2 style="color:var(--success)">Net Profit: Rs. ${(tr - te).toLocaleString()}</h2>`;
+            const totalRev = revs.reduce((s,a) => s + Math.abs(a.balance), 0);
+            const totalExp = exps.reduce((s,a) => s + Math.abs(a.balance), 0);
+            const netProfit = totalRev - totalExp;
+
+            cont.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">REVENUES (INCOME)</h4>
+                        <table style="font-size:0.9rem;">
+                            ${revs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
+                            <tr style="font-weight:bold; color:var(--success)"><td>Total Income</td><td style="text-align:right">${totalRev.toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="border-bottom:2px solid var(--danger); padding-bottom:5px;">EXPENSES</h4>
+                        <table style="font-size:0.9rem;">
+                            ${exps.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
+                            <tr style="font-weight:bold; color:var(--danger)"><td>Total Expenses</td><td style="text-align:right">${totalExp.toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div style="margin-top:20px; text-align:center; padding:15px; background:rgba(255,215,0,0.1); border-radius:10px;">
+                    <h2 style="margin:0; color:${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                        ${netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS'}: Rs. ${Math.abs(netProfit).toLocaleString()}
+                    </h2>
+                </div>
+            `;
         }
+
         if(type === 'bs') {
             title.innerText = "Balance Sheet";
-            const assets = accounts.filter(a => a.type === 'Asset').reduce((s,a) => s + a.balance, 0);
-            const liabs = accounts.filter(a => a.type === 'Liability' || a.type === 'Equity').reduce((s,a) => s + Math.abs(a.balance), 0);
-            cont.innerHTML = `<div style="display:flex; justify-content:space-around"><div><h4>Total Assets</h4><h2>Rs. ${assets.toLocaleString()}</h2></div><div><h4>Liabilities + Equity</h4><h2>Rs. ${liabs.toLocaleString()}</h2></div></div>`;
+            const assets = accounts.filter(a => a.type === 'Asset');
+            const liabs = accounts.filter(a => a.type === 'Liability');
+            const equities = accounts.filter(a => a.type === 'Equity');
+
+            // Calculate Net Profit to balance the sheet (Retained Earnings)
+            const revTotal = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + Math.abs(a.balance), 0);
+            const expTotal = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + Math.abs(a.balance), 0);
+            const netProfit = revTotal - expTotal;
+
+            const totalAssets = assets.reduce((s,a) => s + a.balance, 0);
+            const totalLiabEquities = liabs.reduce((s,a) => s + Math.abs(a.balance), 0) +
+                                     equities.reduce((s,a) => s + Math.abs(a.balance), 0) + netProfit;
+
+            cont.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">ASSETS</h4>
+                        <table style="font-size:0.9rem;">
+                            ${assets.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${a.balance.toLocaleString()}</td></tr>`).join('')}
+                            <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL ASSETS</td><td style="text-align:right">${totalAssets.toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">LIABILITIES & EQUITY</h4>
+                        <table style="font-size:0.9rem;">
+                            ${liabs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
+                            ${equities.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
+                            <tr style="color:var(--gold)"><td>Current Net Profit (P&L)</td><td style="text-align:right">${netProfit.toLocaleString()}</td></tr>
+                            <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL LIABILITIES & EQUITY</td><td style="text-align:right">${totalLiabEquities.toLocaleString()}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div style="margin-top:15px; text-align:center;">
+                    <small style="color:${Math.abs(totalAssets - totalLiabEquities) < 1 ? 'var(--success)' : 'var(--danger)'}">
+                        ${Math.abs(totalAssets - totalLiabEquities) < 1 ? '● Balance Sheet is Balanced' : '○ Warning: Balance Sheet Mismatch'}
+                    </small>
+                </div>
+            `;
         }
     }
 
