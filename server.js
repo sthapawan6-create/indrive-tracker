@@ -103,6 +103,17 @@ const StockSchema = new mongoose.Schema({
 });
 const Stock = mongoose.model('Stock', StockSchema);
 
+const FactoryRecordSchema = new mongoose.Schema({
+    userId: String,
+    partnerName: String,
+    type: { type: String, enum: ['investment', 'expense', 'income'] },
+    category: String,
+    amount: Number,
+    note: String,
+    date: { type: Date, default: Date.now }
+});
+const FactoryRecord = mongoose.model('FactoryRecord', FactoryRecordSchema);
+
 // --- APIs ---
 
 const checkLock = async (userId, date) => {
@@ -260,16 +271,18 @@ app.post('/api/recalculate', async (req, res) => {
         if (!userId) return res.status(400).json({ error: "User ID missing" });
 
         // १. डेटा रिकभरी: सबै अनाथ वा पुराना डाटाहरूलाई यो नयाँ ईमेल आईडीमा सार्ने
-        const totalA = await Account.countDocuments({});
-        const totalT = await Transaction.countDocuments({});
-
-        await Account.updateMany({}, { $set: { userId: userId } });
-        await Transaction.updateMany({}, { $set: { userId: userId } });
+        const countA = await Account.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        const countT = await Transaction.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await BikeLog.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await Stock.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await Goal.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await Setting.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await FactoryRecord.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
 
         // २. ब्यालेन्स पुन: गणना गर्ने
         const accounts = await Account.find({ userId });
         if (accounts.length === 0) {
-            return res.json({ message: "डेटाबेसमा कुनै डाटा फेला परेन। कृपया नयाँ खाता बनाउनुहोस्।" });
+            return res.json({ message: "कुनै खाता फेला परेन। कृपया नयाँ खाता बनाउनुहोस्।" });
         }
 
         for (const acc of accounts) {
@@ -288,7 +301,7 @@ app.post('/api/recalculate', async (req, res) => {
             acc.balance = bal;
             await acc.save();
         }
-        res.json({ message: `सफलतापूर्वक डेटा रिकभर र सिंक गरियो! (${totalA} खाताहरू र ${totalT} कारोबारहरू फेला पर्यो।)` });
+        res.json({ message: `सफलतापूर्वक डेटा रिकभर र सिंक गरियो! लेखिएका खाताहरू: ${accounts.length}` });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Sync Failed: " + err.message });
@@ -480,6 +493,22 @@ app.delete('/api/stocks/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Delete failed" }); }
 });
 
+// ८. फ्याक्ट्री म्यानेजर (Factory Manager)
+app.get('/api/factory/history', async (req, res) => {
+    try {
+        const history = await FactoryRecord.find({ userId: req.query.userId }).sort({ date: -1 });
+        res.json(history);
+    } catch (err) { res.status(500).json({ error: "Factory history load failed" }); }
+});
+
+app.post('/api/factory/add', async (req, res) => {
+    try {
+        const record = new FactoryRecord({ ...req.body });
+        await record.save();
+        res.json(record);
+    } catch (err) { res.status(500).json({ error: "Factory record save failed" }); }
+});
+
 // --- Automated Cloud Backup System ---
 
 const s3Client = new S3Client({
@@ -497,12 +526,13 @@ const performBackup = async (userId = 'sthapawan6@gmail.com') => {
         const transactions = await Transaction.find({ userId });
         const settings = await Setting.findOne({ userId });
         const goals = await Goal.find({ userId });
+        const factory = await FactoryRecord.find({ userId });
 
         const backupData = JSON.stringify({
             version: "ERP_GOLD_V1",
             timestamp: new Date().toISOString(),
             userId,
-            data: { accounts, transactions, settings, goals }
+            data: { accounts, transactions, settings, goals, factory }
         });
 
         const fileName = `backups/${userId}/${Date.now()}.json`;
@@ -549,6 +579,14 @@ app.get('/api/backup/logs', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+app.get('/api/system/status', (req, res) => {
+    res.json({
+        s3Configured: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME),
+        region: process.env.AWS_REGION || 'us-east-1',
+        bucket: process.env.AWS_BUCKET_NAME || 'Not Set'
+    });
 });
 
 const PORT = process.env.PORT || 3000;

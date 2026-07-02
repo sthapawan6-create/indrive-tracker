@@ -174,8 +174,10 @@
         <li class="nav-item" onclick="showTab('ledgers')"><i class="fas fa-book"></i> <span>Ledger Master</span></li>
         <li class="nav-item" onclick="showTab('reports')"><i class="fas fa-chart-line"></i> <span>Reports</span></li>
         <li class="nav-item" onclick="showTab('bike')"><i class="fas fa-motorcycle"></i> <span>Bike Tracker</span></li>
+        <li class="nav-item" onclick="showTab('factory')"><i class="fas fa-industry"></i> <span>Production Module</span></li>
         <li class="nav-item" onclick="showTab('cinema')"><i class="fas fa-film"></i> <span>Gold Cinema</span></li>
         <li class="nav-item" onclick="showTab('electric')"><i class="fas fa-bolt"></i> <span>Electric Guide</span></li>
+        <li class="nav-item" onclick="showTab('settings')"><i class="fas fa-cog"></i> <span>System Settings</span></li>
     </ul>
     <div class="sidebar-footer">
         <button class="btn-sync" onclick="syncData()">
@@ -214,8 +216,8 @@
                 <div id="val-networth" class="stat-value">Rs. 0.00</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Liquidity</div>
-                <div id="val-liquidity" class="stat-value" style="color:var(--success)">Rs. 0.00</div>
+                <div class="stat-label">Stock Portfolio</div>
+                <div id="val-stocks" class="stat-value" style="color:var(--gold)">Rs. 0.00</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Receivables</div>
@@ -311,6 +313,49 @@
         </div>
     </div>
 
+    <!-- PRODUCTION MODULE (PLASTIC FACTORY) -->
+    <div id="tab-factory" class="tab-content hidden">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Investment</div>
+                <div id="factory-invest" class="stat-value" style="color:var(--gold)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Expenses</div>
+                <div id="factory-exp" class="stat-value" style="color:var(--danger)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Income</div>
+                <div id="factory-income" class="stat-value" style="color:var(--success)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Net Margin</div>
+                <div id="factory-margin" class="stat-value">Rs. 0</div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px;">
+            <div class="recent-box">
+                <h3 style="color:var(--gold); margin-top:0;">New Production Entry</h3>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <select id="f-type" onchange="updateFactoryCats()">
+                        <option value="expense">खर्च (Expense)</option>
+                        <option value="investment">लगानी (Investment)</option>
+                        <option value="income">आम्दानी/बिक्री (Income)</option>
+                    </select>
+                    <select id="f-cat"></select>
+                    <input type="number" id="f-amount" placeholder="Amount (Rs.)">
+                    <input type="text" id="f-note" placeholder="Note/Details">
+                    <button class="btn-gold" onclick="saveFactoryRecord()">SAVE RECORD</button>
+                </div>
+            </div>
+            <div class="recent-box">
+                <h3 style="color:var(--gold); margin-top:0;">History</h3>
+                <div id="factoryHistory" style="max-height:400px; overflow-y:auto;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- PLACEHOLDERS -->
     <div id="tab-cinema" class="tab-content hidden">
         <div class="recent-box" style="text-align:center; padding:100px;">
@@ -324,6 +369,36 @@
             <i class="fas fa-bolt fa-5x" style="color:var(--gold); margin-bottom:20px;"></i>
             <h2>ELECTRIC GUIDE v2.0</h2>
             <p>Engineering schematics and component database loading...</p>
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="tab-content hidden">
+        <div class="recent-box">
+            <h3 style="color:var(--gold); margin-top:0;">Backup & Security</h3>
+            <div style="padding:15px; border:1px solid var(--border); border-radius:10px; margin-bottom:20px;">
+                <h4 style="margin-top:0;">Cloud Backup Status (AWS S3)</h4>
+                <div id="s3-status-box" style="padding:10px; background:#111; border-radius:5px; font-family:monospace; font-size:0.8rem;">
+                    Checking status...
+                </div>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">
+                    Ensure AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_BUCKET_NAME are set in .env
+                </p>
+                <button class="btn-gold" style="margin-top:10px;" onclick="triggerManualBackup()">BACKUP NOW</button>
+            </div>
+
+            <div style="padding:15px; border:1px solid var(--border); border-radius:10px;">
+                <h4 style="margin-top:0;">Access Control</h4>
+                <div style="display:flex; gap:10px;">
+                    <input type="password" id="new-pin" placeholder="Enter New 4-Digit PIN" maxlength="4">
+                    <button class="btn-gold" onclick="updatePin()">UPDATE PIN</button>
+                </div>
+            </div>
+
+            <div style="margin-top:30px;">
+                <h4 style="color:var(--gold);">Recent Backup Logs</h4>
+                <div id="backupLogs"></div>
+            </div>
         </div>
     </div>
 
@@ -386,7 +461,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     let currentUser = null;
-    let accounts = [], transactions = [], bikeLogs = [];
+    let accounts = [], transactions = [], bikeLogs = [], stocks = [], goal = {}, factoryHistory = [];
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -403,14 +478,20 @@
     async function loadData() {
         if(!currentUser) return;
         try {
-            const [accRes, txRes, bikeRes] = await Promise.all([
+            const [accRes, txRes, bikeRes, stockRes, goalRes, factoryRes] = await Promise.all([
                 fetch(`/api/accounts?userId=${currentUser.uid}`),
                 fetch(`/api/transactions?userId=${currentUser.uid}`),
-                fetch(`/api/bike?userId=${currentUser.uid}`)
+                fetch(`/api/bike?userId=${currentUser.uid}`),
+                fetch(`/api/stocks?userId=${currentUser.uid}`),
+                fetch(`/api/goals?userId=${currentUser.uid}`),
+                fetch(`/api/factory/history?userId=${currentUser.uid}`)
             ]);
             accounts = await accRes.json();
             transactions = await txRes.json();
             bikeLogs = await bikeRes.json();
+            stocks = await stockRes.json();
+            goal = await goalRes.json();
+            factoryHistory = await factoryRes.json();
             updateUI();
         } catch(e) { console.error("Load Failed", e); }
     }
@@ -430,13 +511,15 @@
             else if(type === 'Expense') exp += bal;
         });
 
-        document.getElementById('val-networth').innerText = `Rs. ${(asset - liab).toLocaleString()}`;
-        document.getElementById('val-liquidity').innerText = `Rs. ${cash.toLocaleString()}`;
+        const stockVal = stocks.reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
+
+        document.getElementById('val-networth').innerText = `Rs. ${(asset - liab + stockVal).toLocaleString()}`;
+        document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
         document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
         document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
 
-        // Tx Stream
-        document.getElementById('txBody').innerHTML = transactions.slice(0, 10).map(t => `
+        // Tx Stream - Show last 20 or all if preferred
+        document.getElementById('txBody').innerHTML = transactions.slice(0, 20).map(t => `
             <tr>
                 <td>${t.date}</td>
                 <td>${t.description}</td>
@@ -461,6 +544,32 @@
                 <td style="text-align:right">Rs. ${l.amount.toLocaleString()}</td>
             </tr>
         `).join('');
+
+        // Factory UI
+        let fInv = 0, fExp = 0, fInc = 0;
+        factoryHistory.forEach(i => {
+            if(i.type === 'investment') fInv += i.amount;
+            else if(i.type === 'expense') fExp += i.amount;
+            else if(i.type === 'income') fInc += i.amount;
+        });
+        document.getElementById('factory-invest').innerText = `Rs. ${fInv.toLocaleString()}`;
+        document.getElementById('factory-exp').innerText = `Rs. ${fExp.toLocaleString()}`;
+        document.getElementById('factory-income').innerText = `Rs. ${fInc.toLocaleString()}`;
+        document.getElementById('factory-margin').innerText = `Rs. ${(fInc - fExp).toLocaleString()}`;
+        document.getElementById('factoryHistory').innerHTML = factoryHistory.map(i => `
+            <div style="padding:10px; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong style="color:var(--gold)">${i.category}</strong><br>
+                    <small>${new Date(i.date).toLocaleDateString()} - ${i.note || ''}</small>
+                </div>
+                <div style="text-align:right">
+                    <span style="color:${i.type === 'income' ? 'var(--success)' : (i.type === 'expense' ? 'var(--danger)' : 'white')}">
+                        Rs. ${i.amount.toLocaleString()}
+                    </span><br>
+                    <small style="font-size:0.6rem; opacity:0.6">${i.type.toUpperCase()}</small>
+                </div>
+            </div>
+        `).join('');
     }
 
     // TABS & MODALS
@@ -473,6 +582,8 @@
 
         if(t === 'ledgers') renderLedgers();
         if(t === 'vouchers') populateVoucherSelects();
+        if(t === 'settings') loadSettingsInfo();
+        if(t === 'factory') updateFactoryCats();
     }
 
     function openAccountModal() { document.getElementById('accountModal').classList.remove('hidden'); }
@@ -608,6 +719,84 @@
         if(res.ok) { closeModals(); loadData(); }
     }
 
+    // FACTORY ENGINE
+    const factoryCats = {
+        investment: ["मेशिनरी", "नगद लगानी", "जग्गा/भवन", "अन्य"],
+        expense: ["कच्चा पदार्थ", "बिजुली बिल", "कामदार ज्याला", "ढुवानी", "मर्मत", "अन्य"],
+        income: ["सामान बिक्री", "कबाडी बिक्री", "अन्य"]
+    };
+
+    function updateFactoryCats() {
+        const type = document.getElementById('f-type').value;
+        const catSelect = document.getElementById('f-cat');
+        catSelect.innerHTML = factoryCats[type].map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    async function saveFactoryRecord() {
+        const type = document.getElementById('f-type').value;
+        const category = document.getElementById('f-cat').value;
+        const amount = Number(document.getElementById('f-amount').value);
+        const note = document.getElementById('f-note').value;
+
+        if(!amount) return alert("Please enter amount");
+
+        const res = await fetch('/api/factory/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, partnerName: currentUser.displayName, type, category, amount, note })
+        });
+
+        if(res.ok) {
+            document.getElementById('f-amount').value = '';
+            document.getElementById('f-note').value = '';
+            loadData();
+        }
+    }
+
+    // SETTINGS & BACKUP ENGINE
+    async function loadSettingsInfo() {
+        try {
+            const res = await fetch('/api/system/status');
+            const status = await res.json();
+            const box = document.getElementById('s3-status-box');
+            if(status.s3Configured) {
+                box.innerHTML = `<span style="color:var(--success)">● CONNECTED</span><br>Bucket: ${status.bucket}<br>Region: ${status.region}`;
+            } else {
+                box.innerHTML = `<span style="color:var(--danger)">○ NOT CONFIGURED</span><br>Local backups only. Add S3 keys to .env for cloud safety.`;
+            }
+
+            const logRes = await fetch(`/api/backup/logs?userId=${currentUser.uid}`);
+            const logs = await logRes.json();
+            document.getElementById('backupLogs').innerHTML = logs.map(l => `
+                <div style="font-size:0.8rem; padding:5px 0; border-bottom:1px solid #222;">
+                    ${new Date(l.timestamp).toLocaleString()} -
+                    <span style="color:${l.status === 'Success' ? 'var(--success)' : 'var(--danger)'}">${l.status}</span>
+                    ${l.error ? `<br><small style="color:red">${l.error}</small>` : ''}
+                </div>
+            `).join('') || 'No logs found.';
+        } catch(e) { console.error(e); }
+    }
+
+    async function triggerManualBackup() {
+        const res = await fetch('/api/backup/trigger', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid })
+        });
+        if(res.ok) { alert("Backup Requested!"); loadSettingsInfo(); }
+    }
+
+    async function updatePin() {
+        const pin = document.getElementById('new-pin').value;
+        if(pin.length !== 4) return alert("PIN must be 4 digits");
+        const res = await fetch('/api/settings/update-pin', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, pin })
+        });
+        if(res.ok) alert("PIN Updated Successfully!");
+    }
+
     // UTILS
     function loginWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
     function syncData() {
@@ -616,7 +805,10 @@
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ userId: currentUser.uid })
-        }).then(r => r.json()).then(d => { alert(d.message); loadData(); });
+        }).then(r => r.json()).then(d => {
+            alert(d.message);
+            loadData();
+        }).catch(err => alert("Sync Failed: " + err.message));
     }
     function updateClock() {
         const now = new Date();
