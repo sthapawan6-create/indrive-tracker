@@ -317,8 +317,11 @@
     <div id="tab-statements" class="tab-content hidden">
         <div class="recent-box">
             <h3 style="color:var(--gold); margin-top:0;">Global Transaction Statement</h3>
-            <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <input type="text" id="statementSearch" placeholder="Search by account or description..." onkeyup="filterStatements()" style="flex-grow:1;">
+            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-bottom:20px;">
+                <input type="text" id="statementSearch" placeholder="Search description..." onkeyup="filterStatements()">
+                <select id="statementAccount" onchange="filterStatements()">
+                    <option value="all">-- All Accounts --</option>
+                </select>
                 <select id="statementFilter" onchange="filterStatements()">
                     <option value="all">All Modules</option>
                     <option value="accounting">Accounting</option>
@@ -328,7 +331,12 @@
             </div>
             <table>
                 <thead>
-                    <tr><th>DATE</th><th>MODULE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th style="text-align:right">DEBIT (Dr)</th><th style="text-align:right">CREDIT (Cr)</th></tr>
+                    <tr id="statementHead">
+                        <th>DATE</th><th>MODULE</th><th>DESCRIPTION</th><th>ACCOUNT</th>
+                        <th style="text-align:right">DEBIT (Dr)</th>
+                        <th style="text-align:right">CREDIT (Cr)</th>
+                        <th style="text-align:right">BALANCE</th>
+                    </tr>
                 </thead>
                 <tbody id="statementBody"></tbody>
             </table>
@@ -536,7 +544,7 @@
         if(t === 'ledgers') renderLedgers();
         if(t === 'vouchers') populateVoucherSelects();
         if(t === 'settings') loadSettingsInfo();
-        if(t === 'statements') renderAllStatements();
+        if(t === 'statements') { populateStatementAccounts(); renderAllStatements(); }
     }
 
     function openAccountModal() { document.getElementById('accountModal').classList.remove('hidden'); }
@@ -673,53 +681,108 @@
     }
 
     // STATEMENT ENGINE
+    function populateStatementAccounts() {
+        const sel = document.getElementById('statementAccount');
+        const current = sel.value;
+        sel.innerHTML = '<option value="all">-- All Accounts --</option>' +
+            accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        sel.value = current;
+    }
+
     function renderAllStatements() {
         const filter = document.getElementById('statementFilter')?.value || 'all';
+        const accountFilter = document.getElementById('statementAccount')?.value || 'all';
         const search = document.getElementById('statementSearch')?.value?.toLowerCase() || '';
         let allTx = [];
 
         // 1. Core Transactions
         transactions.forEach(t => {
             t.entries.forEach(e => {
+                const accId = e.account?._id || e.account;
+                const accObj = accounts.find(a => a._id === accId);
+
                 allTx.push({
                     date: t.date,
                     module: 'Accounting',
                     desc: t.description,
-                    acc: e.account?.name || 'Unknown',
-                    dr: e.debit,
-                    cr: e.credit
+                    accName: accObj?.name || 'Unknown',
+                    accId: accId,
+                    accType: accObj?.type || 'Asset',
+                    dr: Number(e.debit || 0),
+                    cr: Number(e.credit || 0)
                 });
             });
         });
 
         // 2. Bike Logs
-        bikeLogs.forEach(l => {
-            allTx.push({
-                date: new Date(l.date).toISOString().split('T')[0],
-                module: 'Bike Tracker',
-                desc: l.description,
-                acc: 'Bike Expense (' + l.type + ')',
-                dr: l.amount,
-                cr: 0
+        if (filter === 'all' || filter === 'bike') {
+            bikeLogs.forEach(l => {
+                allTx.push({
+                    date: new Date(l.date).toISOString().split('T')[0],
+                    module: 'Bike Tracker',
+                    desc: l.description,
+                    accName: 'Bike Expense (' + l.type + ')',
+                    accId: 'BIKE_MOD',
+                    accType: 'Expense',
+                    dr: Number(l.amount || 0),
+                    cr: 0
+                });
             });
-        });
+        }
+
+        // Sort by Date Ascending for Running Balance calculation
+        allTx.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+        let runningBal = 0;
+        let openingRow = '';
+
+        if (accountFilter !== 'all') {
+            const acc = accounts.find(a => a._id === accountFilter);
+            if (acc) {
+                runningBal = Number(acc.openingBalance || 0);
+                openingRow = `
+                    <tr style="background: rgba(255,215,0,0.05); font-style: italic;">
+                        <td colspan="4" style="text-align:right; font-weight:bold;">OPENING BALANCE:</td>
+                        <td colspan="2"></td>
+                        <td style="text-align:right; font-weight:bold;">${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td>
+                    </tr>
+                `;
+            }
+        }
 
         const filtered = allTx.filter(tx => {
-            const matchesSearch = tx.desc.toLowerCase().includes(search) || tx.acc.toLowerCase().includes(search);
+            const matchesSearch = tx.desc.toLowerCase().includes(search) || tx.accName.toLowerCase().includes(search);
             const matchesModule = filter === 'all' || tx.module.toLowerCase().replace(' ', '') === filter;
-            return matchesSearch && matchesModule;
-        }).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const matchesAccount = accountFilter === 'all' || tx.accId === accountFilter;
+            return matchesSearch && matchesModule && matchesAccount;
+        });
 
-        document.getElementById('statementBody').innerHTML = filtered.map(tx => `
-            <tr>
-                <td>${tx.date}</td>
-                <td style="font-size:0.7rem; color:var(--text-muted)">${tx.module}</td>
-                <td>${tx.desc}</td>
-                <td style="color:var(--gold)">${tx.acc}</td>
-                <td style="text-align:right">${tx.dr > 0 ? tx.dr.toLocaleString() : '-'}</td>
-                <td style="text-align:right">${tx.cr > 0 ? tx.cr.toLocaleString() : '-'}</td>
-            </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align:center">No records match filter.</td></tr>';
+        const rows = filtered.map(tx => {
+            const isDebitInc = ['Asset', 'Expense'].includes(tx.accType);
+            if (isDebitInc) runningBal += (tx.dr - tx.cr);
+            else runningBal += (tx.cr - tx.dr);
+
+            return `
+                <tr>
+                    <td>${tx.date}</td>
+                    <td style="font-size:0.7rem; color:var(--text-muted)">${tx.module}</td>
+                    <td>${tx.desc}</td>
+                    <td style="color:var(--gold)">${tx.accName}</td>
+                    <td style="text-align:right; color:var(--success)">${tx.dr > 0 ? tx.dr.toLocaleString() : '-'}</td>
+                    <td style="text-align:right; color:var(--danger)">${tx.cr > 0 ? tx.cr.toLocaleString() : '-'}</td>
+                    <td style="text-align:right; font-weight:bold">
+                        ${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? 'Dr' : 'Cr'}
+                    </td>
+                </tr>
+            `;
+        }).reverse(); // Show latest on top
+
+        const tableBody = document.getElementById('statementBody');
+        tableBody.innerHTML = rows.join('') + (accountFilter !== 'all' ? openingRow : '');
+
+        if (rows.length === 0 && !openingRow) {
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center">No records match filter.</td></tr>';
+        }
     }
 
     function filterStatements() { renderAllStatements(); }
@@ -789,10 +852,12 @@
     setInterval(updateClock, 1000); updateClock();
 
     function exportToExcel() {
-        const table = document.querySelector("#reportData table");
-        if(!table) return alert("Generate a report first");
+        const activeTab = document.querySelector('.tab-content:not(.hidden)');
+        const table = activeTab.querySelector('table');
+        if(!table) return alert("No table found to export");
         const wb = XLSX.utils.table_to_book(table);
-        XLSX.writeFile(wb, "Pawan_Gold_Report.xlsx");
+        const fileName = activeTab.id === 'tab-statements' ? 'All_Statements.xlsx' : 'Pawan_Gold_Report.xlsx';
+        XLSX.writeFile(wb, fileName);
     }
 </script>
 </body>
