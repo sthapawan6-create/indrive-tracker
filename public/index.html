@@ -482,7 +482,7 @@
     }
 
     function updateUI() {
-        let cash = 0, ar = 0, ap = 0, asset = 0, liab = 0, rev = 0, exp = 0;
+        let cash = 0, ar = 0, ap = 0, asset = 0, liab = 0, rev = 0, exp = 0, equity = 0;
         accounts.forEach(a => {
             const bal = Number(a.balance || 0);
             const grp = (a.group || "").toLowerCase();
@@ -490,18 +490,24 @@
             if(grp.includes('cash') || grp.includes('bank')) cash += bal;
             if(grp.includes('debtor')) ar += bal;
             if(grp.includes('creditor')) ap += bal;
+
             if(type === 'Asset') asset += bal;
             else if(type === 'Liability') liab += bal;
             else if(type === 'Revenue') rev += bal;
             else if(type === 'Expense') exp += bal;
+            else if(type === 'Equity') equity += bal;
         });
 
         const stockVal = stocks.reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
 
-        document.getElementById('val-networth').innerText = `Rs. ${(asset - liab + stockVal).toLocaleString()}`;
+        // REAL NET WORTH = Total Assets - Total Liabilities
+        // This gives the actual value of your capital/equity.
+        const netWorth = asset - liab;
+
+        document.getElementById('val-networth').innerText = `Rs. ${netWorth.toLocaleString()}`;
         document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
-        document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
-        document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
+        document.getElementById('val-ar').innerText = `Rs. ${Math.abs(ar).toLocaleString()}`;
+        document.getElementById('val-ap').innerText = `Rs. ${Math.abs(ap).toLocaleString()}`;
 
         // Tx Stream - Show last 20 or all if preferred
         document.getElementById('txBody').innerHTML = transactions.slice(0, 20).map(t => `
