@@ -2629,27 +2629,8 @@
         updateList('ap-breakdown', accounts.filter(a => (a.group||"").toLowerCase().includes('creditor') && Math.abs(a.balance)>0).map(a=>a.name));
 
         if (typeof updateBikeUI === 'function') updateBikeUI();
-        if (typeof renderChart === 'function') renderChart();
-    }
-        setVal('dash-cash', cash, "text-success");
-        setVal('dash-ar', ar);
-        setVal('dash-ap', ap, "text-danger");
-        setVal('dash-profit', netProfit, netProfit >= 0 ? "text-success" : "text-danger");
-
-        // Breakdown Update
-        const updateList = (id, list) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = list.length > 0 ? [...new Set(list)].slice(0,2).join(' • ') : 'No active items';
-        };
-        updateList('cash-breakdown', cashList);
-        updateList('ar-breakdown', arList);
-        updateList('ap-breakdown', apList);
-
-        // UI Refresh for secondary modules
-        if (typeof updateBikeUI === 'function') updateBikeUI();
         if (typeof updateStockUI === 'function') updateStockUI();
         if (typeof updateGoalUI === 'function') updateGoalUI();
-
         if (typeof renderChart === 'function') renderChart();
         if (typeof renderTrendChart === 'function') renderTrendChart();
     }
