@@ -103,17 +103,6 @@ const StockSchema = new mongoose.Schema({
 });
 const Stock = mongoose.model('Stock', StockSchema);
 
-const FactoryRecordSchema = new mongoose.Schema({
-    userId: String,
-    partnerName: String,
-    type: { type: String, enum: ['investment', 'expense', 'income'] },
-    category: String,
-    amount: Number,
-    note: String,
-    date: { type: Date, default: Date.now }
-});
-const FactoryRecord = mongoose.model('FactoryRecord', FactoryRecordSchema);
-
 // --- APIs ---
 
 const checkLock = async (userId, date) => {
@@ -277,7 +266,6 @@ app.post('/api/recalculate', async (req, res) => {
         await Stock.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
         await Goal.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
         await Setting.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await FactoryRecord.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
 
         // २. ब्यालेन्स पुन: गणना गर्ने
         const accounts = await Account.find({ userId });
@@ -493,22 +481,6 @@ app.delete('/api/stocks/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Delete failed" }); }
 });
 
-// ८. फ्याक्ट्री म्यानेजर (Factory Manager)
-app.get('/api/factory/history', async (req, res) => {
-    try {
-        const history = await FactoryRecord.find({ userId: req.query.userId }).sort({ date: -1 });
-        res.json(history);
-    } catch (err) { res.status(500).json({ error: "Factory history load failed" }); }
-});
-
-app.post('/api/factory/add', async (req, res) => {
-    try {
-        const record = new FactoryRecord({ ...req.body });
-        await record.save();
-        res.json(record);
-    } catch (err) { res.status(500).json({ error: "Factory record save failed" }); }
-});
-
 // --- Automated Cloud Backup System ---
 
 const s3Client = new S3Client({
@@ -526,13 +498,12 @@ const performBackup = async (userId = 'sthapawan6@gmail.com') => {
         const transactions = await Transaction.find({ userId });
         const settings = await Setting.findOne({ userId });
         const goals = await Goal.find({ userId });
-        const factory = await FactoryRecord.find({ userId });
 
         const backupData = JSON.stringify({
             version: "ERP_GOLD_V1",
             timestamp: new Date().toISOString(),
             userId,
-            data: { accounts, transactions, settings, goals, factory }
+            data: { accounts, transactions, settings, goals }
         });
 
         const fileName = `backups/${userId}/${Date.now()}.json`;

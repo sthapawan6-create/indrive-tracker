@@ -174,7 +174,7 @@
         <li class="nav-item" onclick="showTab('ledgers')"><i class="fas fa-book"></i> <span>Ledger Master</span></li>
         <li class="nav-item" onclick="showTab('reports')"><i class="fas fa-chart-line"></i> <span>Reports</span></li>
         <li class="nav-item" onclick="showTab('bike')"><i class="fas fa-motorcycle"></i> <span>Bike Tracker</span></li>
-        <li class="nav-item" onclick="showTab('factory')"><i class="fas fa-industry"></i> <span>Production Module</span></li>
+        <li class="nav-item" onclick="showTab('statements')"><i class="fas fa-receipt"></i> <span>All Statements</span></li>
         <li class="nav-item" onclick="showTab('cinema')"><i class="fas fa-film"></i> <span>Gold Cinema</span></li>
         <li class="nav-item" onclick="showTab('electric')"><i class="fas fa-bolt"></i> <span>Electric Guide</span></li>
         <li class="nav-item" onclick="showTab('settings')"><i class="fas fa-cog"></i> <span>System Settings</span></li>
@@ -313,46 +313,25 @@
         </div>
     </div>
 
-    <!-- PRODUCTION MODULE (PLASTIC FACTORY) -->
-    <div id="tab-factory" class="tab-content hidden">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total Investment</div>
-                <div id="factory-invest" class="stat-value" style="color:var(--gold)">Rs. 0</div>
+    <!-- ALL STATEMENTS -->
+    <div id="tab-statements" class="tab-content hidden">
+        <div class="recent-box">
+            <h3 style="color:var(--gold); margin-top:0;">Global Transaction Statement</h3>
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <input type="text" id="statementSearch" placeholder="Search by account or description..." onkeyup="filterStatements()" style="flex-grow:1;">
+                <select id="statementFilter" onchange="filterStatements()">
+                    <option value="all">All Modules</option>
+                    <option value="accounting">Accounting</option>
+                    <option value="bike">Bike Tracker</option>
+                </select>
+                <button class="btn-gold" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Expenses</div>
-                <div id="factory-exp" class="stat-value" style="color:var(--danger)">Rs. 0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Income</div>
-                <div id="factory-income" class="stat-value" style="color:var(--success)">Rs. 0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Net Margin</div>
-                <div id="factory-margin" class="stat-value">Rs. 0</div>
-            </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px;">
-            <div class="recent-box">
-                <h3 style="color:var(--gold); margin-top:0;">New Production Entry</h3>
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                    <select id="f-type" onchange="updateFactoryCats()">
-                        <option value="expense">खर्च (Expense)</option>
-                        <option value="investment">लगानी (Investment)</option>
-                        <option value="income">आम्दानी/बिक्री (Income)</option>
-                    </select>
-                    <select id="f-cat"></select>
-                    <input type="number" id="f-amount" placeholder="Amount (Rs.)">
-                    <input type="text" id="f-note" placeholder="Note/Details">
-                    <button class="btn-gold" onclick="saveFactoryRecord()">SAVE RECORD</button>
-                </div>
-            </div>
-            <div class="recent-box">
-                <h3 style="color:var(--gold); margin-top:0;">History</h3>
-                <div id="factoryHistory" style="max-height:400px; overflow-y:auto;"></div>
-            </div>
+            <table>
+                <thead>
+                    <tr><th>DATE</th><th>MODULE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th style="text-align:right">DEBIT (Dr)</th><th style="text-align:right">CREDIT (Cr)</th></tr>
+                </thead>
+                <tbody id="statementBody"></tbody>
+            </table>
         </div>
     </div>
 
@@ -461,7 +440,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     let currentUser = null;
-    let accounts = [], transactions = [], bikeLogs = [], stocks = [], goal = {}, factoryHistory = [];
+    let accounts = [], transactions = [], bikeLogs = [], stocks = [], goal = {};
 
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -478,20 +457,18 @@
     async function loadData() {
         if(!currentUser) return;
         try {
-            const [accRes, txRes, bikeRes, stockRes, goalRes, factoryRes] = await Promise.all([
+            const [accRes, txRes, bikeRes, stockRes, goalRes] = await Promise.all([
                 fetch(`/api/accounts?userId=${currentUser.uid}`),
                 fetch(`/api/transactions?userId=${currentUser.uid}`),
                 fetch(`/api/bike?userId=${currentUser.uid}`),
                 fetch(`/api/stocks?userId=${currentUser.uid}`),
-                fetch(`/api/goals?userId=${currentUser.uid}`),
-                fetch(`/api/factory/history?userId=${currentUser.uid}`)
+                fetch(`/api/goals?userId=${currentUser.uid}`)
             ]);
             accounts = await accRes.json();
             transactions = await txRes.json();
             bikeLogs = await bikeRes.json();
             stocks = await stockRes.json();
             goal = await goalRes.json();
-            factoryHistory = await factoryRes.json();
             updateUI();
         } catch(e) { console.error("Load Failed", e); }
     }
@@ -545,31 +522,7 @@
             </tr>
         `).join('');
 
-        // Factory UI
-        let fInv = 0, fExp = 0, fInc = 0;
-        factoryHistory.forEach(i => {
-            if(i.type === 'investment') fInv += i.amount;
-            else if(i.type === 'expense') fExp += i.amount;
-            else if(i.type === 'income') fInc += i.amount;
-        });
-        document.getElementById('factory-invest').innerText = `Rs. ${fInv.toLocaleString()}`;
-        document.getElementById('factory-exp').innerText = `Rs. ${fExp.toLocaleString()}`;
-        document.getElementById('factory-income').innerText = `Rs. ${fInc.toLocaleString()}`;
-        document.getElementById('factory-margin').innerText = `Rs. ${(fInc - fExp).toLocaleString()}`;
-        document.getElementById('factoryHistory').innerHTML = factoryHistory.map(i => `
-            <div style="padding:10px; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong style="color:var(--gold)">${i.category}</strong><br>
-                    <small>${new Date(i.date).toLocaleDateString()} - ${i.note || ''}</small>
-                </div>
-                <div style="text-align:right">
-                    <span style="color:${i.type === 'income' ? 'var(--success)' : (i.type === 'expense' ? 'var(--danger)' : 'white')}">
-                        Rs. ${i.amount.toLocaleString()}
-                    </span><br>
-                    <small style="font-size:0.6rem; opacity:0.6">${i.type.toUpperCase()}</small>
-                </div>
-            </div>
-        `).join('');
+        renderAllStatements();
     }
 
     // TABS & MODALS
@@ -583,7 +536,7 @@
         if(t === 'ledgers') renderLedgers();
         if(t === 'vouchers') populateVoucherSelects();
         if(t === 'settings') loadSettingsInfo();
-        if(t === 'factory') updateFactoryCats();
+        if(t === 'statements') renderAllStatements();
     }
 
     function openAccountModal() { document.getElementById('accountModal').classList.remove('hidden'); }
@@ -719,39 +672,57 @@
         if(res.ok) { closeModals(); loadData(); }
     }
 
-    // FACTORY ENGINE
-    const factoryCats = {
-        investment: ["मेशिनरी", "नगद लगानी", "जग्गा/भवन", "अन्य"],
-        expense: ["कच्चा पदार्थ", "बिजुली बिल", "कामदार ज्याला", "ढुवानी", "मर्मत", "अन्य"],
-        income: ["सामान बिक्री", "कबाडी बिक्री", "अन्य"]
-    };
+    // STATEMENT ENGINE
+    function renderAllStatements() {
+        const filter = document.getElementById('statementFilter')?.value || 'all';
+        const search = document.getElementById('statementSearch')?.value?.toLowerCase() || '';
+        let allTx = [];
 
-    function updateFactoryCats() {
-        const type = document.getElementById('f-type').value;
-        const catSelect = document.getElementById('f-cat');
-        catSelect.innerHTML = factoryCats[type].map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-
-    async function saveFactoryRecord() {
-        const type = document.getElementById('f-type').value;
-        const category = document.getElementById('f-cat').value;
-        const amount = Number(document.getElementById('f-amount').value);
-        const note = document.getElementById('f-note').value;
-
-        if(!amount) return alert("Please enter amount");
-
-        const res = await fetch('/api/factory/add', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, partnerName: currentUser.displayName, type, category, amount, note })
+        // 1. Core Transactions
+        transactions.forEach(t => {
+            t.entries.forEach(e => {
+                allTx.push({
+                    date: t.date,
+                    module: 'Accounting',
+                    desc: t.description,
+                    acc: e.account?.name || 'Unknown',
+                    dr: e.debit,
+                    cr: e.credit
+                });
+            });
         });
 
-        if(res.ok) {
-            document.getElementById('f-amount').value = '';
-            document.getElementById('f-note').value = '';
-            loadData();
-        }
+        // 2. Bike Logs
+        bikeLogs.forEach(l => {
+            allTx.push({
+                date: new Date(l.date).toISOString().split('T')[0],
+                module: 'Bike Tracker',
+                desc: l.description,
+                acc: 'Bike Expense (' + l.type + ')',
+                dr: l.amount,
+                cr: 0
+            });
+        });
+
+        const filtered = allTx.filter(tx => {
+            const matchesSearch = tx.desc.toLowerCase().includes(search) || tx.acc.toLowerCase().includes(search);
+            const matchesModule = filter === 'all' || tx.module.toLowerCase().replace(' ', '') === filter;
+            return matchesSearch && matchesModule;
+        }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        document.getElementById('statementBody').innerHTML = filtered.map(tx => `
+            <tr>
+                <td>${tx.date}</td>
+                <td style="font-size:0.7rem; color:var(--text-muted)">${tx.module}</td>
+                <td>${tx.desc}</td>
+                <td style="color:var(--gold)">${tx.acc}</td>
+                <td style="text-align:right">${tx.dr > 0 ? tx.dr.toLocaleString() : '-'}</td>
+                <td style="text-align:right">${tx.cr > 0 ? tx.cr.toLocaleString() : '-'}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="6" style="text-align:center">No records match filter.</td></tr>';
     }
+
+    function filterStatements() { renderAllStatements(); }
 
     // SETTINGS & BACKUP ENGINE
     async function loadSettingsInfo() {
