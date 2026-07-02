@@ -915,6 +915,14 @@
 
         if (rows.length === 0 && !openingRow) {
             tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center">No records match filter.</td></tr>';
+        }
+    }
+
+    function renderReport(type) {
+        const title = document.getElementById('reportTitle');
+        const cont = document.getElementById('reportData');
+        cont.innerHTML = '';
+
         if(type === 'rp') {
             title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
             const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
