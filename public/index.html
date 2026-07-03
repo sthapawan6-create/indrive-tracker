@@ -372,7 +372,13 @@
             </div>
             
             <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px;">
-                <h3 style="color:var(--gold); margin-bottom:15px;">Recent Voucher Entries</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                    <h3 style="color:var(--gold); margin:0;">Recent Voucher Entries</h3>
+                    <div style="display:flex; gap:10px;">
+                        <input type="date" id="voucherSearchDate" onchange="renderVouchersList()" style="padding:5px 10px; border-radius:5px; border:1px solid #333; background:#111; color:white;" aria-label="Search by date">
+                        <input type="text" id="voucherSearchText" placeholder="Search name or desc..." onkeyup="renderVouchersList()" style="padding:5px 10px; border-radius:5px; border:1px solid #333; background:#111; color:white; width:200px;" aria-label="Search by text">
+                    </div>
+                </div>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -1244,8 +1250,29 @@
         const body = document.getElementById('vouchersListBody');
         if(!body) return;
 
-        // Sort transactions by date descending, then by creation if date is same
-        const sortedTxs = [...transactions].sort((a,b) => {
+        const dateQuery = document.getElementById('voucherSearchDate').value;
+        const textQuery = document.getElementById('voucherSearchText').value.toLowerCase();
+
+        // Filter and Sort
+        let filtered = [...transactions];
+
+        if(dateQuery) {
+            filtered = filtered.filter(t => t.date === dateQuery);
+        }
+
+        if(textQuery) {
+            filtered = filtered.filter(t => {
+                const descMatch = t.description.toLowerCase().includes(textQuery);
+                const accMatch = t.entries.some(e => {
+                    const accId = e.account?._id || e.account;
+                    const acc = accounts.find(a => a._id === accId);
+                    return acc && acc.name.toLowerCase().includes(textQuery);
+                });
+                return descMatch || accMatch;
+            });
+        }
+
+        const sortedTxs = filtered.sort((a,b) => {
             const dateDiff = new Date(b.date) - new Date(a.date);
             return dateDiff !== 0 ? dateDiff : (b._id > a._id ? 1 : -1);
         });
