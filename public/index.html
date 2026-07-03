@@ -228,6 +228,26 @@
         .hidden { display: none !important; }
         .text-red { color: #d32f2f !important; }
         .text-green { color: #2e7d32 !important; }
+
+        /* Bottom Status Bar */
+        .status-bar {
+            background: #d1d9e0;
+            border-top: 1px solid #b1b9c0;
+            padding: 2px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #444;
+            height: 28px;
+            align-items: center;
+            font-weight: 500;
+        }
+        .status-bar-item { display: flex; gap: 20px; }
+        .status-bar-item span b { color: var(--tally-teal); margin-right: 3px; }
+
+        /* Drill-down styling */
+        .clickable-ledger { color: var(--tally-teal); cursor: pointer; }
+        .clickable-ledger:hover { text-decoration: underline; background: #f0f7f8; }
     </style>
 </head>
 <body>
@@ -453,7 +473,10 @@
             <!-- Day Book Page -->
             <div id="page-daybook" class="main-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
-                    <h2 style="border-bottom:none; margin:0;">Day Book</h2>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <h2 style="border-bottom:none; margin:0;">Day Book</h2>
+                        <input type="text" id="daybook-search" placeholder="Search (Date, Account, Type...)" oninput="renderDayBook()" style="padding:4px 10px; border:1px solid var(--tally-border); width:250px; font-size:0.8rem;">
+                    </div>
                     <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Day Book</button>
                 </div>
                 <table>
@@ -557,6 +580,18 @@
                 <div class="f-key" onclick="logout()"><span>Ctrl+Q</span> Quit</div>
             </div>
         </div>
+
+        <!-- Bottom Status Bar -->
+        <div class="status-bar">
+            <div class="status-bar-item">
+                <span><b>Company:</b> PAWAN GOLD (2023-24)</span>
+                <span><b>User:</b> <span id="status-user">Admin</span></span>
+            </div>
+            <div class="status-bar-item">
+                <span id="status-clock"></span>
+                <span><b>Version:</b> 2.0.4-GOLD</span>
+            </div>
+        </div>
     </div>
 
     <!-- Modals -->
@@ -629,7 +664,21 @@
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZaWUcQermGfb_pQSxXvYCpDV8i0CbKKk",
+            authDomain: "perfect-solution-accounting.firebaseapp.com",
+            projectId: "perfect-solution-accounting",
+            storageBucket: "perfect-solution-accounting.appspot.com",
+            messagingSenderId: "1055678443355",
+            appId: "1:1055678443355:web:8c5b1b4d0e5c9 a7d"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
         const user = JSON.parse(localStorage.getItem('pawangold_user'));
         if(!user) window.location.href = 'login.html';
         document.body.style.display = 'block';
@@ -640,7 +689,15 @@
         window.onload = () => {
             document.getElementById('uNameDisplay').innerText = user.displayName || user.email;
             document.getElementById('uImgDisplay').src = user.photoURL || 'https://ui-avatars.com/api/?name='+user.displayName;
+            document.getElementById('status-user').innerText = user.displayName || user.email;
             document.getElementById('v-date').valueAsDate = new Date();
+
+            // Start Clock
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('status-clock').innerText = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            }, 1000);
+
             syncAll();
         };
 
@@ -718,6 +775,7 @@
                 title = "Net Worth Breakdown";
                 const assets = accounts.filter(a => a.type === 'Asset');
                 const liabs = accounts.filter(a => a.type === 'Liability');
+                const equity = accounts.filter(a => a.type === 'Equity');
 
                 let html = `<div style="font-weight:bold; color:var(--tally-teal); margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:5px;">ASSETS (सम्पत्ति)</div>`;
                 assets.forEach(a => {
@@ -731,6 +789,7 @@
                         </div>`;
                     total += a.balance;
                 });
+
                 html += `<div style="font-weight:bold; color:#d32f2f; margin:15px 0 5px; border-bottom:1px solid #eee; padding-bottom:5px;">LIABILITIES (ऋण/दायित्व)</div>`;
                 liabs.forEach(a => {
                     html += `
@@ -743,6 +802,17 @@
                         </div>`;
                     total -= a.balance;
                 });
+
+                if(equity.length > 0) {
+                    html += `<div style="font-weight:bold; color:#666; margin:15px 0 5px; border-bottom:1px solid #eee; padding-bottom:5px;">EQUITY (पूँजी)</div>`;
+                    equity.forEach(a => {
+                        html += `
+                            <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:0.9rem; border-bottom:1px dotted #eee;">
+                                <span>${a.name}</span>
+                                <span style="font-weight:bold;">${a.balance.toLocaleString()}</span>
+                            </div>`;
+                    });
+                }
 
                 document.getElementById('bd-title').innerText = title;
                 document.getElementById('bd-body').innerHTML = html;
@@ -805,6 +875,8 @@
                 renderBalanceSheet();
                 renderPL();
                 renderBikeLogs();
+
+                if(document.getElementById('page-dashboard').classList.contains('active')) renderCharts();
             } catch(e) { console.error("Sync Error", e); }
         }
 
@@ -831,32 +903,28 @@
             // Destroy existing charts to prevent memory leaks/overlap
             Object.values(charts).forEach(c => c.destroy());
 
-            // Prepare Data
+            // Prepare Labels (Last 6 Months)
             const last6Months = [];
+            const now = new Date();
             for(let i=5; i>=0; i--) {
-                const d = new Date(); d.setMonth(d.getMonth() - i);
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 last6Months.push(d.toLocaleString('default', { month: 'short' }));
             }
-
-            // Monthly Aggregates
-            const incData = [0,0,0,0,0,55000]; // Mocking some trend
-            const expData = [0,0,0,0,0,42000];
 
             // Real Calculation from Transactions
             const monthlyInc = new Array(6).fill(0);
             const monthlyExp = new Array(6).fill(0);
-            const monthlyCash = new Array(6).fill(0);
 
             transactions.forEach(tx => {
                 const tDate = new Date(tx.date);
-                const monthDiff = (new Date().getMonth() - tDate.getMonth() + (12 * (new Date().getFullYear() - tDate.getFullYear())));
+                const monthDiff = (now.getMonth() - tDate.getMonth() + (12 * (now.getFullYear() - tDate.getFullYear())));
                 if(monthDiff >= 0 && monthDiff < 6) {
                     const idx = 5 - monthDiff;
                     tx.entries.forEach(e => {
                         const acc = e.account;
                         if(acc) {
-                            if(acc.type === 'Revenue') monthlyInc[idx] += e.credit;
-                            if(acc.type === 'Expense') monthlyExp[idx] += e.debit;
+                            if(acc.type === 'Revenue') monthlyInc[idx] += (e.credit || 0);
+                            if(acc.type === 'Expense') monthlyExp[idx] += (e.debit || 0);
                         }
                     });
                 }
@@ -991,7 +1059,17 @@
         }
 
         function renderDayBook() {
-            document.getElementById('tbl-daybook-body').innerHTML = transactions.map(tx => {
+            const query = document.getElementById('daybook-search').value.toLowerCase();
+
+            const filtered = transactions.filter(tx => {
+                const dateMatch = new Date(tx.date).toLocaleDateString().toLowerCase().includes(query);
+                const descMatch = (tx.description || "").toLowerCase().includes(query);
+                const typeMatch = (tx.type || "").toLowerCase().includes(query);
+                const accMatch = tx.entries.some(e => e.account && (e.account.name || "").toLowerCase().includes(query));
+                return dateMatch || descMatch || typeMatch || accMatch;
+            });
+
+            document.getElementById('tbl-daybook-body').innerHTML = filtered.map(tx => {
                 const totalAmt = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
                 const particulars = tx.entries.map(e => {
                     const accName = e.account ? (e.account.name || 'Unknown') : 'Unknown';
@@ -1132,7 +1210,8 @@
         }
 
         function renderTrialBalance() {
-            document.getElementById('tbl-trial-body').innerHTML = accounts.map(a => {
+            let totalDr = 0, totalCr = 0;
+            let rows = accounts.map(a => {
                 const isDr = ['Asset', 'Expense'].includes(a.type);
                 let dr = 0, cr = 0;
                 if(isDr) {
@@ -1140,22 +1219,57 @@
                 } else {
                     if(a.balance >= 0) cr = a.balance; else dr = Math.abs(a.balance);
                 }
-                return `<tr><td>${a.name}</td><td class="amt">${dr?dr.toLocaleString():''}</td><td class="amt">${cr?cr.toLocaleString():''}</td></tr>`;
+                totalDr += dr;
+                totalCr += cr;
+                return `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
+                            <td>${a.name}</td>
+                            <td class="amt">${dr?dr.toLocaleString():''}</td>
+                            <td class="amt">${cr?cr.toLocaleString():''}</td>
+                        </tr>`;
             }).join('');
+
+            rows += `<tr style="font-weight:bold; border-top:2px solid #000; background:#f2f5f7;">
+                        <td>Total</td>
+                        <td class="amt">${totalDr.toLocaleString()}</td>
+                        <td class="amt">${totalCr.toLocaleString()}</td>
+                    </tr>`;
+
+            document.getElementById('tbl-trial-body').innerHTML = rows;
         }
 
         function renderBalanceSheet() {
             let aHtml = '<thead><tr><th>Assets</th><th class="amt">Balance</th></tr></thead>',
                 lHtml = '<thead><tr><th>Liabilities</th><th class="amt">Balance</th></tr></thead>';
             let rev = 0, exp = 0;
+            let totalA = 0, totalL = 0;
+
             accounts.forEach(a => {
-                if(a.type === 'Asset') aHtml += `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
-                if(['Liability', 'Equity'].includes(a.type)) lHtml += `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+                if(a.type === 'Asset') {
+                    aHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
+                                <td>${a.name}</td>
+                                <td class="amt">${a.balance.toLocaleString()}</td>
+                              </tr>`;
+                    totalA += a.balance;
+                }
+                if(['Liability', 'Equity'].includes(a.type)) {
+                    lHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
+                                <td>${a.name}</td>
+                                <td class="amt">${a.balance.toLocaleString()}</td>
+                              </tr>`;
+                    totalL += a.balance;
+                }
                 if(a.type === 'Revenue') rev += a.balance;
                 if(a.type === 'Expense') exp += a.balance;
             });
             const netProfit = rev - exp;
+            totalL += netProfit;
+
             lHtml += `<tr style="font-weight:bold; color:var(--tally-teal);"><td>Profit & Loss A/c (Net Profit)</td><td class="amt">${netProfit.toLocaleString()}</td></tr>`;
+
+            // Add Totals
+            aHtml += `<tr style="font-weight:bold; border-top:2px solid #000; background:#f2f5f7;"><td>Total</td><td class="amt">${totalA.toLocaleString()}</td></tr>`;
+            lHtml += `<tr style="font-weight:bold; border-top:2px solid #000; background:#f2f5f7;"><td>Total</td><td class="amt">${totalL.toLocaleString()}</td></tr>`;
+
             document.getElementById('tbl-assets').innerHTML = aHtml;
             document.getElementById('tbl-liab').innerHTML = lHtml;
         }
@@ -1167,7 +1281,9 @@
                 return `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
             }).join('');
             document.getElementById('pl-body').innerHTML = rows;
-            document.getElementById('pl-net-result').innerText = (rev - exp).toLocaleString();
+            const netResult = rev - exp;
+            document.getElementById('pl-net-result').innerText = netResult.toLocaleString();
+            document.getElementById('pl-net-result').className = netResult >= 0 ? 'amt text-green' : 'amt text-red';
         }
 
         // Voucher System
