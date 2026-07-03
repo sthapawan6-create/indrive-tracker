@@ -190,14 +190,18 @@
                 <button onclick="syncStocks()" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; padding:0; margin-top:5px; text-decoration:underline;">[ SYNC LIVE ]</button>
             </div>
         </div>
-        <div class="recent-box">
-            <h3 style="margin:0 0 15px; color:var(--gold);">Live Transaction Stream</h3>
-            <table>
-                <thead>
-                    <tr><th>DATE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th><th style="text-align:center">ACTION</th></tr>
-                </thead>
-                <tbody id="txBody"></tbody>
-            </table>
+        <div class="recent-box" style="padding:15px; border:1px solid #333; background:rgba(0,0,0,0.2);">
+            <h3 style="margin:0 0 12px; color:var(--gold); font-size:1rem; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-history" style="font-size:0.8rem;"></i> Today's Live Feed
+            </h3>
+            <div style="max-height:300px; overflow-y:auto; padding-right:5px;" class="custom-scrollbar">
+                <table style="width:100%; border-collapse:collapse; min-width:unset;">
+                    <tbody id="txBody" style="font-size:0.85rem;"></tbody>
+                </table>
+            </div>
+            <div style="text-align:center; margin-top:10px; border-top:1px solid #333; padding-top:10px;">
+                <a href="#" onclick="showTab('statements')" style="color:var(--gold); font-size:0.7rem; text-decoration:none; opacity:0.8;">VIEW ALL STATEMENTS <i class="fas fa-arrow-right"></i></a>
+            </div>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
@@ -648,18 +652,24 @@
             </tr>
         `).join('') || '<tr><td colspan="2" style="text-align:center">No party payables.</td></tr>';
 
-        // Tx Stream
-        document.getElementById('txBody').innerHTML = (transactions || []).slice(0, 10).map(t => `
-            <tr>
-                <td>${t.date}</td>
-                <td>${t.description}</td>
-                <td style="color:var(--gold)">${t.entries[0]?.account?.name || 'Multiple'}</td>
-                <td style="text-align:right">Rs. ${Math.abs(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}</td>
-                <td style="text-align:center">
-                    <button onclick="deleteTransaction('${t._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
+        // Today's Transaction Stream (Compact Feed)
+        const today = new Date().toLocaleDateString('en-CA');
+        const todaysTxs = (transactions || []).filter(t => t.date === today);
+
+        document.getElementById('txBody').innerHTML = todaysTxs.map(t => `
+            <tr style="border-bottom: 1px solid #222;">
+                <td style="padding:12px 5px;">
+                    <div style="font-weight:bold; color:#fff; margin-bottom:2px;">${t.description}</div>
+                    <div style="font-size:0.7rem; color:var(--gold); opacity:0.8;">${t.entries[0]?.account?.name || 'Multiple Accounts'}</div>
+                </td>
+                <td style="text-align:right; padding:12px 5px;">
+                    <div style="font-weight:bold; color:var(--success);">Rs. ${Math.abs(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}</div>
+                </td>
+                <td style="text-align:right; padding:12px 0 12px 10px;">
+                    <button onclick="deleteTransaction('${t._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:0.7rem; opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="5" style="text-align:center">No transactions.</td></tr>';
+        `).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:30px;">No transactions entered today.</td></tr>';
 
         // Bike Stats
         const bikeLogsSafe = bikeLogs || [];
