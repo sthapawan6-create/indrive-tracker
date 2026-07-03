@@ -627,22 +627,24 @@
         document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
         document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
 
-        // Breakdown Tables
-        const arList = accounts.filter(a => (a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0));
+        // Breakdown Tables (Excluding Bank/Cash from party lists)
+        const arList = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
+                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
         document.getElementById('arBreakdown').innerHTML = arList.map(a => `
             <tr>
                 <td>${a.name}</td>
                 <td style="text-align:right; color:var(--success)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
             </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align:center">No receivables.</td></tr>';
+        `).join('') || '<tr><td colspan="2" style="text-align:center">No party receivables.</td></tr>';
 
-        const apList = accounts.filter(a => (a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0));
+        const apList = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
+                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
         document.getElementById('apBreakdown').innerHTML = apList.map(a => `
             <tr>
                 <td>${a.name}</td>
                 <td style="text-align:right; color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
             </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align:center">No payables.</td></tr>';
+        `).join('') || '<tr><td colspan="2" style="text-align:center">No party payables.</td></tr>';
 
         // Tx Stream
         document.getElementById('txBody').innerHTML = (transactions || []).slice(0, 10).map(t => `
