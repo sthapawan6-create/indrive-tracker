@@ -199,6 +199,27 @@
                 <tbody id="txBody"></tbody>
             </table>
         </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px;">
+            <div class="recent-box">
+                <h3 style="margin:0 0 15px; color:var(--success);">Receivables (लिनु पर्ने)</h3>
+                <table style="min-width: unset;">
+                    <thead>
+                        <tr><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
+                    </thead>
+                    <tbody id="arBreakdown"></tbody>
+                </table>
+            </div>
+            <div class="recent-box">
+                <h3 style="margin:0 0 15px; color:var(--danger);">Payables (दिनु पर्ने)</h3>
+                <table style="min-width: unset;">
+                    <thead>
+                        <tr><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
+                    </thead>
+                    <tbody id="apBreakdown"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- VOUCHERS -->
@@ -605,6 +626,23 @@
         document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
         document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
         document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
+
+        // Breakdown Tables
+        const arList = accounts.filter(a => (a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0));
+        document.getElementById('arBreakdown').innerHTML = arList.map(a => `
+            <tr>
+                <td>${a.name}</td>
+                <td style="text-align:right; color:var(--success)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="2" style="text-align:center">No receivables.</td></tr>';
+
+        const apList = accounts.filter(a => (a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0));
+        document.getElementById('apBreakdown').innerHTML = apList.map(a => `
+            <tr>
+                <td>${a.name}</td>
+                <td style="text-align:right; color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="2" style="text-align:center">No payables.</td></tr>';
 
         // Tx Stream
         document.getElementById('txBody').innerHTML = (transactions || []).slice(0, 10).map(t => `
