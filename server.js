@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const cron = require('node-cron');
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
 app.use(express.json());
@@ -649,9 +649,27 @@ app.get('/api/backup/logs', async (req, res) => {
     }
 });
 
-app.get('/api/system/status', (req, res) => {
+app.get('/api/system/status', async (req, res) => {
+    const isConfigured = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME);
+    let s3Status = 'Configured';
+    let s3Error = null;
+
+    if (isConfigured) {
+        try {
+            await s3Client.send(new HeadBucketCommand({ Bucket: process.env.AWS_BUCKET_NAME }));
+            s3Status = 'Connected';
+        } catch (err) {
+            s3Status = 'Error';
+            s3Error = err.message;
+        }
+    } else {
+        s3Status = 'Not Configured';
+    }
+
     res.json({
-        s3Configured: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME),
+        s3Configured: isConfigured,
+        s3Status: s3Status,
+        s3Error: s3Error,
         region: process.env.AWS_REGION || 'us-east-1',
         bucket: process.env.AWS_BUCKET_NAME || 'Not Set'
     });
