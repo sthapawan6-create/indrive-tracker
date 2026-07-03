@@ -194,7 +194,7 @@
             <h3 style="margin:0 0 15px; color:var(--gold);">Live Transaction Stream</h3>
             <table>
                 <thead>
-                    <tr><th>DATE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
+                    <tr><th>DATE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th><th style="text-align:center">ACTION</th></tr>
                 </thead>
                 <tbody id="txBody"></tbody>
             </table>
@@ -229,7 +229,7 @@
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
                 <input type="date" id="v-date" aria-label="Voucher Date">
                 <input type="text" id="v-desc" placeholder="Transaction Description" aria-label="Description">
-                <button class="btn-gold" onclick="saveVoucher()">SAVE VOUCHER</button>
+                <button id="btn-save-voucher" class="btn-gold" onclick="saveVoucher()">SAVE VOUCHER</button>
             </div>
             <div id="v-entries-container">
                 <div class="voucher-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr 50px; gap:10px; margin-bottom:10px;">
@@ -655,8 +655,11 @@
                 <td>${t.description}</td>
                 <td style="color:var(--gold)">${t.entries[0]?.account?.name || 'Multiple'}</td>
                 <td style="text-align:right">Rs. ${Math.abs(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}</td>
+                <td style="text-align:center">
+                    <button onclick="deleteTransaction('${t._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
             </tr>
-        `).join('') || '<tr><td colspan="4" style="text-align:center">No transactions.</td></tr>';
+        `).join('') || '<tr><td colspan="5" style="text-align:center">No transactions.</td></tr>';
 
         // Bike Stats
         const bikeLogsSafe = bikeLogs || [];
@@ -793,12 +796,43 @@
         if(!date || !desc || entries.length < 2) return alert("Fill all details.");
         if(Math.abs(totalDr - totalCr) > 0.1) return alert("Voucher out of balance!");
 
-        const res = await fetch('/api/transactions', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, date, description: desc, entries })
-        });
-        if(res.ok) loadData();
+        const btn = document.getElementById('btn-save-voucher');
+        btn.disabled = true;
+        btn.innerText = "SAVING...";
+
+        try {
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: currentUser.uid, date, description: desc, entries })
+            });
+
+            if(res.ok) {
+                alert("✅ Voucher Saved Successfully!");
+                document.getElementById('v-desc').value = '';
+                document.getElementById('v-entries-container').innerHTML = '';
+                addVoucherRow();
+                addVoucherRow();
+                loadData();
+            } else {
+                const err = await res.json();
+                alert("❌ Save Failed: " + (err.error || "Server Error"));
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "SAVE VOUCHER";
+        }
+    }
+
+    async function deleteTransaction(id) {
+        if(!confirm("Are you sure you want to delete this transaction?")) return;
+        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+            loadData();
+        } else {
+            const err = await res.json();
+            alert("Delete Failed: " + (err.error || "Unknown error"));
+        }
     }
 
     async function saveAccount() {
