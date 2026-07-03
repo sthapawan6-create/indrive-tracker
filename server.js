@@ -16,14 +16,15 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Static Files
+app.use(express.static(path.resolve(__dirname, 'public')));
 
 const MONGO_URI = process.env.MONGO_URI;
 
 const connectDB = async () => {
     try {
         await mongoose.connect(MONGO_URI);
-        console.log("✅ ERP GOLD डेटाबेस जडान सफल!");
+        console.log("✅ PAWAN GOLD डेटाबेस जडान सफल!");
     } catch (err) {
         console.error("❌ जडान त्रुटि:", err.message);
         setTimeout(connectDB, 5000);
@@ -58,6 +59,7 @@ const TransactionSchema = new mongoose.Schema({
     userId: String,
     date: String,
     description: String,
+    type: { type: String, default: 'JOURNAL' },
     entries: [{
         account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
         debit: { type: Number, default: 0 },
@@ -69,7 +71,7 @@ const Transaction = mongoose.model('Transaction', TransactionSchema);
 const SettingSchema = new mongoose.Schema({
     userId: String,
     lastClosedDate: { type: String, default: "" },
-    accessPin: { type: String, default: "" } // Security PIN
+    accessPin: { type: String, default: "" }
 });
 const Setting = mongoose.model('Setting', SettingSchema);
 
@@ -78,14 +80,14 @@ const GoalSchema = new mongoose.Schema({
     name: String,
     target: Number,
     deadline: String,
-    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' }, // Linked Account
+    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
     createdAt: { type: Date, default: Date.now }
 });
 const Goal = mongoose.model('Goal', GoalSchema);
 
 const BikeLogSchema = new mongoose.Schema({
     userId: String,
-    type: { type: String, enum: ['Fuel', 'Service', 'Repair', 'Tax'] },
+    type: { type: String, enum: ['Fuel', 'Service', 'Repair', 'Tax', 'Wash', 'Servicing'] },
     amount: Number,
     odometer: Number,
     description: String,
@@ -137,7 +139,6 @@ const checkLock = async (userId, date) => {
 app.get('/api/accounts', async (req, res) => {
     try {
         const userId = req.query.userId;
-        // sthapawan6@gmail.com लाई "Super Admin" मानेर सबै डेटा हेर्न दिने विकल्प वा आफ्नै मात्र
         const accounts = await Account.find({ userId }).sort({ name: 1 });
         res.json(accounts);
     } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
@@ -167,37 +168,6 @@ app.delete('/api/accounts/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "मेटाउन सकिएन" }); }
 });
 
-app.post('/api/accounts/merge', async (req, res) => {
-    try {
-        const { userId, fromId, toId } = req.body;
-        if (!fromId || !toId || fromId === toId) return res.status(400).json({ error: "Invalid account selection" });
-
-        // 1. Update all transactions from 'fromId' to 'toId'
-        await Transaction.updateMany(
-            { userId, "entries.account": fromId },
-            { $set: { "entries.$[elem].account": toId } },
-            { arrayFilters: [{ "elem.account": fromId }] }
-        );
-
-        // 2. Add opening balance of 'fromId' to 'toId'
-        const fromAcc = await Account.findById(fromId);
-        const toAcc = await Account.findById(toId);
-
-        if (fromAcc && toAcc) {
-            toAcc.openingBalance = (toAcc.openingBalance || 0) + (fromAcc.openingBalance || 0);
-            // Balance will be recalculated next
-            await toAcc.save();
-        }
-
-        // 3. Delete the 'fromId' account
-        await Account.findByIdAndDelete(fromId);
-
-        res.json({ message: "खाताहरू सफलतापूर्वक मिसाइयो! अब ब्यालेन्स रिक्याल्कुलेट हुँदैछ..." });
-    } catch (err) {
-        res.status(500).json({ error: "Merge Failed: " + err.message });
-    }
-});
-
 // २. कारोबार (Transactions)
 app.get('/api/transactions', async (req, res) => {
     try {
@@ -208,9 +178,9 @@ app.get('/api/transactions', async (req, res) => {
 
 app.post('/api/transactions', async (req, res) => {
     try {
-        const { userId, date, description, entries } = req.body;
-        if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा परिवर्तन गर्न मिल्दैन।" });
-        const tx = new Transaction({ userId, date, description, entries });
+        const { userId, date, description, entries, type } = req.body;
+        if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+        const tx = new Transaction({ userId, date, description, entries, type: type || 'JOURNAL' });
         await tx.save();
 
         for (const entry of entries) {
@@ -227,12 +197,11 @@ app.post('/api/transactions', async (req, res) => {
 
 app.put('/api/transactions/:id', async (req, res) => {
     try {
-        const { userId, date, description, entries } = req.body;
+        const { userId, date, description, entries, type } = req.body;
         const oldTx = await Transaction.findById(req.params.id);
-        if (await checkLock(oldTx.userId, oldTx.date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा सम्पादन गर्न मिल्दैन।" });
-        if (await checkLock(userId, date)) return res.status(403).json({ error: "नयाँ मितिको हिसाब क्लोज भइसकेको छ।" });
+        if (!oldTx) return res.status(404).json({ error: "भेटिएन" });
 
-        // Reverse Old
+        // Reverse old balances
         for (const entry of oldTx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -242,10 +211,14 @@ app.put('/api/transactions/:id', async (req, res) => {
             }
         }
 
-        oldTx.date = date; oldTx.description = description; oldTx.entries = entries;
+        // Apply new data
+        oldTx.date = date;
+        oldTx.description = description;
+        oldTx.entries = entries;
+        oldTx.type = type || 'JOURNAL';
         await oldTx.save();
 
-        // Apply New
+        // Apply new balances
         for (const entry of entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -254,14 +227,33 @@ app.put('/api/transactions/:id', async (req, res) => {
                 await acc.save();
             }
         }
-        res.status(200).json(oldTx);
+        res.json(oldTx);
     } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
 });
 
+// ३. बाइक लग (Bike Log)
+app.get('/api/bike', async (req, res) => {
+    try {
+        const logs = await BikeLog.find({ userId: req.query.userId }).sort({ date: -1 });
+        res.json(logs);
+    } catch (err) { res.status(500).json({ error: "Bike log load failed" }); }
+});
+
+app.post('/api/bike', async (req, res) => {
+    try {
+        const log = new BikeLog({ ...req.body });
+        await log.save();
+        res.json(log);
+    } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
+});
+
+// ४. डिलिट र रिक्याल्कुलेट (Delete & Recalculate)
 app.delete('/api/transactions/:id', async (req, res) => {
     try {
         const tx = await Transaction.findById(req.params.id);
-        if (await checkLock(tx.userId, tx.date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ। डाटा मेटाउन मिल्दैन।" });
+        if (!tx) return res.status(404).json({ error: "भेटिएन" });
+
+        // ब्यालेन्स फिर्ता घटाउने/बढाउने
         for (const entry of tx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -272,408 +264,58 @@ app.delete('/api/transactions/:id', async (req, res) => {
         }
         await Transaction.findByIdAndDelete(req.params.id);
         res.json({ message: "सफल" });
-    } catch (err) { res.status(500).json({ error: "असफल" }); }
+    } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
 });
 
-// ३. सबै खाताको ब्यालेन्स पुन: गणना (Recalculate) र डेटा रिकभरी गर्ने
 app.post('/api/recalculate', async (req, res) => {
+    const { userId } = req.body;
     try {
-        const { userId } = req.body;
-        if (!userId) return res.status(400).json({ error: "User ID missing" });
-
-        // १. डेटा रिकभरी: सबै अनाथ वा पुराना डाटाहरूलाई यो नयाँ ईमेल आईडीमा सार्ने
-        const countA = await Account.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        const countT = await Transaction.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await BikeLog.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await Stock.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await Goal.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await Setting.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await CinemaShow.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-        await ElectricItem.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
-
-        // २. ब्यालेन्स पुन: गणना गर्ने
         const accounts = await Account.find({ userId });
-        if (accounts.length === 0) {
-            return res.json({ message: "कुनै खाता फेला परेन। कृपया नयाँ खाता बनाउनुहोस्।" });
-        }
+        const transactions = await Transaction.find({ userId });
 
         for (const acc of accounts) {
-            const txs = await Transaction.find({ "entries.account": acc._id });
-            let bal = Number(acc.openingBalance || 0);
-            const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
-
-            txs.forEach(t => {
-                t.entries.forEach(e => {
-                    if (e.account && e.account.toString() === acc._id.toString()) {
-                        bal += isDebitInc ? (Number(e.debit || 0) - Number(e.credit || 0)) : (Number(e.credit || 0) - Number(e.debit || 0));
+            let newBalance = acc.openingBalance || 0;
+            transactions.forEach(tx => {
+                tx.entries.forEach(e => {
+                    if (e.account.toString() === acc._id.toString()) {
+                        const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                        newBalance += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
                     }
                 });
             });
-
-            acc.balance = bal;
+            acc.balance = newBalance;
             await acc.save();
         }
-        res.json({ message: `सफलतापूर्वक डेटा रिकभर र सिंक गरियो! लेखिएका खाताहरू: ${accounts.length}` });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Sync Failed: " + err.message });
+        res.json({ message: "सबै खाताको ब्यालेन्स पुन: गणना गरियो र मिलाइयो!" });
+    } catch (err) { res.status(500).json({ error: "Recalculation failed" }); }
+});
+
+// --- Page Routes (AT THE END) ---
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'public', 'login.html'));
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+});
+
+// Fallback: If no route matches, serve index.html for SPA
+app.get('*', (req, res) => {
+    if (req.path.includes('.')) {
+        return res.status(404).send("File Not Found");
     }
-});
-
-app.post('/api/restore', async (req, res) => {
-    try {
-        const { userId, accounts, transactions } = req.body;
-        await Account.deleteMany({ userId });
-        await Transaction.deleteMany({ userId });
-        if (accounts) await Account.insertMany(accounts);
-        if (transactions) await Transaction.insertMany(transactions);
-        res.status(200).json({ message: "सफल" });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ४. सेटिङहरू (Settings & Day Close)
-app.get('/api/settings', async (req, res) => {
-    try {
-        let s = await Setting.findOne({ userId: req.query.userId });
-        if(!s) {
-            s = new Setting({ userId: req.query.userId, lastClosedDate: "" });
-            await s.save();
-        }
-        res.json(s);
-    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
-});
-
-app.post('/api/settings/close-day', async (req, res) => {
-    try {
-        const { userId, date } = req.body;
-        let s = await Setting.findOne({ userId });
-        if(!s) s = new Setting({ userId });
-        s.lastClosedDate = date;
-        await s.save();
-        res.json(s);
-    } catch (err) { res.status(500).json({ error: "क्लोजिङ असफल" }); }
-});
-
-app.post('/api/settings/update-pin', async (req, res) => {
-    try {
-        const { userId, pin } = req.body;
-        let s = await Setting.findOne({ userId });
-        if(!s) s = new Setting({ userId });
-        s.accessPin = pin;
-        await s.save();
-        res.json({ message: "PIN Updated" });
-    } catch (err) { res.status(500).json({ error: "PIN Update Failed" }); }
-});
-
-// ५. आर्थिक लक्ष्य (Goals)
-app.get('/api/goals', async (req, res) => {
-    try {
-        const goal = await Goal.findOne({ userId: req.query.userId }).sort({ createdAt: -1 });
-        res.json(goal || {});
-    } catch (err) { res.status(500).json({ error: "Goal load failed" }); }
-});
-
-app.post('/api/goals', async (req, res) => {
-    try {
-        const { userId, name, target, deadline, accountId } = req.body;
-        let goal = await Goal.findOne({ userId });
-        if (goal) {
-            goal.name = name;
-            goal.target = target;
-            goal.deadline = deadline;
-            goal.accountId = accountId;
-        } else {
-            goal = new Goal({ userId, name, target, deadline, accountId });
-        }
-        await goal.save();
-        res.json(goal);
-    } catch (err) { res.status(500).json({ error: "Goal save failed" }); }
-});
-
-// ६. बाइक लग (Bike Log)
-app.get('/api/bike', async (req, res) => {
-    try {
-        const logs = await BikeLog.find({ userId: req.query.userId }).sort({ date: -1 });
-        res.json(logs);
-    } catch (err) { res.status(500).json({ error: "Bike log load failed" }); }
-});
-
-app.post('/api/bike', async (req, res) => {
-    try {
-        const { userId, date } = req.body;
-        if (date && await checkLock(userId, date.split('T')[0])) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
-        const log = new BikeLog({ ...req.body });
-        await log.save();
-        res.json(log);
-    } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
-});
-
-app.delete('/api/bike/:id', async (req, res) => {
-    try {
-        const log = await BikeLog.findById(req.params.id);
-        if (log && await checkLock(log.userId, new Date(log.date).toISOString().split('T')[0])) {
-            return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
-        }
-        await BikeLog.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
-});
-
-// ७. सेयर बजार (Stocks)
-app.get('/api/stocks', async (req, res) => {
-    try {
-        const stocks = await Stock.find({ userId: req.query.userId });
-        res.json(stocks);
-    } catch (err) { res.status(500).json({ error: "Stock load failed" }); }
-});
-
-app.post('/api/stocks', async (req, res) => {
-    try {
-        const { userId, symbol } = req.body;
-        let stock = await Stock.findOne({ userId, symbol });
-        if (stock) {
-            stock.qty = req.body.qty;
-            stock.buyPrice = req.body.buyPrice;
-            stock.currentPrice = req.body.currentPrice;
-        } else {
-            stock = new Stock({ ...req.body });
-        }
-        await stock.save();
-        res.json(stock);
-    } catch (err) { res.status(500).json({ error: "Stock save failed" }); }
-});
-
-app.post('/api/stocks/sync', async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const https = require('https');
-
-        const urls = [
-            'https://raw.githubusercontent.com/yadavraju/nepse-api-1-latest/master/data/date/latest.json',
-            'https://raw.githubusercontent.com/sanjibsen/nepse-data/master/latest.json',
-            'https://raw.githubusercontent.com/pawan-stha/nepse-proxy/main/live.json',
-            'https://raw.githubusercontent.com/nepse-api/nepse-api/master/data/latest.json'
-        ];
-
-        const fetchData = (url) => new Promise((resolve, reject) => {
-            const req = https.get(url, (resp) => {
-                let data = '';
-                resp.on('data', (chunk) => { data += chunk; });
-                resp.on('end', () => {
-                    try { resolve(JSON.parse(data)); }
-                    catch(e) { reject(new Error("Parse error")); }
-                });
-            });
-            req.on('error', (err) => reject(err));
-            req.setTimeout(10000, () => { req.destroy(); reject(new Error("Timeout")); });
-        });
-
-        let rawData = null;
-        for(let url of urls) {
-            try { rawData = await fetchData(url); if(rawData) break; } catch(e) { }
-        }
-
-        if(!rawData) return res.status(500).json({ success: false, error: "Market data source offline." });
-
-        let priceList = [];
-        if (Array.isArray(rawData)) priceList = rawData;
-        else if (rawData.data && Array.isArray(rawData.data)) priceList = rawData.data;
-        else if (typeof rawData === 'object') {
-            Object.keys(rawData).forEach(k => {
-                if (typeof rawData[k] === 'number') priceList.push({ symbol: k, ltp: rawData[k] });
-                else priceList.push({ symbol: k, ...rawData[k] });
-            });
-        }
-
-        const stocks = await Stock.find({ userId });
-        let count = 0;
-
-        for (const stock of stocks) {
-            const sym = stock.symbol.toUpperCase().trim();
-            const found = priceList.find(i =>
-                (i.symbol || i.scrip || i.Symbol || '').toUpperCase() === sym ||
-                (i.companyName || '').toUpperCase().includes(sym)
-            );
-
-            let price = found ? (found.ltp || found.lastPrice || found.price || found.LTP || found.Close || found.lastTradedPrice) : 0;
-
-            if (price) {
-                const cleanPrice = Number(price.toString().replace(/,/g, ''));
-                if (!isNaN(cleanPrice) && cleanPrice > 0) {
-                    stock.currentPrice = cleanPrice;
-                    stock.updatedAt = new Date();
-                    await stock.save();
-                    count++;
-                }
-            }
-        }
-        res.json({ success: true, updatedCount: count });
-    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
-});
-
-app.delete('/api/stocks/:id', async (req, res) => {
-    try {
-        await Stock.findByIdAndDelete(req.params.id);
-        res.json({ message: "Stock removed" });
-    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
-});
-
-// ८. गोल्ड सिनेमा (Gold Cinema)
-app.get('/api/cinema', async (req, res) => {
-    try {
-        const shows = await CinemaShow.find({ userId: req.query.userId }).sort({ date: -1 });
-        res.json(shows);
-    } catch (err) { res.status(500).json({ error: "Cinema load failed" }); }
-});
-
-app.post('/api/cinema', async (req, res) => {
-    try {
-        const { userId, date } = req.body;
-        const targetDate = date ? date.split('T')[0] : new Date().toISOString().split('T')[0];
-        if (await checkLock(userId, targetDate)) return res.status(403).json({ error: "हिसाब क्लोज भइसकेको छ।" });
-        const show = new CinemaShow({ ...req.body });
-        await show.save();
-        res.json(show);
-    } catch (err) { res.status(500).json({ error: "Cinema save failed" }); }
-});
-
-app.delete('/api/cinema/:id', async (req, res) => {
-    try {
-        const show = await CinemaShow.findById(req.params.id);
-        if (show && await checkLock(show.userId, new Date(show.date).toISOString().split('T')[0])) {
-            return res.status(403).json({ error: "हिसाब क्लोज भइसकेको छ।" });
-        }
-        await CinemaShow.findByIdAndDelete(req.params.id);
-        res.json({ message: "Show deleted" });
-    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
-});
-
-// ९. इलेक्ट्रिक गाइड (Electric Guide / Inventory)
-app.get('/api/electric', async (req, res) => {
-    try {
-        const query = req.query.search || '';
-        const items = await ElectricItem.find({
-            userId: req.query.userId,
-            $or: [
-                { name: { $regex: query, $options: 'i' } },
-                { category: { $regex: query, $options: 'i' } }
-            ]
-        }).sort({ category: 1 });
-        res.json(items);
-    } catch (err) { res.status(500).json({ error: "Electric guide load failed" }); }
-});
-
-app.post('/api/electric', async (req, res) => {
-    try {
-        const item = new ElectricItem({ ...req.body });
-        await item.save();
-        res.json(item);
-    } catch (err) { res.status(500).json({ error: "Item save failed" }); }
-});
-
-app.delete('/api/electric/:id', async (req, res) => {
-    try {
-        await ElectricItem.findByIdAndDelete(req.params.id);
-        res.json({ message: "Item deleted" });
-    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
-});
-
-// --- Automated Cloud Backup System ---
-
-const s3Client = new S3Client({
-    region: process.env.AWS_REGION || 'us-east-1',
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-    }
-});
-
-const performBackup = async (userId = 'sthapawan6@gmail.com') => {
-    try {
-        console.log(`[Backup] Starting backup for ${userId}...`);
-        const accounts = await Account.find({ userId });
-        const transactions = await Transaction.find({ userId });
-        const settings = await Setting.findOne({ userId });
-        const goals = await Goal.find({ userId });
-
-        const backupData = JSON.stringify({
-            version: "ERP_GOLD_V1",
-            timestamp: new Date().toISOString(),
-            userId,
-            data: { accounts, transactions, settings, goals }
-        });
-
-        const fileName = `backups/${userId}/${Date.now()}.json`;
-
-        if (process.env.AWS_ACCESS_KEY_ID) {
-            const command = new PutObjectCommand({
-                Bucket: process.env.AWS_BUCKET_NAME,
-                Key: fileName,
-                Body: backupData,
-                ContentType: "application/json"
-            });
-            await s3Client.send(command);
-            console.log(`[Backup] Uploaded to S3: ${fileName}`);
-        } else {
-            console.warn("[Backup] AWS credentials not found. Skipping S3 upload.");
-        }
-
-        await new BackupLog({ userId, status: 'Success', fileKey: fileName }).save();
-    } catch (err) {
-        console.error(`[Backup] Failed: ${err.message}`);
-        await new BackupLog({ userId, status: 'Failed', error: err.message }).save();
-    }
-};
-
-// Schedule backup every day at midnight
-cron.schedule('0 0 * * *', () => {
-    performBackup();
-});
-
-// Manual backup trigger API
-app.post('/api/backup/trigger', async (req, res) => {
-    try {
-        await performBackup(req.body.userId);
-        res.json({ message: "Backup initiated successfully" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/backup/logs', async (req, res) => {
-    try {
-        const logs = await BackupLog.find({ userId: req.query.userId }).sort({ timestamp: -1 }).limit(10);
-        res.json(logs);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/system/status', async (req, res) => {
-    const isConfigured = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME);
-    let s3Status = 'Configured';
-    let s3Error = null;
-
-    if (isConfigured) {
-        try {
-            await s3Client.send(new HeadBucketCommand({ Bucket: process.env.AWS_BUCKET_NAME }));
-            s3Status = 'Connected';
-        } catch (err) {
-            s3Status = 'Error';
-            s3Error = err.message;
-        }
-    } else {
-        s3Status = 'Not Configured';
-    }
-
-    res.json({
-        s3Configured: isConfigured,
-        s3Status: s3Status,
-        s3Error: s3Error,
-        region: process.env.AWS_REGION || 'us-east-1',
-        bucket: process.env.AWS_BUCKET_NAME || 'Not Set'
-    });
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Gold Server at ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n=========================================`);
+    console.log(`🚀 PAWAN GOLD Server is LIVE!`);
+    console.log(`URL: http://localhost:${PORT}`);
+    console.log(`=========================================\n`);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('There was an uncaught error', err);
+});

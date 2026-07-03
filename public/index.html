@@ -3,1900 +3,1403 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAWAN GOLD - ERP SYSTEMS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-auth-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>PAWAN GOLD - Tally Prime Edition</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --gold: #FFD700;
-            --gold-bright: #FFF200;
-            --bg-deep: #0f1115;
-            --card-bg: #161a21;
-            --text-muted: #8a8f98;
-            --border: #2d323a;
-            --success: #00ff88;
-            --danger: #ff4d4d;
+            --tally-teal: #005c69;
+            --tally-navy: #1b2f47;
+            --tally-bg: #e9eff2;
+            --tally-card: #ffffff;
+            --tally-text: #2c3e50;
+            --tally-accent: #ffc107;
+            --tally-border: #d5dde0;
         }
+
+        @media print {
+            .no-print, .top-bar, .f-keys-bar, .gateway-container, .dashboard-sidebar, .btn, .top-bar button { display: none !important; }
+            .main-content { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .app-wrapper { height: auto !important; display: block !important; }
+            .layout-body { display: block !important; overflow: visible !important; }
+            .print-header { display: block !important; }
+            table { border: 1px solid #000 !important; width: 100% !important; }
+            th, td { border: 1px solid #000 !important; color: #000 !important; }
+            h2 { color: #000 !important; border-bottom: 1px solid #000 !important; }
+        }
+
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-deep); color: white; display: flex; height: 100vh; overflow: hidden; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--tally-bg);
+            color: var(--tally-text);
+            display: none;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-        /* Sidebar */
-        .sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: 0.3s; flex-shrink: 0; }
-        .brand { padding: 30px; text-align: center; border-bottom: 1px solid var(--border); }
-        .brand h2 { margin: 0; color: var(--gold); letter-spacing: 2px; }
-        .brand p { margin: 5px 0 0; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        .app-wrapper { display: flex; height: 100vh; flex-direction: column; }
 
-        .nav-list { list-style: none; padding: 20px 0; margin: 0; flex-grow: 1; }
-        .nav-item { padding: 15px 30px; cursor: pointer; display: flex; align-items: center; gap: 15px; color: var(--text-muted); transition: 0.2s; }
-        .nav-item:hover, .nav-item.active { background: rgba(255,215,0,0.05); color: var(--gold); border-left: 4px solid var(--gold); }
-        .nav-item i { width: 20px; text-align: center; }
+        /* Top Bar - Tally Style */
+        .top-bar {
+            background: var(--tally-teal);
+            color: white;
+            padding: 5px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .top-bar .logo { font-size: 1.1rem; font-weight: 900; letter-spacing: 1px; }
 
-        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
-        .btn-sync { width: 100%; padding: 12px; background: #1a1e26; border: 1px solid var(--gold); color: var(--gold); border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
-        .user-box { display: flex; align-items: center; gap: 10px; padding: 10px; background: #0f1115; border-radius: 10px; }
-        .user-img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--gold); }
-        .user-info h4 { margin: 0; font-size: 0.8rem; }
-        .user-info p { margin: 0; font-size: 0.6rem; color: var(--success); }
+        .layout-body { display: flex; flex: 1; overflow: hidden; position: relative; }
 
-        /* Main Content */
+        /* Gateway Menu */
+        .gateway-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 50px;
+            overflow-y: auto;
+        }
+        .gateway-box {
+            background: white;
+            width: 450px;
+            border: 2px solid var(--tally-teal);
+            box-shadow: 8px 8px 0px rgba(0, 92, 105, 0.1);
+        }
+        .gateway-header {
+            background: var(--tally-teal);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        .gateway-menu { padding: 10px 0; }
+        .menu-group-label { padding: 8px 30px 4px; font-size: 0.7rem; color: #888; font-weight: bold; text-transform: uppercase; }
+        .menu-item {
+            padding: 8px 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .menu-item:hover { background: #f0f7f8; color: var(--tally-teal); }
+        .menu-item b { color: #d32f2f; text-decoration: underline; margin-right: 5px; }
+
+        /* Dashboard Charts */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .chart-container {
+            background: #1e1e26; /* Dark theme like the image */
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 8px;
+            color: #fff;
+        }
+        .chart-container h3 {
+            margin: 0 0 15px;
+            font-size: 1rem;
+            color: #ffc107; /* Gold accent */
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+        .dashboard-recent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .dashboard-recent-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        .dashboard-recent-item:last-child { border-bottom: none; }
+        .dashboard-recent-item .title { font-weight: bold; color: #fff; font-size: 0.9rem; }
+        .dashboard-recent-item .sub { font-size: 0.75rem; color: #ffc107; }
+
+        /* Dashboard Info Cards */
+        .dashboard-sidebar {
+            width: 350px;
+            padding: 20px;
+            background: rgba(255,255,255,0.5);
+            border-left: 1px solid var(--tally-border);
+        }
+        .info-card {
+            background: white;
+            border: 1px solid var(--tally-border);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--tally-teal);
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: #fdfdfd;
+        }
+        .info-card h4 { margin: 0 0 10px; font-size: 0.8rem; color: #666; text-transform: uppercase; pointer-events: none; }
+        .info-card .val { font-size: 1.4rem; font-weight: 900; color: var(--tally-navy); pointer-events: none; }
+
+        /* Main Content Areas */
         .main-content {
             flex: 1;
-            height: 100vh;
             overflow-y: auto;
-            overflow-x: hidden;
+            max-height: calc(100vh - 40px);
             padding: 30px;
-            padding-bottom: 80px;
-            scroll-behavior: smooth;
-            display: block;
+            background: white;
+            margin: 10px;
+            border: 1px solid var(--tally-border);
+            display: none;
         }
-        .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
+        .main-content.active { display: block; }
 
-        /* Custom Scrollbar */
-        .main-content::-webkit-scrollbar, .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .main-content::-webkit-scrollbar-track, .custom-scrollbar::-webkit-scrollbar-track { background: var(--bg-deep); }
-        .main-content::-webkit-scrollbar-thumb, .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        .main-content::-webkit-scrollbar-thumb:hover, .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+        h2 { color: var(--tally-teal); border-bottom: 2px solid var(--tally-teal); padding-bottom: 10px; margin-top: 0; font-size: 1.4rem; }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+        /* Tally Sidebar F-Keys */
+        .f-keys-bar {
+            width: 130px;
+            background: #d1d9e0;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+            gap: 4px;
         }
-
-        .stat-card {
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            transition: 0.3s;
+        .f-key {
+            background: #fdfdfd;
+            border: 1px solid #b1b9c0;
+            padding: 8px 5px;
+            font-size: 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 2px;
         }
-        .stat-card:hover { border-color: var(--gold); transform: translateY(-5px); }
-        .stat-card.clickable { cursor: pointer; position: relative; overflow: hidden; }
-        .stat-card.clickable::after {
-            content: '\f05a';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            position: absolute;
-            right: 15px;
-            top: 15px;
-            font-size: 0.8rem;
-            color: var(--gold);
-            opacity: 0.3;
-        }
-        .stat-card.clickable:hover::after { opacity: 1; }
-        .stat-card:active { transform: scale(0.98); }
-        .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
-        .stat-value { font-size: 1.8rem; font-weight: 700; font-family: 'Courier New', monospace; }
+        .f-key:hover { background: #eef2f5; }
+        .f-key span { display: block; font-weight: bold; color: var(--tally-teal); }
 
-        .recent-box { background: var(--card-bg); border-radius: 20px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
+        /* Tables */
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; color: var(--gold); padding: 12px; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
-        td { padding: 12px; font-size: 0.85rem; border-bottom: 1px solid #1f2229; }
+        th { background: #f2f5f7; color: var(--tally-navy); text-align: left; padding: 10px; border: 1px solid var(--tally-border); font-size: 0.8rem; }
+        td { padding: 10px; border: 1px solid var(--tally-border); font-size: 0.9rem; }
+        .amt { text-align: right; font-family: 'Consolas', monospace; font-weight: bold; }
+
+        /* Voucher Table Styling */
+        .v-table-container { border: 1px solid var(--tally-border); margin-top: 10px; }
+        .v-table { width: 100%; border-collapse: collapse; margin-top: 0 !important; }
+        .v-table th { background: #f2f5f7; border: 1px solid var(--tally-border); padding: 8px; font-size: 0.75rem; color: #666; }
+        .v-table td { padding: 0; border: 1px solid var(--tally-border); height: 50px; vertical-align: middle; }
+        .v-table select, .v-table input {
+            width: 100%; height: 35px; border: none; padding: 5px 10px; outline: none;
+            background: transparent; font-family: inherit; font-size: 0.95rem;
+        }
+        .v-table select:focus, .v-table input:focus { background: #fff; box-shadow: inset 0 0 0 1px var(--tally-teal); }
+        .v-row-bal { font-size: 0.65rem; color: #777; padding-left: 10px; margin-top: -5px; font-weight: bold; position: absolute; }
+        .v-row-del { color: #d32f2f; cursor: pointer; border: none; background: none; font-size: 1.2rem; width: 100%; height: 38px; }
+        .v-row-del:hover { background: #fee; }
+        .v-byto { width: 45px; text-align: center; font-weight: bold; color: var(--tally-teal); cursor: pointer; border-right: 1px solid var(--tally-border); height: 100%; display: flex; align-items: center; justify-content: center; background: #fcfcfc; }
+        .v-byto:focus { background: #eee; outline: none; }
+
+        .v-type-btn { padding: 4px 10px; font-size: 0.75rem; cursor: pointer; background: #e1e8ed; border: 1px solid #ccc; font-weight: bold; }
+        .v-type-btn.active { background: var(--tally-navy); color: white; border-color: var(--tally-navy); }
+        .btn { background: var(--tally-teal); color: white; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .btn:hover { background: #004a54; }
+
+        /* Modal */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content {
+            background: white; width: 500px; padding: 25px; border: 2px solid var(--tally-teal);
+        }
 
         .hidden { display: none !important; }
-
-        input, select, textarea {
-            background: #1f2229;
-            border: 1px solid var(--border);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            outline: none;
-        }
-        input:focus, select:focus { border-color: var(--gold); }
-
-        .btn-gold { background: var(--gold); color: black; font-weight: bold; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
-        .btn-gold:hover { background: var(--gold-bright); }
-
-        .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .btn-danger:hover { opacity: 0.9; }
-
-        #loginOverlay {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-deep);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        .login-card { background: var(--card-bg); padding: 50px; border-radius: 30px; text-align: center; border: 1px solid var(--gold); width: 350px; }
-        .btn-google { background: white; color: black; width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-        .modal { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 400px; border: 1px solid var(--gold); }
-
-        @media (max-width: 768px) {
-            .sidebar { width: 60px; }
-            .brand, .user-info, .btn-sync span, .nav-item span { display: none; }
-            .nav-item { padding: 15px; justify-content: center; }
-            .main-content { padding: 15px; }
-            .stats-grid { grid-template-columns: 1fr; }
-            .header-top { flex-direction: column; gap: 10px; }
-            .header-top div:last-child { text-align: left; }
-            .recent-box { padding: 15px; border-radius: 10px; overflow-x: auto; }
-            table { min-width: 600px; }
-        }
-        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; }
+        .text-red { color: #d32f2f !important; }
+        .text-green { color: #2e7d32 !important; }
     </style>
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div class="login-card">
-        <h1 style="color:var(--gold); margin:0;">PAWAN GOLD</h1>
-        <p style="color:var(--text-muted);">ERP SYSTEMS ENGINE</p>
-        <button class="btn-google" onclick="loginWithGoogle()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G"> Sign in with Google
-        </button>
-        
-</div>
-    
-</div>
-
-<div class="sidebar">
-    <div class="brand">
-        <h2>PAWAN GOLD</h2>
-        <p>ERP SYSTEMS INC.</p>
-        
-</div>
-    <ul class="nav-list">
-        <li class="nav-item active" onclick="showTab('dashboard')"><i class="fas fa-th-large"></i> <span>Dashboard</span></li>
-        <li class="nav-item" onclick="showTab('vouchers')"><i class="fas fa-file-invoice-dollar"></i> <span>Voucher Entries</span></li>
-        <li class="nav-item" onclick="showTab('ledgers')"><i class="fas fa-book"></i> <span>Ledger Master</span></li>
-        <li class="nav-item" onclick="showTab('reports')"><i class="fas fa-chart-line"></i> <span>Reports</span></li>
-        <li class="nav-item" onclick="showTab('bike')"><i class="fas fa-motorcycle"></i> <span>Bike Tracker</span></li>
-        <li class="nav-item" onclick="showTab('stocks')"><i class="fas fa-chart-line"></i> <span>Stock Portfolio</span></li>
-        <li class="nav-item" onclick="showTab('statements')"><i class="fas fa-receipt"></i> <span>All Statements</span></li>
-        <li class="nav-item" onclick="showTab('cinema')"><i class="fas fa-film"></i> <span>Gold Cinema</span></li>
-        <li class="nav-item" onclick="showTab('electric')"><i class="fas fa-bolt"></i> <span>Electric Guide</span></li>
-        <li class="nav-item" onclick="showTab('guide')"><i class="fas fa-book-open"></i> <span>User Guide</span></li>
-        <li class="nav-item" onclick="showTab('settings')"><i class="fas fa-cog"></i> <span>System Settings</span></li>
-    </ul>
-    <div class="sidebar-footer">
-        <button class="btn-sync" onclick="syncData()">
-            <i class="fas fa-sync-alt"></i> <span>REPAIR & SYNC DATA</span>
-        </button>
-        <div class="user-box">
-            <img id="userImg" src="" class="user-img" alt="User">
-            <div class="user-info">
-                <h4 id="userName">User</h4>
-                <p>ONLINE</p>
-                
-</div>
-            
-</div>
-        <button onclick="auth.signOut()" style="width:100%; background:transparent; border:1px solid #333; color:white; padding:5px; border-radius:5px; cursor:pointer; font-size:0.7rem; margin-top:5px;">DE-AUTH</button>
-        
-</div>
-    
-</div>
-
-<div class="main-content">
-    <div class="header-top">
-        <div>
-            <h1 id="pageTitle" style="color:var(--gold); margin:0;">DASHBOARD ENGINE</h1>
-            <p id="currentDateDisp" style="color:var(--text-muted); margin:5px 0 0;"></p>
-        </div>
-        <div style="text-align:right">
-            <div id="clockDisp" style="font-size: 1.5rem; font-weight: bold; color: var(--gold);">00:00:00 AM</div>
-            <div style="font-size:0.7rem; color:var(--text-muted);">GMT+5:45 (NEPAL)</div>
-        </div>
-    </div>
-
-    <!-- USER GUIDE -->
-    <div id="tab-guide" class="tab-content hidden">
-        <div class="recent-box">
-            <h3 style="color:var(--gold); margin-top:0;">Account Grouping & Reporting Guide</h3>
-            <p style="color:var(--text-muted);">To ensure "Receivables" and "Payables" reporting is accurate, follow these grouping conventions:</p>
-
-            <div style="margin-top:20px;">
-                <h4 style="color:var(--gold);">1. Bank & Cash</h4>
-                <p>Any account where the <b>Group</b> name contains <code>bank</code> or <code>cash</code> (case-insensitive) will be treated as liquid assets. These are excluded from the Party Receivables/Payables list.</p>
-                <code style="background:#000; padding:5px; color:var(--success);">Example Group: "Nabil Bank", "Petty Cash"</code>
-            </div>
-
-            <div style="margin-top:20px;">
-                <h4 style="color:var(--gold);">2. Receivables (लिनु पर्ने)</h4>
-                <p>Calculated from accounts where:</p>
-                <ul>
-                    <li>Type is <b>Asset</b> and balance is Debit (Dr)</li>
-                    <li>Type is <b>Liability</b> and balance is Debit (Dr) - <i>(Advance to suppliers)</i></li>
-                    <li>Group does <b>NOT</b> contain "bank" or "cash"</li>
-                </ul>
-            </div>
-
-            <div style="margin-top:20px;">
-                <h4 style="color:var(--gold);">3. Payables (दिनु पर्ने)</h4>
-                <p>Calculated from accounts where:</p>
-                <ul>
-                    <li>Type is <b>Liability</b> and balance is Credit (Cr)</li>
-                    <li>Type is <b>Asset</b> and balance is Credit (Cr) - <i>(Overdrawn accounts)</i></li>
-                    <li>Group does <b>NOT</b> contain "bank" or "cash"</li>
-                </ul>
-            </div>
-
-            <div style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
-                <h4 style="color:var(--gold);">4. Net Worth Logic</h4>
-                <p><code>Net Worth = (Liquid + Receivables + Revenue) - (Payables + Expense)</code></p>
-                <p style="font-size:0.8rem;">Note: Bike Tracker expenses are automatically included in Total Expenses.</p>
+    <div class="app-wrapper">
+        <div class="top-bar">
+            <div class="logo">PAWAN GOLD <span style="font-weight:normal; opacity:0.8; font-size:0.75rem;">| ERP SYSTEMS INC.</span></div>
+            <div style="display:flex; gap:20px; align-items:center;">
+                <span id="uNameDisplay" style="font-weight:bold;"></span>
+                <img id="uImgDisplay" src="" style="width:24px; border-radius:50%; border:1px solid white;">
+                <button onclick="syncAll()" class="btn" style="padding:4px 10px; font-size:0.7rem; background:rgba(255,255,255,0.2);">F1: Sync</button>
             </div>
         </div>
-    </div>
 
-        <div id="tab-dashboard" class="tab-content" style="display: flex; flex-direction: column; gap: 20px;">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Net Worth    
-</div>
-                    <div id="val-networth" class="stat-value" style="color:var(--gold)">Rs. 0    
-</div>
-                    <div id="networth-breakdown" style="font-size:0.65rem; color:var(--text-muted); margin-top:10px; border-top:1px solid #2d323a; padding-top:8px; line-height:1.5;">    
-</div>
-                    
-</div>
-                <div class="stat-card clickable" onclick="showBreakdown('bank')">
-                    <div class="stat-label">Bank & Cash    
-</div>
-                    <div id="val-bank-cash" class="stat-value" style="color:var(--gold)">Rs. 0    
-</div>
-                    
-</div>
-                <div class="stat-card clickable" onclick="showBreakdown('ar')">
-                    <div class="stat-label" style="color:var(--success)">Receivables    
-</div>
-                    <div id="val-ar" class="stat-value" style="color:var(--success)">Rs. 0    
-</div>
-                    
-</div>
-                <div class="stat-card clickable" onclick="showBreakdown('ap')">
-                    <div class="stat-label" style="color:var(--danger)">Payables    
-</div>
-                    <div id="val-ap" class="stat-value" style="color:var(--danger)">Rs. 0    
-</div>
-                    
-</div>
-                <div class="stat-card">
-                    <div class="stat-label" style="color:var(--success)">Income (Today)    
-</div>
-                    <div id="val-today-income" class="stat-value" style="color:var(--success)">Rs. 0    
-</div>
-                    
-</div>
-                <div class="stat-card">
-                    <div class="stat-label" style="color:var(--danger)">Expense (Today)    
-</div>
-                    <div id="val-today-expense" class="stat-value" style="color:var(--danger)">Rs. 0    
-</div>
-                    
-</div>
-                <div class="stat-card clickable" onclick="showBreakdown('stocks')">
-                    <div class="stat-label">Stock Portfolio    
-</div>
-                    <div id="val-stocks" class="stat-value">Rs. 0    
-</div>
-                    <button onclick="event.stopPropagation(); syncStocks()" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; padding:0; margin-top:5px; text-decoration:underline;">[ SYNC LIVE ]</button>
-                    
-</div>
-                
-</div>
+        <div class="layout-body">
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap:20px;">
-                <div class="recent-box" style="min-height: 380px; display: flex; flex-direction: column;">
-                    <h3 style="margin:0 0 15px; color:var(--gold);">Income vs Expense (Monthly)</h3>
-                    <div style="flex-grow:1; position: relative; height: 300px;">
-                        <canvas id="incomeExpenseChart"></canvas>
-                        
-</div>
-                    
-</div>
-                <div class="recent-box" style="padding:15px; border:1px solid #333; background:rgba(0,0,0,0.2); display: flex; flex-direction: column; height: 380px;">
-                    <h3 style="margin:0 0 12px; color:var(--gold); font-size:1rem; display:flex; align-items:center; gap:8px;">
-                        <i class="fas fa-history" style="font-size:0.8rem;"></i> Today's Live Feed
-                    </h3>
-                    <div style="flex-grow:1; overflow-y:auto; padding-right:5px;" class="custom-scrollbar">
-                        <table style="width:100%; border-collapse:collapse; min-width:unset;">
-                            <tbody id="txBody" style="font-size:0.85rem;"></tbody>
-                        </table>
-                        
-</div>
-                    <div style="text-align:center; margin-top:10px; border-top:1px solid #333; padding-top:10px;">
-                        <a href="#" onclick="showTab('statements')" style="color:var(--gold); font-size:0.7rem; text-decoration:none; opacity:0.8;">VIEW ALL STATEMENTS <i class="fas fa-arrow-right"></i></a>
-                        
-</div>
-                    
-</div>
-                
-</div>
+            <!-- Gateway Page -->
+            <div id="page-gateway" class="gateway-container">
+                <div class="gateway-box">
+                    <div class="gateway-header">Gateway of Tally</div>
+                    <div class="gateway-menu">
+                        <div class="menu-group-label">Masters</div>
+                        <div class="menu-item" onclick="showPage('dashboard')"><span><b>G</b>raphical Dashboard</span></div>
+                        <div class="menu-item" onclick="openModal('accModal')"><span><b>C</b>reate Account</span></div>
+                        <div class="menu-item" onclick="showPage('accounts')"><span><b>A</b>lter / List Accounts</span></div>
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap:20px;">
-                <div class="recent-box" style="min-height: 380px; display: flex; flex-direction: column;">
-                    <h3 style="margin:0 0 15px; color:var(--gold);">Expense Breakdown by Category</h3>
-                    <div style="flex-grow:1; position: relative; height: 300px; display: flex; align-items: center; justify-content: center;">
-                        <canvas id="expenseCategoryChart"></canvas>
+                        <div class="menu-group-label">Transactions</div>
+                        <div class="menu-item" onclick="showPage('vouchers')"><span><b>V</b>ouchers (Entry)</span></div>
+                        <div class="menu-item" onclick="showPage('bike')"><span>Bi<b>k</b>e Tracker</span></div>
+
+                        <div class="menu-item" onclick="showPage('daybook')"><span><b>D</b>ay Book</span></div>
+                        <div class="menu-group-label">Reports</div>
+                        <div class="menu-item" onclick="showPage('reports-bs')"><span><b>B</b>alance Sheet</span></div>
+                        <div class="menu-item" onclick="showPage('reports-pl')"><span><b>P</b>rofit & Loss A/c</span></div>
+                        <div class="menu-item" onclick="showPage('reports-tb')"><span><b>T</b>rial Balance</span></div>
+                        <div class="menu-item" onclick="showPage('statement')"><span><b>L</b>edger Statement</span></div>
+
+                        <div class="menu-group-label">System</div>
+                        <div class="menu-item" onclick="showPage('settings')"><span><b>S</b>ettings</span></div>
+                        <div class="menu-item" onclick="logout()"><span><b>Q</b>uit</span></div>
                     </div>
                 </div>
-                <div class="recent-box" style="min-height: 380px; display: flex; flex-direction: column;">
-                    <h3 style="margin:0 0 15px; color:var(--gold);">Monthly Cash Flow</h3>
-                    <div style="flex-grow:1; position: relative; height: 300px;">
-                        <canvas id="cashFlowChart"></canvas>
+
+                <div class="dashboard-sidebar">
+                    <div class="info-card" style="border-left-color: var(--tally-accent);" onclick="showBreakdown('networth')">
+                        <h4>NET WORTH (कुल सम्पत्ति)</h4>
+                        <div id="val-net-worth" class="val" style="color:var(--tally-teal);">Rs. 0</div>
+                    </div>
+                    <div class="info-card" onclick="showBreakdown('cashbank')">
+                        <h4>Bank & Cash Balance</h4>
+                        <div id="val-cashbank" class="val">Rs. 0</div>
+                        <div style="font-size:0.7rem; color:#888; margin-top:5px;">
+                            Cash: <span id="sub-cash">0</span> | Bank: <span id="sub-bank">0</span>
+                        </div>
+                    </div>
+                    <div class="info-card" style="border-left-color: #2e7d32;" onclick="showBreakdown('receivable')">
+                        <h4>Receivables (उठ्न बाँकी)</h4>
+                        <div id="val-receivable" class="val text-green">Rs. 0</div>
+                    </div>
+                    <div class="info-card" style="border-left-color: #d32f2f;" onclick="showBreakdown('payable')">
+                        <h4>Payables (तिर्न बाँकी)</h4>
+                        <div id="val-payable" class="val text-red">Rs. 0</div>
+                    </div>
+                    <div class="info-card" style="cursor:default; transform:none; box-shadow:none;">
+                        <h4>Today's Summary</h4>
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                            <span>Income:</span> <span id="val-today-in" class="text-green">0</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:5px;">
+                            <span>Expense:</span> <span id="val-today-out" class="text-red">0</span>
+                        </div>
+                    </div>
+                    <div class="info-card" style="border-left-color: var(--tally-accent);">
+                        <h4>Net Profit / Loss</h4>
+                        <div id="val-net-pl" class="val">Rs. 0</div>
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        <h4 style="font-size:0.75rem; color:var(--tally-teal); border-bottom:1px solid #ddd; padding-bottom:5px;">LIVE FEED (RECENT)</h4>
+                        <div id="live-feed" style="font-size:0.8rem;">
+                            <!-- Live feed items -->
+                        </div>
                     </div>
                 </div>
             </div>
-            
-</div>
 
-    <!-- VOUCHERS -->
-    <div id="tab-vouchers" class="tab-content hidden">
-        <div class="recent-box">
-            <h3 style="color:var(--gold); margin-top:0;">New Voucher Entry</h3>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
-                <input type="date" id="v-date" aria-label="Voucher Date">
-                <input type="text" id="v-desc" placeholder="Transaction Description" aria-label="Description">
-                <div style="display:flex; gap:10px;">
-                    <button id="btn-save-voucher" class="btn-gold" onclick="saveVoucher()" style="flex:1">SAVE VOUCHER</button>
-                    <button id="btn-cancel-edit" class="btn-danger hidden" onclick="cancelVoucherEdit()" style="flex:1">CANCEL EDIT</button>
-                    
-</div>
-                
-</div>
-            <div id="v-entries-container">
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                <button onclick="addVoucherRow()" style="background:transparent; color:var(--gold); border:1px dashed var(--gold); padding:8px 20px; border-radius:8px; cursor:pointer;">+ ADD LINE</button>
-                <div id="voucher-total-status" style="font-size:0.9rem; font-weight:bold;"></div>
-            </div>
-            
-            <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                    <h3 style="color:var(--gold); margin:0;">Recent Voucher Entries</h3>
-                    <div style="display:flex; gap:10px;">
-                        <input type="date" id="voucherSearchDate" onchange="renderVouchersList()" style="padding:5px 10px; border-radius:5px; border:1px solid #333; background:#111; color:white;" aria-label="Search by date">
-                        <input type="text" id="voucherSearchText" placeholder="Search name or desc..." onkeyup="renderVouchersList()" style="padding:5px 10px; border-radius:5px; border:1px solid #333; background:#111; color:white; width:200px;" aria-label="Search by text">
+            <!-- Accounts List Page -->
+            <div id="page-dashboard" class="main-content" style="background: #121218;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #ffc107; margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0; color: #ffc107;">PAWAN GOLD - Performance Dashboard</h2>
+                    <div id="dash-date-range" style="font-size: 0.8rem; color: #aaa;">Real-time Analysis</div>
+                </div>
+
+                <div class="chart-grid">
+                    <div class="chart-container" style="grid-column: span 2; background: #1e1e26;">
+                        <h3>Monthly Income vs Expenses</h3>
+                        <canvas id="chart-income-expense" height="100"></canvas>
+                    </div>
+
+                    <div class="chart-container" style="background: #1e1e26;">
+                        <h3>Recent Transactions</h3>
+                        <div id="dash-recent-list" class="dashboard-recent-list">
+                            <!-- Items like the image -->
+                        </div>
+                        <div style="text-align:right; margin-top:15px;">
+                            <a href="#" onclick="showPage('daybook')" style="color:#ffc107; font-size:0.75rem; text-decoration:none; font-weight:bold;">VIEW ALL STATEMENTS</a>
+                        </div>
+                    </div>
+
+                    <div class="chart-container" style="background: #1e1e26;">
+                        <h3>Expense Breakdown by Category</h3>
+                        <canvas id="chart-expense-pie" height="180"></canvas>
+                    </div>
+
+                    <div class="chart-container" style="background: #1e1e26; grid-column: span 2;">
+                        <h3>Monthly Cash Flow</h3>
+                        <canvas id="chart-cashflow" height="80"></canvas>
                     </div>
                 </div>
-                <div class="table-wrapper">
-                    <table>
+            </div>
+
+            <!-- Accounts List Page -->
+            <div id="page-accounts" class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Chart of Accounts</h2>
+                    <button class="btn" onclick="openModal('accModal')" style="font-size: 0.8rem; padding: 5px 15px;">+ Create (Alt+C)</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr style="background: var(--tally-navy); color: white;">
+                            <th style="color:white;">Account Name</th>
+                            <th style="color:white;">Group/Type</th>
+                            <th class="amt" style="color:white;">Balance</th>
+                            <th style="text-align:center; color:white;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-accounts-body"></tbody>
+                </table>
+            </div>
+
+            <!-- Vouchers Page -->
+            <div id="page-vouchers" class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 10px; padding-bottom:5px;">
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <h2 style="border-bottom:none; margin:0; font-size: 1.1rem;">Voucher Creation</h2>
+                        <div id="v-type-display" style="background:var(--tally-navy); color:white; padding:1px 10px; font-size:0.7rem; font-weight:bold; border-radius:10px; margin-left:10px;">JOURNAL</div>
+                        <input type="hidden" id="edit-tx-id">
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <button class="v-type-btn" id="vbtn-contra" onclick="setVType('CONTRA')">F4: Contra</button>
+                        <button class="v-type-btn" id="vbtn-payment" onclick="setVType('PAYMENT')">F5: Payment</button>
+                        <button class="v-type-btn" id="vbtn-receipt" onclick="setVType('RECEIPT')">F6: Receipt</button>
+                        <button class="v-type-btn active" id="vbtn-journal" onclick="setVType('JOURNAL')">F7: Journal</button>
+                    </div>
+                </div>
+
+                <div style="background:#f8fafb; padding:10px; border:1px solid var(--tally-border); display:grid; grid-template-columns: 150px 1fr; gap:15px; margin-bottom:0px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#666; display:block;">Date:</label>
+                        <input type="date" id="v-date" style="width:100%; border:1px solid #ccc; padding:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#666; display:block;">Narration:</label>
+                        <input type="text" id="v-desc" placeholder="Details..." style="width:100%; border:1px solid #ccc; padding:4px;">
+                    </div>
+                </div>
+
+                <div class="v-table-container">
+                    <table class="v-table">
                         <thead>
                             <tr>
-                                <th>DATE</th>
-                                <th>PARTICULARS</th>
-                                <th style="text-align:right">AMOUNT</th>
-                                <th style="text-align:right">ACTIONS</th>
+                                <th style="width:50px;">Dr/Cr</th>
+                                <th style="text-align:left;">Particulars</th>
+                                <th style="width:150px; text-align:right;">Debit (Rs.)</th>
+                                <th style="width:150px; text-align:right;">Credit (Rs.)</th>
+                                <th style="width:40px;"></th>
                             </tr>
                         </thead>
-                        <tbody id="vouchersListBody"></tbody>
+                        <tbody id="v-rows"></tbody>
+                    </table>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:5px 0;">
+                    <button onclick="addVLine()" class="btn" style="background:#555; font-size:0.75rem; padding:6px 12px;">+ Add Line (Alt+L)</button>
+                    <div id="v-status" style="font-weight:bold; font-family:monospace; font-size:0.85rem;"></div>
+                    <button onclick="postVoucher()" class="btn" style="background:var(--tally-navy); padding:8px 40px; font-size:0.85rem; border-radius:2px;">Accept (Ctrl+A)</button>
+                </div>
+            </div>
+
+            <!-- Ledger Statement Page -->
+            <div id="page-statement" class="main-content">
+                <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Ledger Statement</h2>
+                    <div style="display:flex; gap:10px;">
+                        <select id="stmt-acc-select" onchange="renderLedgerStatement()" style="padding:5px; min-width:200px;"></select>
+                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Statement (Alt+P)</button>
+                    </div>
+                </div>
+
+                <div id="print-area">
+                    <div class="print-header" style="display:none; text-align:center; margin-bottom:20px;">
+                        <h1 style="margin:0; color:var(--tally-teal);">PAWAN GOLD</h1>
+                        <p style="margin:5px 0; font-weight:bold;">Ledger Account Statement</p>
+                        <h3 id="stmt-acc-name" style="margin:10px 0; border-bottom:1px solid #000; display:inline-block; padding:0 20px;"></h3>
+                    </div>
+
+                    <table style="border: 2px solid #333;">
+                        <thead>
+                            <tr style="background:#eee;">
+                                <th>Date</th>
+                                <th>Particulars</th>
+                                <th>Vch Type</th>
+                                <th class="amt">Debit</th>
+                                <th class="amt">Credit</th>
+                                <th class="amt">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbl-stmt-body"></tbody>
                     </table>
                 </div>
             </div>
-</div>
-        
-</div>
 
-    <!-- LEDGERS -->
-    <div id="tab-ledgers" class="tab-content hidden">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <input type="text" id="ledgerSearch" placeholder="Search accounts..." onkeyup="renderLedgers()" style="width:300px;">
-            <button class="btn-gold" onclick="openAccountModal()">+ CREATE ACCOUNT</button>
-            
-</div>
-        <div class="recent-box">
-            <table>
-                <thead>
-                    <tr><th>ACCOUNT NAME</th><th>GROUP</th><th>TYPE</th><th style="text-align:right">BALANCE</th><th>ACTIONS</th></tr>
-                </thead>
-                <tbody id="accBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
+            <!-- Day Book Page -->
+            <div id="page-daybook" class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Day Book</h2>
+                    <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Day Book</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr style="background: var(--tally-navy); color: white;">
+                            <th style="color:white;">Date</th>
+                            <th style="color:white;">Particulars</th>
+                            <th style="color:white;">Vch Type</th>
+                            <th class="amt" style="color:white;">Amount</th>
+                            <th style="text-align:center; color:white;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-daybook-body"></tbody>
+                </table>
+            </div>
 
-    <!-- REPORTS -->
-    <div id="tab-reports" class="tab-content hidden">
-        <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
-            <button class="btn-gold" onclick="renderReport('trial')">Trial Balance</button>
-            <button class="btn-gold" onclick="renderReport('pl')">Profit & Loss</button>
-            <button class="btn-gold" onclick="renderReport('bs')">Balance Sheet</button>
-            <button class="btn-gold" style="background:#8e44ad" onclick="renderReport('rp')">Receivables & Payables</button>
-            <button class="btn-gold" style="background:#27ae60" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
-            
-</div>
-        <div id="reportContainer" class="recent-box">
-            <h2 id="reportTitle" style="text-align:center; color:var(--gold);">Select a Report</h2>
-            <div id="reportData">    
-</div>
-            
-</div>
-        
-</div>
+            <!-- Reports: Balance Sheet -->
+            <div id="page-reports-bs" class="main-content">
+                <h2>Balance Sheet</h2>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0;">
+                    <div style="border-right:1px solid var(--tally-border);">
+                        <table id="tbl-assets"></table>
+                    </div>
+                    <div>
+                        <table id="tbl-liab"></table>
+                    </div>
+                </div>
+            </div>
 
-    <!-- BIKE TRACKER -->
-    <div id="tab-bike" class="tab-content hidden">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total Fuel Exp    
-</div>
-                <div id="bike-fuel" class="stat-value">Rs. 0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Total Maintenance    
-</div>
-                <div id="bike-maint" class="stat-value">Rs. 0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Total Logs    
-</div>
-                <div id="bike-count" class="stat-value">0    
-</div>
-                
-</div>
-            
-</div>
-        <div class="recent-box">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0; color:var(--gold);">Bike Logs</h3>
-                <button class="btn-gold" onclick="openBikeModal()">+ ADD BIKE LOG</button>
-                
-</div>
-            <table>
-                <thead>
-                    <tr><th>DATE</th><th>TYPE</th><th>ODOMETER</th><th>DESCRIPTION</th><th style="text-align:right">AMOUNT</th><th>ACTION</th></tr>
-                </thead>
-                <tbody id="bikeBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
+            <!-- Reports: P&L -->
+            <div id="page-reports-pl" class="main-content">
+                <h2>Profit & Loss Account</h2>
+                <table id="tbl-pl">
+                    <thead><tr><th>Particulars</th><th class="amt">Amount</th></tr></thead>
+                    <tbody id="pl-body"></tbody>
+                    <tfoot>
+                        <tr style="font-weight:bold; background:#f9f9f9;">
+                            <td>Net Profit</td>
+                            <td id="pl-net-result" class="amt">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-    <!-- STOCKS -->
-    <div id="tab-stocks" class="tab-content hidden">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Portfolio Value    
-</div>
-                <div id="stock-total-value" class="stat-value" style="color:var(--gold)">Rs. 0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Unrealized P/L    
-</div>
-                <div id="stock-total-pl" class="stat-value">Rs. 0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Action    
-</div>
-                <button class="btn-gold" style="width:100%" onclick="openStockModal()">+ ADD STOCK</button>
-                
-</div>
-            
-</div>
-        <div class="recent-box">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0; color:var(--gold);">My Stock Portfolio</h3>
-                <button class="btn-gold" style="background:#27ae60" onclick="syncStocks()">SYNC MARKET DATA</button>
-                
-</div>
-            <table>
-                <thead>
-                    <tr><th>SYMBOL</th><th>QUANTITY</th><th>BUY RATE</th><th>CURRENT</th><th style="text-align:right">VALUE</th><th style="text-align:right">P/L</th><th>ACTIONS</th></tr>
-                </thead>
-                <tbody id="stockBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
+            <!-- Reports: Trial Balance -->
+            <div id="page-reports-tb" class="main-content">
+                <h2>Trial Balance</h2>
+                <table>
+                    <thead><tr><th>Particulars</th><th class="amt">Debit</th><th class="amt">Credit</th></tr></thead>
+                    <tbody id="tbl-trial-body"></tbody>
+                </table>
+            </div>
 
-    <!-- STATEMENTS -->
-    <div id="tab-statements" class="tab-content hidden">
-        <div class="recent-box">
-            <h3 style="color:var(--gold); margin-top:0;">Global Transaction Statement</h3>
-            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:10px; margin-bottom:20px;">
-                <input type="text" id="statementSearch" placeholder="Search description..." onkeyup="filterStatements()">
-                <select id="statementAccount" onchange="filterStatements()">
-                    <option value="all">-- All Accounts --</option>
-                </select>
-                <select id="statementFilter" onchange="filterStatements()">
-                    <option value="all">All Modules</option>
-                    <option value="accounting">Accounting</option>
-                    <option value="bike">Bike Tracker</option>
-                </select>
-                <button class="btn-gold" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
-                
-</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>DATE</th><th>MODULE</th><th>DESCRIPTION</th><th>ACCOUNT</th>
-                        <th style="text-align:right">DEBIT</th><th style="text-align:right">CREDIT</th><th style="text-align:right">BALANCE</th>
-                    </tr>
-                </thead>
-                <tbody id="statementBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
+            <!-- Bike Log -->
+            <div id="page-bike" class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Bike Maintenance Register</h2>
+                    <button class="btn" onclick="openModal('bikeModal')" style="font-size: 0.8rem; padding: 5px 15px;">+ Add Entry (Alt+A)</button>
+                </div>
 
-    <!-- SETTINGS -->
-    <div id="tab-settings" class="tab-content hidden">
-        <div class="recent-box">
-            <h3 style="color:var(--gold); margin-top:0;">System Settings & Security</h3>
-            <div style="margin-bottom:20px;">
-                <p>Cloud Storage: <span id="s3-status-box" style="font-weight:bold">Checking...</span></p>
-                <button class="btn-gold" onclick="triggerManualBackup()">BACKUP TO CLOUD NOW</button>
-                <div id="backupLogs" style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); background:#000; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #333;">    
-</div>
-                
-</div>
+                <div id="bike-summary" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:20px;">
+                    <!-- Summary cards injected here -->
+                </div>
 
-            <div style="border-top:1px solid #333; padding-top:20px; margin-bottom:20px;">
-                <h4>Day Close (Accounting Lock)</h4>
-                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Transactions before or on this date cannot be modified.</p>
-                <div style="display:flex; gap:10px;">
-                    <input type="date" id="close-date" style="flex:1">
-                    <button class="btn-gold" onclick="closeDay()">LOCK DATE</button>
-                    
-</div>
-                <p id="current-lock-status" style="font-size:0.8rem; color:var(--success); margin-top:5px;"></p>
-                
-</div>
+                <table style="border: 1px solid var(--tally-border);">
+                    <thead>
+                        <tr style="background: var(--tally-navy); color: white;">
+                            <th style="color:white;">Date</th>
+                            <th style="color:white;">Particulars (Type)</th>
+                            <th class="amt" style="color:white;">Odometer (km)</th>
+                            <th class="amt" style="color:white;">Amount (Rs.)</th>
+                            <th style="color:white;">Narration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-bike-body"></tbody>
+                    <tfoot id="tbl-bike-foot" style="background: #f2f5f7; font-weight: bold;"></tfoot>
+                </table>
+            </div>
 
-            <div style="border-top:1px solid #333; padding-top:20px; margin-bottom:20px;">
-                <h4>Transaction PIN Security</h4>
-                <div style="display:flex; gap:10px;">
-                    <input type="password" id="new-pin" placeholder="Enter New 4-Digit PIN" maxlength="4" style="flex:1">
-                    <button class="btn-gold" onclick="updatePin()">UPDATE PIN</button>
-                    
-</div>
-                
-</div>
-            <div style="border-top:1px solid #333; padding-top:20px;">
-                <h4>Merge Accounts</h4>
-                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Warning: This will move all transactions from one ledger to another and delete the old one.</p>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <select id="mergeFrom" class="v-acc-select" style="padding:10px; flex:1; min-width:150px;"></select>
-                    <i class="fas fa-arrow-right" style="color:var(--gold)"></i>
-                    <select id="mergeTo" class="v-acc-select" style="padding:10px; flex:1; min-width:150px;"></select>
-                    <button class="btn-danger" onclick="mergeAccounts()">MERGE LEDGERS</button>
-                    
-</div>
-                
-</div>
-            
-</div>
-        
-</div>
+            <!-- Settings -->
+            <div id="page-settings" class="main-content">
+                <h2>System Settings</h2>
+                <div class="box" style="padding:20px; border:1px solid #ddd;">
+                    <h3>Data Integrity</h3>
+                    <p>हिसाबमा कुनै समस्या देखिएमा ब्यालेन्स मिलाउन यहाँ क्लिक गर्नुहोस्:</p>
+                    <button class="btn" onclick="runRecalculate()">Force Recalculate Everything</button>
+                </div>
+            </div>
 
-    <!-- GOLD CINEMA -->
-    <div id="tab-cinema" class="tab-content hidden">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total Shows    
-</div>
-                <div id="cinema-total-shows" class="stat-value">0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Tickets Sold    
-</div>
-                <div id="cinema-total-tickets" class="stat-value">0    
-</div>
-                
-</div>
-            <div class="stat-card">
-                <div class="stat-label">Cinema Revenue    
-</div>
-                <div id="cinema-revenue" class="stat-value">Rs. 0    
-</div>
-                
-</div>
-            
-</div>
-        <div class="recent-box">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0; color:var(--gold);">Movie Screenings</h3>
-                <button class="btn-gold" onclick="openCinemaModal()">+ ADD NEW SHOW</button>
-                
-</div>
-            <table>
-                <thead>
-                    <tr><th>MOVIE NAME</th><th>SHOW TIME</th><th>HALL</th><th>TICKETS</th><th>STATUS</th><th style="text-align:right">REVENUE</th><th>ACTIONS</th></tr>
-                </thead>
-                <tbody id="cinemaBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
-
-    <!-- ELECTRIC GUIDE -->
-    <div id="tab-electric" class="tab-content hidden">
-        <div class="recent-box" style="margin-bottom:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0; color:var(--gold);">Electrical Component Price List</h3>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="electricSearch" placeholder="Search items..." onkeyup="renderElectricGuide()" style="padding:5px; border-radius:5px; border:1px solid #333; background:#111; color:white;">
-                    <button class="btn-gold" onclick="openElectricModal()">+ ADD ITEM</button>
-                    
-</div>
-                
-</div>
-            <table>
-                <thead>
-                    <tr><th>CATEGORY</th><th>ITEM NAME</th><th>SPECIFICATION</th><th>UNIT</th><th style="text-align:right">RATE (Rs.)</th><th>ACTIONS</th></tr>
-                </thead>
-                <tbody id="electricBody"></tbody>
-            </table>
-            
-</div>
-        
-</div>
-    
-</div>
-
-<div id="breakdownModal" class="modal-overlay hidden">
-    <div class="modal" style="width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
-        <h3 id="breakdownTitle" style="color:var(--gold); margin-top:0;">Breakdown</h3>
-        <div id="breakdownList" class="custom-scrollbar" style="flex-grow:1; overflow-y:auto; margin-bottom:15px;">
-            <!-- Dynamic content here -->
+            <!-- Tally Right F-Keys Sidebar -->
+            <div class="f-keys-bar">
+                <div class="f-key" onclick="showPage('gateway')"><span>ESC</span> Gateway</div>
+                <div class="f-key" onclick="setVType('CONTRA'); showPage('vouchers');"><span>F4</span> Contra</div>
+                <div class="f-key" onclick="setVType('PAYMENT'); showPage('vouchers');"><span>F5</span> Payment</div>
+                <div class="f-key" onclick="setVType('RECEIPT'); showPage('vouchers');"><span>F6</span> Receipt</div>
+                <div class="f-key" onclick="setVType('JOURNAL'); showPage('vouchers');"><span>F7</span> Journal</div>
+                <div class="f-key" onclick="showPage('reports-bs')"><span>B</span> Bal Sheet</div>
+                <div class="f-key" onclick="showPage('reports-pl')"><span>P</span> P&L A/c</div>
+                <div class="f-key" onclick="showPage('bike')"><span>K</span> Bike Log</div>
+                <div style="flex:1;"></div>
+                <div class="f-key" onclick="logout()"><span>Ctrl+Q</span> Quit</div>
+            </div>
         </div>
-        <button onclick="closeModals()" class="btn-gold" style="width:100%;">CLOSE BREAKDOWN</button>
     </div>
-</div>
 
-<div id="accountModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 style="color:var(--gold); margin-top:0;">Create New Ledger</h3>
-        <input type="text" id="acc-name" placeholder="Account Name" style="width:100%; margin-bottom:10px;">
-        <select id="acc-type" style="width:100%; margin-bottom:10px;">
-            <option value="Asset">Asset</option>
-            <option value="Liability">Liability</option>
-            <option value="Equity">Equity (Capital)</option>
-            <option value="Revenue">Revenue (Income)</option>
-            <option value="Expense">Expense</option>
-        </select>
-        <input type="text" id="acc-group" placeholder="Group (e.g. Bank, Party)" style="width:100%; margin-bottom:10px;">
-        <input type="number" id="acc-opening" placeholder="Opening Balance" style="width:100%; margin-bottom:20px;">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="saveAccount()">SAVE</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+    <!-- Modals -->
+    <div id="accModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--tally-teal); border-bottom:1px solid #ddd; padding-bottom:10px;">Create Ledger Account</h3>
+            <label>Name:</label><input type="text" id="new-aname" style="width:100%; margin-bottom:15px;">
+            <label>Under Group:</label>
+            <select id="new-atype" style="width:100%; margin-bottom:15px;">
+                <option value="Asset">Assets</option>
+                <option value="Liability">Liabilities</option>
+                <option value="Revenue">Income</option>
+                <option value="Expense">Expenses</option>
+                <option value="Equity">Equity</option>
+            </select>
+            <label>Opening Balance:</label><input type="number" id="new-aob" value="0" style="width:100%; margin-bottom:20px;">
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button class="btn" style="background:#666;" onclick="closeModals()">Cancel</button>
+                <button class="btn" onclick="saveAccount()">Save</button>
+            </div>
+        </div>
+    </div>
 
-<div id="cinemaModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 style="color:var(--gold); margin-top:0;">New Movie Screening</h3>
-        <input type="text" id="cm-movie" placeholder="Movie Name" style="width:100%; margin-bottom:10px;">
-        <input type="date" id="cm-date" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="cm-time" placeholder="Show Time (e.g. 11:00 AM)" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="cm-hall" placeholder="Hall Name" style="width:100%; margin-bottom:10px;">
-        <input type="number" id="cm-tickets" placeholder="Tickets Sold" style="width:100%; margin-bottom:10px;">
-        <input type="number" id="cm-revenue" placeholder="Revenue" style="width:100%; margin-bottom:10px;">
-        <select id="cm-status" style="width:100%; margin-bottom:20px;">
-            <option value="Booking">Booking</option>
-            <option value="Housefull">Housefull</option>
-            <option value="Completed">Completed</option>
-        </select>
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="saveCinemaShow()">SAVE SHOW</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+    <div id="bikeModal" class="modal">
+        <div class="modal-content" style="width: 550px;">
+            <h3 style="color:var(--tally-teal); border-bottom: 2px solid var(--tally-teal); padding-bottom: 10px; margin-top: 0;">Bike Maintenance Record</h3>
+            <div style="background: #f9f9f9; padding: 20px; border: 1px solid var(--tally-border); margin-bottom: 20px;">
+                <div style="display:grid; grid-template-columns: 120px 1fr; gap:15px; align-items:center;">
+                    <label>Date:</label>
+                    <input type="date" id="b-date" style="width:100%;">
 
-<div id="electricModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 style="color:var(--gold); margin-top:0;">Add Electrical Item</h3>
-        <input type="text" id="el-cat" placeholder="Category (e.g. Wiring, Lighting)" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="el-name" placeholder="Item Name" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="el-spec" placeholder="Specification (Brand/Model)" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="el-unit" placeholder="Unit (e.g. Pc, Coil, Mtr)" style="width:100%; margin-bottom:10px;">
-        <input type="number" id="el-rate" placeholder="Rate (Rs.)" style="width:100%; margin-bottom:20px;">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="saveElectricItem()">SAVE ITEM</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+                    <label>Entry Type:</label>
+                    <select id="b-type" style="width:100%;">
+                        <option value="Fuel">Fuel (पेट्रोल)</option>
+                        <option value="Service">Service (सर्भिसिङ)</option>
+                        <option value="Repair">Repair (मर्मत)</option>
+                        <option value="Wash">Wash (धुलाई)</option>
+                        <option value="Tax">Tax (नवीकरण/कर)</option>
+                    </select>
 
-<div id="bikeModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 style="color:var(--gold); margin-top:0;">Add Bike Log</h3>
-        <select id="bike-type" style="width:100%; margin-bottom:10px;">
-            <option value="Fuel">Fuel</option>
-            <option value="Service">Service</option>
-            <option value="Repair">Repair</option>
-            <option value="Other">Other</option>
-        </select>
-        <input type="number" id="bike-amount" placeholder="Amount (Rs.)" style="width:100%; margin-bottom:10px;">
-        <input type="date" id="bike-date" style="width:100%; margin-bottom:10px;">
-        <input type="number" id="bike-odo" placeholder="Odometer" style="width:100%; margin-bottom:10px;">
-        <input type="text" id="bike-desc" placeholder="Details" style="width:100%; margin-bottom:20px;">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="saveBikeLog()">SAVE</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+                    <label>Odometer:</label>
+                    <input type="number" id="b-odo" placeholder="Current km reading" style="width:100%;">
 
-<div id="stockModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 style="color:var(--gold); margin-top:0;">Add to Portfolio</h3>
-        <input type="text" id="st-symbol" placeholder="Stock Symbol (e.g. NICA, HDL)" style="width:100%; margin-bottom:10px;" aria-label="Stock Symbol">
-        <input type="number" id="st-qty" placeholder="Quantity" style="width:100%; margin-bottom:10px;" aria-label="Quantity">
-        <input type="number" id="st-buy" placeholder="Buy Price (LTP)" style="width:100%; margin-bottom:20px;" aria-label="Buy Price">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="saveStock()">ADD STOCK</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+                    <label>Amount (Rs.):</label>
+                    <input type="number" id="b-amt" placeholder="0.00" style="width:100%;">
 
-<div id="pinModal" class="modal-overlay hidden">
-    <div class="modal" style="width:300px; text-align:center;">
-        <i class="fas fa-lock" style="font-size:3rem; color:var(--gold); margin-bottom:15px;"></i>
-        <h3 style="margin:0 0 10px;">Enter System PIN</h3>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px;">Access to this module is restricted.</p>
-        <input type="password" id="pinInput" maxlength="4" placeholder="****" style="width:100%; text-align:center; font-size:2rem; letter-spacing:10px; margin-bottom:20px;">
-        <div style="display:flex; gap:10px;">
-            <button class="btn-gold" style="flex:1" onclick="verifyPin()">UNLOCK</button>
-            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
-            
-</div>
-        
-</div>
-    
-</div>
+                    <label>Narration:</label>
+                    <input type="text" id="b-note" placeholder="Details of expense..." style="width:100%;">
+                </div>
+            </div>
+            <div style="display:flex; gap:15px; justify-content:flex-end;">
+                <button class="btn" style="background:#666;" onclick="closeModals()">Cancel (Esc)</button>
+                <button class="btn" onclick="saveBikeLog()" style="background: var(--tally-navy);">Accept (Ctrl+A)</button>
+            </div>
+        </div>
+    </div>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDZaWUcQermGfb_pQSxXvYCpDV8i0CbKKk",
-        authDomain: "perfect-solution-accounting.firebaseapp.com",
-        projectId: "perfect-solution-accounting",
-        appId: "1:1047065509704:web:d15acdd34608def4ec7d7d"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    let currentUser = null;
-    let accounts = [], transactions = [], bikeLogs = [], stocks = [], cinemaShows = [], electricItems = [];
-    let userSettings = {};
-    let incomeExpenseChart = null, expenseCategoryChart = null, cashFlowChart = null;
-    let editingVoucherId = null;
+    <div id="breakdownModal" class="modal">
+        <div class="modal-content" style="width: 400px; padding: 0; border-radius: 4px; overflow: hidden;">
+            <div id="bd-header" style="background: var(--tally-teal); color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                <span id="bd-title">Account Breakdown</span>
+                <span onclick="closeModals()" style="cursor:pointer; font-size: 1.2rem;">&times;</span>
+            </div>
+            <div id="bd-body" style="max-height: 400px; overflow-y: auto; padding: 10px;">
+                <!-- Breakdown list will be injected here -->
+            </div>
+            <div id="bd-footer" style="background: #f2f5f7; padding: 10px 15px; text-align: right; font-weight: bold; border-top: 1px solid var(--tally-border);">
+                Total: <span id="bd-total">0</span>
+            </div>
+        </div>
+    </div>
 
-    auth.onAuthStateChanged(user => {
-        if(user) {
-            currentUser = user;
-            document.getElementById('loginOverlay').classList.add('hidden');
-            document.getElementById('userName').innerText = user.displayName || user.email;
-            if(user.photoURL) document.getElementById('userImg').src = user.photoURL;
-            loadData();
-        } else {
-            document.getElementById('loginOverlay').classList.remove('hidden');
-        }
-    });
+    <script>
+        const user = JSON.parse(localStorage.getItem('pawangold_user'));
+        if(!user) window.location.href = 'login.html';
+        document.body.style.display = 'block';
 
-    async function loadData() {
-        if(!currentUser) return;
-        const [accRes, txRes, bikeRes, stockRes, cinemaRes, electricRes, settingsRes] = await Promise.all([
-            fetch(`/api/accounts?userId=${currentUser.uid}`),
-            fetch(`/api/transactions?userId=${currentUser.uid}`),
-            fetch(`/api/bike?userId=${currentUser.uid}`),
-            fetch(`/api/stocks?userId=${currentUser.uid}`),
-            fetch(`/api/cinema?userId=${currentUser.uid}`),
-            fetch(`/api/electric?userId=${currentUser.uid}`),
-            fetch(`/api/settings?userId=${currentUser.uid}`)
-        ]);
-        accounts = await accRes.json();
-        transactions = await txRes.json();
-        bikeLogs = await bikeRes.json();
-        stocks = await stockRes.json();
-        cinemaShows = await cinemaRes.json();
-        electricItems = await electricRes.json();
-        userSettings = await settingsRes.json();
-        updateUI();
-    }
+        let accounts = [], transactions = [];
+        let currentVType = 'JOURNAL';
 
-    function updateUI() {
-        if(!accounts || !Array.isArray(accounts)) return;
+        window.onload = () => {
+            document.getElementById('uNameDisplay').innerText = user.displayName || user.email;
+            document.getElementById('uImgDisplay').src = user.photoURL || 'https://ui-avatars.com/api/?name='+user.displayName;
+            document.getElementById('v-date').valueAsDate = new Date();
+            syncAll();
+        };
 
-        // Accounting Calcs for Net Worth
-        const bankCash = accounts.filter(a => a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash')))
-                                 .reduce((s,a) => s + (a.balance || 0), 0);
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            const fKey = e.key;
 
-        // Receivables: Asset(Dr+) + Liability(Dr-) (Excluding Bank/Cash)
-        const ar = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
-                                        !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))))
-                           .reduce((s,a) => s + Math.abs(a.balance), 0);
+            // F-Key Voucher Switching
+            if(fKey === 'F4') { e.preventDefault(); setVType('CONTRA'); showPage('vouchers'); return; }
+            if(fKey === 'F5') { e.preventDefault(); setVType('PAYMENT'); showPage('vouchers'); return; }
+            if(fKey === 'F6') { e.preventDefault(); setVType('RECEIPT'); showPage('vouchers'); return; }
+            if(fKey === 'F7') { e.preventDefault(); setVType('JOURNAL'); showPage('vouchers'); return; }
 
-        // Payables: Liability(Cr+) + Asset(Cr-) (Excluding Bank/Cash)
-        const ap = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
-                                        !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))))
-                           .reduce((s,a) => s + Math.abs(a.balance), 0);
+            // Global Shortcuts
+            if(e.ctrlKey && key === 'q') { e.preventDefault(); logout(); return; }
+            if(e.ctrlKey && key === 'a') {
+                if(document.getElementById('bikeModal').style.display === 'flex') { e.preventDefault(); saveBikeLog(); return; }
+                if(document.getElementById('page-vouchers').classList.contains('active')) { e.preventDefault(); postVoucher(); return; }
+            }
 
-        const bikeExpTotal = (bikeLogs || []).reduce((sum, l) => sum + (l.amount || 0), 0);
-        const totalIncome = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + (a.balance || 0), 0);
-        const totalExpense = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + (a.balance || 0), 0) + bikeExpTotal;
+            if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.classList.contains('v-byto')) {
+                if(key === 'escape') { document.activeElement.blur(); }
+                return;
+            }
 
-        // Custom Net Worth Formula: Bank + Receivable - Payable - Expense + Income
-        const netWorth = (bankCash + ar + totalIncome) - (ap + totalExpense);
+            if(key === 'escape') showPage('gateway');
+            if(key === 'g') showPage('dashboard');
+            if(key === 'd') showPage('daybook');
+            if(key === 'v') showPage('vouchers');
+            if(key === 'b') showPage('reports-bs');
+            if(key === 'p' && e.altKey) { e.preventDefault(); if(document.getElementById('page-statement').classList.contains('active')) window.print(); else showPage('reports-pl'); return; }
+            if(key === 'p') showPage('reports-pl');
+            if(key === 't') showPage('reports-tb');
+            if(key === 'l') showPage('statement');
+            if(key === 'c') openModal('accModal');
+            if(key === 'a') showPage('accounts');
+            if(key === 'k') showPage('bike');
+            if(key === 's') showPage('settings');
 
-        document.getElementById('val-networth').innerText = `Rs. ${netWorth.toLocaleString()}`;
-        document.getElementById('val-bank-cash').innerText = `Rs. ${bankCash.toLocaleString()}`;
-        document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
-        document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
-
-        document.getElementById('networth-breakdown').innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>Cash/Bank:</span> <span>Rs. ${bankCash.toLocaleString()}</span>    
-</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>Receivables:</span> <span>+ ${ar.toLocaleString()}</span>    
-</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:2px; color:var(--success);"><span>Income:</span> <span>+ ${totalIncome.toLocaleString()}</span>    
-</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:2px; color:var(--danger);"><span>Payables:</span> <span>- ${ap.toLocaleString()}</span>    
-</div>
-            <div style="display:flex; justify-content:space-between; color:var(--danger);"><span>Expenses:</span> <span>- ${totalExpense.toLocaleString()}</span>    
-</div>
-        `;
-
-        const stockVal = (stocks || []).reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
-
-        // Today's Income & Expense Logic
-        const today = new Date().toLocaleDateString('en-CA');
-        const todaysTxs = (transactions || []).filter(t => t.date === today);
-        let todayIncome = 0;
-        let todayExpense = 0;
-
-        todaysTxs.forEach(t => {
-            t.entries.forEach(e => {
-                const accId = e.account?._id || e.account;
-                const accObj = accounts.find(a => a._id === accId);
-                if(accObj) {
-                    if(accObj.type === 'Revenue') todayIncome += (e.credit || 0);
-                    if(accObj.type === 'Expense') todayExpense += (e.debit || 0);
-                }
-            });
+            // Bike Page Specific
+            if(document.getElementById('page-bike').classList.contains('active') && e.altKey && key === 'a') {
+                e.preventDefault(); openModal('bikeModal');
+            }
         });
 
-        document.getElementById('val-networth').innerText = `Rs. ${netWorth.toLocaleString()}`;
-        document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
-        document.getElementById('val-today-income').innerText = `Rs. ${todayIncome.toLocaleString()}`;
-        document.getElementById('val-today-expense').innerText = `Rs. ${todayExpense.toLocaleString()}`;
+        function setVType(type) {
+            currentVType = type;
+            document.getElementById('v-type-display').innerText = type;
+            document.querySelectorAll('.v-type-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('vbtn-' + type.toLowerCase()).classList.add('active');
+            if(document.getElementById('page-vouchers').classList.contains('active')) resetVoucher();
+        }
 
-        // Monthly Chart Data
-        updateDashboardChart();
+        function showBreakdown(type) {
+            let title = "";
+            let list = [];
+            let total = 0;
 
-        // Update Vouchers List if on that tab
-        renderVouchersList();
+            if (type === 'cashbank') {
+                title = "Cash & Bank Details";
+                list = accounts.filter(a => {
+                    const n = a.name.toLowerCase();
+                    return a.type === 'Asset' && (n.includes('cash') || n.includes('bank'));
+                });
+            } else if (type === 'receivable') {
+                title = "Receivables (lina bakki)";
+                list = accounts.filter(a => {
+                    const n = a.name.toLowerCase();
+                    return a.type === 'Asset' && !n.includes('cash') && !n.includes('bank');
+                });
+            } else if (type === 'payable') {
+                title = "Payables (tina bakki)";
+                list = accounts.filter(a => a.type === 'Liability');
+            } else if (type === 'networth') {
+                title = "Net Worth Breakdown";
+                const assets = accounts.filter(a => a.type === 'Asset');
+                const liabs = accounts.filter(a => a.type === 'Liability');
 
-        // Today's Transaction Stream (Compact Feed)
-        document.getElementById('txBody').innerHTML = todaysTxs.map(t => {
-            const firstAccId = t.entries[0]?.account?._id || t.entries[0]?.account;
-            const firstAcc = accounts.find(a => a._id === firstAccId);
-            const accName = t.entries.length > 1 ? 'Multiple Accounts' : (firstAcc?.name || 'Unknown');
+                let html = `<div style="font-weight:bold; color:var(--tally-teal); margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:5px;">ASSETS (सम्पत्ति)</div>`;
+                assets.forEach(a => {
+                    html += `
+                        <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:0.9rem; border-bottom:1px dotted #eee;">
+                            <span>${a.name}</span>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <span style="font-weight:bold;">${a.balance.toLocaleString()}</span>
+                                <button onclick="closeModals(); openEditByAccount('${a._id}')" style="background:none; border:none; color:var(--tally-teal); cursor:pointer;"><i class="fas fa-edit"></i></button>
+                            </div>
+                        </div>`;
+                    total += a.balance;
+                });
+                html += `<div style="font-weight:bold; color:#d32f2f; margin:15px 0 5px; border-bottom:1px solid #eee; padding-bottom:5px;">LIABILITIES (ऋण/दायित्व)</div>`;
+                liabs.forEach(a => {
+                    html += `
+                        <div style="display:flex; justify-content:space-between; padding:8px 0; font-size:0.9rem; border-bottom:1px dotted #eee;">
+                            <span>${a.name}</span>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <span style="font-weight:bold; color:#d32f2f;">(${a.balance.toLocaleString()})</span>
+                                <button onclick="closeModals(); openEditByAccount('${a._id}')" style="background:none; border:none; color:var(--tally-teal); cursor:pointer;"><i class="fas fa-edit"></i></button>
+                            </div>
+                        </div>`;
+                    total -= a.balance;
+                });
 
-            return `
-            <tr style="border-bottom: 1px solid #222;">
-                <td style="padding:12px 5px;">
-                    <div style="font-weight:bold; color:#fff; margin-bottom:2px;">${t.description}    
-</div>
-                    <div style="font-size:0.7rem; color:var(--gold); opacity:0.8;">${accName}    
-</div>
-                </td>
-                <td style="text-align:right; padding:12px 5px;">
-                    <div style="font-weight:bold; color:var(--success);">Rs. ${Math.abs(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}    
-</div>
-                </td>
-                <td style="text-align:right; padding:12px 0 12px 10px; display:flex; gap:10px; justify-content:flex-end;">
-                    <button onclick="editTransaction('${t._id}')" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5"><i class="fas fa-edit"></i></button>
-                    <button onclick="deleteTransaction('${t._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-size:0.7rem; opacity:0.5;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `; }).join('') || '<tr><td colspan="3" style="text-align:center; color:var(--text-muted); padding:30px;">No transactions entered today.</td></tr>';
+                document.getElementById('bd-title').innerText = title;
+                document.getElementById('bd-body').innerHTML = html;
+                document.getElementById('bd-total').innerText = "Rs. " + total.toLocaleString();
+                document.getElementById('breakdownModal').style.display = 'flex';
+                return;
+            }
 
-        // Bike Stats
-        const bikeLogsSafe = bikeLogs || [];
-        const fuel = bikeLogsSafe.filter(l => l.type === 'Fuel').reduce((s,l) => s + (l.amount || 0), 0);
-        const maint = bikeLogsSafe.filter(l => l.type !== 'Fuel').reduce((s,l) => s + (l.amount || 0), 0);
-        document.getElementById('bike-fuel').innerText = `Rs. ${fuel.toLocaleString()}`;
-        document.getElementById('bike-maint').innerText = `Rs. ${maint.toLocaleString()}`;
-        document.getElementById('bike-count').innerText = bikeLogsSafe.length;
-        document.getElementById('bikeBody').innerHTML = bikeLogsSafe.map(l => `
-            <tr>
-                <td>${new Date(l.date).toLocaleDateString()}</td>
-                <td>${l.type}</td>
-                <td>${l.odometer || '-'}</td>
-                <td>${l.description}</td>
-                <td style="text-align:right">Rs. ${l.amount.toLocaleString()}</td>
-                <td><button onclick="deleteBikeLog('${l._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
-            </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align:center">No bike logs.</td></tr>';
+            let html = "";
+            list.forEach(a => {
+                total += a.balance;
+                html += `
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:10px 0; align-items:center;">
+                        <div style="flex:1;">
+                            <div style="font-weight:bold; color:var(--tally-navy); font-size:0.95rem;">${a.name}</div>
+                            ${a.phone ? `<div style="font-size:0.7rem; color:#888;"><i class="fas fa-phone"></i> ${a.phone}</div>` : ''}
+                        </div>
+                        <div style="text-align:right; margin-right:15px;">
+                            <div style="font-weight:bold; font-family:Consolas, monospace; font-size:1rem;">${a.balance.toLocaleString()}</div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button onclick="closeModals(); openEditByAccount('${a._id}')" style="background:none; border:none; color:var(--tally-navy); cursor:pointer; font-size:1rem;" title="Edit Last Transaction">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="closeModals(); showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();"
+                                    style="background:none; border:none; color:var(--tally-teal); cursor:pointer; font-size:1rem;" title="View Ledger">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
 
-        renderAllStatements();
-    }
+            if(list.length === 0) html = `<div style="text-align:center; padding:20px; color:#888;">No accounts found in this category.</div>`;
 
-    function updateDashboardChart() {
-        const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
-        const ctxExp = document.getElementById('expenseCategoryChart').getContext('2d');
-        const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
+            document.getElementById('bd-title').innerText = title;
+            document.getElementById('bd-body').innerHTML = html;
+            document.getElementById('bd-total').innerText = "Rs. " + total.toLocaleString();
+            document.getElementById('breakdownModal').style.display = 'flex';
+        }
 
-        // Group by month for last 6 months
-        const months = [];
-        const incomeData = [];
-        const expenseData = [];
-        const flowData = [];
+        function openEditByAccount(accId) {
+            // Find most recent transaction for this account
+            const tx = [...transactions].reverse().find(t => t.entries.some(e => e.account._id === accId || e.account === accId));
+            if(tx) editVoucher(tx._id);
+            else alert("No transactions found for this account to edit.");
+        }
 
-        for(let i=5; i>=0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
-            const mLabel = d.toLocaleString('default', { month: 'short' });
-            months.push(mLabel);
+        async function syncAll() {
+            try {
+                const [resA, resT] = await Promise.all([
+                    fetch('/api/accounts?userId=' + user.uid),
+                    fetch('/api/transactions?userId=' + user.uid)
+                ]);
+                accounts = await resA.json();
+                transactions = await resT.json();
 
-            const monthStr = d.toISOString().substring(0, 7); // YYYY-MM
+                renderDashboardData();
+                renderTrialBalance();
+                renderBalanceSheet();
+                renderPL();
+                renderBikeLogs();
+            } catch(e) { console.error("Sync Error", e); }
+        }
 
-            let mInc = 0;
-            let mExp = 0;
+        function showPage(pageId) {
+            document.querySelectorAll('.main-content').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-gateway').style.display = (pageId === 'gateway') ? 'flex' : 'none';
+            if(pageId !== 'gateway') {
+                const page = document.getElementById('page-' + pageId);
+                if(page) page.classList.add('active');
+            }
+            if(pageId === 'vouchers') resetVoucher();
+            if(pageId === 'daybook') renderDayBook();
+            if(pageId === 'accounts') renderAccountsList();
+            if(pageId === 'statement') populateStatementSelect();
+            if(pageId === 'dashboard') renderCharts();
+        }
 
-            transactions.forEach(t => {
-                if(t.date.startsWith(monthStr)) {
-                    t.entries.forEach(e => {
-                        const accId = e.account?._id || e.account;
-                        const accObj = accounts.find(a => a._id === accId);
-                        if(accObj) {
-                            if(accObj.type === 'Revenue') mInc += (e.credit || 0);
-                            if(accObj.type === 'Expense') mExp += (e.debit || 0);
+        let charts = {};
+        function renderCharts() {
+            const ctx1 = document.getElementById('chart-income-expense').getContext('2d');
+            const ctx2 = document.getElementById('chart-expense-pie').getContext('2d');
+            const ctx3 = document.getElementById('chart-cashflow').getContext('2d');
+
+            // Destroy existing charts to prevent memory leaks/overlap
+            Object.values(charts).forEach(c => c.destroy());
+
+            // Prepare Data
+            const last6Months = [];
+            for(let i=5; i>=0; i--) {
+                const d = new Date(); d.setMonth(d.getMonth() - i);
+                last6Months.push(d.toLocaleString('default', { month: 'short' }));
+            }
+
+            // Monthly Aggregates
+            const incData = [0,0,0,0,0,55000]; // Mocking some trend
+            const expData = [0,0,0,0,0,42000];
+
+            // Real Calculation from Transactions
+            const monthlyInc = new Array(6).fill(0);
+            const monthlyExp = new Array(6).fill(0);
+            const monthlyCash = new Array(6).fill(0);
+
+            transactions.forEach(tx => {
+                const tDate = new Date(tx.date);
+                const monthDiff = (new Date().getMonth() - tDate.getMonth() + (12 * (new Date().getFullYear() - tDate.getFullYear())));
+                if(monthDiff >= 0 && monthDiff < 6) {
+                    const idx = 5 - monthDiff;
+                    tx.entries.forEach(e => {
+                        const acc = e.account;
+                        if(acc) {
+                            if(acc.type === 'Revenue') monthlyInc[idx] += e.credit;
+                            if(acc.type === 'Expense') monthlyExp[idx] += e.debit;
                         }
                     });
                 }
             });
 
-            // Add bike logs for the month
-            bikeLogs.forEach(l => {
-                if(new Date(l.date).toISOString().startsWith(monthStr)) mExp += l.amount;
-            });
-
-            incomeData.push(mInc);
-            expenseData.push(mExp);
-            flowData.push(mInc - mExp);
-        }
-
-        if(incomeExpenseChart) incomeExpenseChart.destroy();
-        incomeExpenseChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: months,
-                datasets: [
-                    {
-                        label: 'Income',
-                        data: incomeData,
-                        backgroundColor: 'rgba(0, 255, 136, 0.6)',
-                        borderColor: '#00ff88',
-                        borderWidth: 1
+            charts.bar = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: last6Months,
+                    datasets: [
+                        { label: 'Income', data: monthlyInc, backgroundColor: '#2e7d32' },
+                        { label: 'Expense', data: monthlyExp, backgroundColor: '#d32f2f' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                        x: { grid: { display: false }, ticks: { color: '#aaa' } }
                     },
-                    {
-                        label: 'Expense',
-                        data: expenseData,
-                        backgroundColor: 'rgba(255, 77, 77, 0.6)',
-                        borderColor: '#ff4d4d',
-                        borderWidth: 1
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: '#2d323a' }, ticks: { color: '#8a8f98' } },
-                    x: { grid: { display: false }, ticks: { color: '#8a8f98' } }
-                },
-                plugins: { legend: { labels: { color: '#fff' } } }
-            }
-        });
-
-        // 2. Expense Category Chart (Doughnut)
-        const expGroups = {};
-        accounts.filter(a => a.type === 'Expense').forEach(a => {
-            const g = a.group || 'Other';
-            expGroups[g] = (expGroups[g] || 0) + Math.abs(a.balance);
-        });
-        const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
-        if(bikeTotal > 0) expGroups['Bike Tracker'] = (expGroups['Bike Tracker'] || 0) + bikeTotal;
-
-        if(expenseCategoryChart) expenseCategoryChart.destroy();
-        expenseCategoryChart = new Chart(ctxExp, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(expGroups),
-                datasets: [{
-                    data: Object.values(expGroups),
-                    backgroundColor: ['#FFD700', '#ff4d4d', '#00ff88', '#3498db', '#9b59b6', '#e67e22'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right', labels: { color: '#8a8f98', font: { size: 10 } } }
-                },
-                cutout: '70%'
-            }
-        });
-
-        // 3. Monthly Cash Flow (Line Chart)
-        if(cashFlowChart) cashFlowChart.destroy();
-        cashFlowChart = new Chart(ctxFlow, {
-            type: 'line',
-            data: {
-                labels: months,
-                datasets: [{
-                    label: 'Net Flow',
-                    data: flowData,
-                    borderColor: '#FFD700',
-                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { grid: { color: '#2d323a' }, ticks: { color: '#8a8f98' } },
-                    x: { grid: { display: false }, ticks: { color: '#8a8f98' } }
-                },
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
-
-    function showTab(t) {
-        const sensitive = ['reports', 'settings', 'ledgers', 'cinema'];
-        if(sensitive.includes(t) && userSettings.accessPin) {
-            pendingTab = t;
-            document.getElementById('pinModal').classList.remove('hidden');
-            document.getElementById('pinInput').value = '';
-            document.getElementById('pinInput').focus();
-            return;
-        }
-        actuallyShowTab(t);
-    }
-
-    function actuallyShowTab(t) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.getElementById('tab-' + t).classList.remove('hidden');
-        document.getElementById('pageTitle').innerText = t.toUpperCase() + " ENGINE";
-
-        // Update active class on nav items
-        document.querySelectorAll('.nav-item').forEach(item => {
-            if(item.getAttribute('onclick')?.includes(`'${t}'`)) item.classList.add('active');
-        });
-
-        if(t === 'ledgers') renderLedgers();
-        if(t === 'vouchers') { populateVoucherSelects(); renderVouchersList(); }
-        if(t === 'settings') loadSettingsInfo();
-        if(t === 'statements') { populateStatementAccounts(); renderAllStatements(); }
-        if(t === 'electric') renderElectricGuide();
-        if(t === 'cinema') renderCinemaModule();
-        if(t === 'stocks') renderStocks();
-    }
-
-    function verifyPin() {
-        const pin = document.getElementById('pinInput').value;
-        if(pin === userSettings.accessPin) {
-            closeModals();
-            actuallyShowTab(pendingTab);
-        } else {
-            alert("Incorrect PIN!");
-            document.getElementById('pinInput').value = '';
-        }
-    }
-    let pendingTab = null;
-
-    function openAccountModal() { document.getElementById('accountModal').classList.remove('hidden'); }
-    function openBikeModal() { document.getElementById('bikeModal').classList.remove('hidden'); }
-    function openCinemaModal() { document.getElementById('cinemaModal').classList.remove('hidden'); }
-    function openElectricModal() { document.getElementById('electricModal').classList.remove('hidden'); }
-    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
-
-    function showBreakdown(type) {
-        const title = document.getElementById('breakdownTitle');
-        const list = document.getElementById('breakdownList');
-        list.innerHTML = '';
-        let filtered = [];
-        let colorClass = '';
-
-        if(type === 'bank') {
-            title.innerText = "Bank & Cash Breakdown";
-            filtered = accounts.filter(a => a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash')));
-            colorClass = 'var(--gold)';
-        } else if(type === 'ar') {
-            title.innerText = "Receivables Breakdown (लिनु पर्ने)";
-            filtered = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
-                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
-            colorClass = 'var(--success)';
-        } else if(type === 'ap') {
-            title.innerText = "Payables Breakdown (दिनु पर्ने)";
-            filtered = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
-                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
-            colorClass = 'var(--danger)';
-        } else if(type === 'stocks') {
-            title.innerText = "Stock Portfolio Breakdown";
-            list.innerHTML = `
-                <table>
-                    <thead>
-                        <tr><th>SYMBOL</th><th>QTY</th><th>RATE</th><th style="text-align:right">VALUE</th></tr>
-                    </thead>
-                    <tbody>
-                        ${(stocks || []).map(s => {
-                            const val = s.qty * (s.currentPrice || s.buyPrice);
-                            return `<tr>
-                                <td>${s.symbol}</td>
-                                <td>${s.qty}</td>
-                                <td>${(s.currentPrice || s.buyPrice).toLocaleString()}</td>
-                                <td style="text-align:right; font-weight:bold; color:var(--gold)">Rs. ${val.toLocaleString()}</td>
-                            </tr>`;
-                        }).join('') || '<tr><td colspan="4" style="text-align:center">No stocks found.</td></tr>'}
-                    </tbody>
-                </table>
-            `;
-            document.getElementById('breakdownModal').classList.remove('hidden');
-            return;
-        }
-
-        list.innerHTML = `
-            <table style="width:100%">
-                <thead>
-                    <tr><th style="text-align:left">ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
-                </thead>
-                <tbody>
-                    ${filtered.map(a => `
-                        <tr>
-                            <td style="padding:10px 0;">${a.name} <br> <small style="color:var(--text-muted)">${a.group || 'No Group'}</small></td>
-                            <td style="text-align:right; color:${colorClass}; font-weight:bold;">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
-                        </tr>
-                    `).join('') || '<tr><td colspan="2" style="text-align:center; padding:20px;">No records found.</td></tr>'}
-                </tbody>
-            </table>
-        `;
-        document.getElementById('breakdownModal').classList.remove('hidden');
-    }
-
-    function renderLedgers() {
-        const query = document.getElementById('ledgerSearch').value.toLowerCase();
-        const filtered = accounts.filter(a => a.name.toLowerCase().includes(query) || (a.group && a.group.toLowerCase().includes(query)));
-        document.getElementById('accBody').innerHTML = filtered.map(a => `
-            <tr>
-                <td>${a.name}</td>
-                <td>${a.group || '-'}</td>
-                <td>${a.type}</td>
-                <td style="text-align:right; font-weight:bold; color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                    ${Math.abs(a.balance).toLocaleString()} ${a.balance >= 0 ? 'Dr' : 'Cr'}
-                </td>
-                <td>
-                    <button onclick="deleteAccount('${a._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('') || '<tr><td colspan="5" style="text-align:center">No accounts found.</td></tr>';
-    }
-
-    async function deleteAccount(id) {
-        if(!confirm("Are you sure? This will fail if there are transactions.")) return;
-        const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
-        if(res.ok) loadData();
-        else {
-            const err = await res.json();
-            alert(err.error || "Delete failed");
-        }
-    }
-
-    function populateVoucherSelects() {
-        const opts = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-        document.querySelectorAll('.v-acc-select').forEach(s => s.innerHTML = opts);
-    }
-
-    function renderVouchersList() {
-        const body = document.getElementById('vouchersListBody');
-        if(!body) return;
-
-        const dateQuery = document.getElementById('voucherSearchDate').value;
-        const textQuery = document.getElementById('voucherSearchText').value.toLowerCase();
-
-        // Filter and Sort
-        let filtered = [...transactions];
-
-        if(dateQuery) {
-            filtered = filtered.filter(t => t.date === dateQuery);
-        }
-
-        if(textQuery) {
-            filtered = filtered.filter(t => {
-                const descMatch = t.description.toLowerCase().includes(textQuery);
-                const accMatch = t.entries.some(e => {
-                    const accId = e.account?._id || e.account;
-                    const acc = accounts.find(a => a._id === accId);
-                    return acc && acc.name.toLowerCase().includes(textQuery);
-                });
-                return descMatch || accMatch;
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
             });
-        }
 
-        const sortedTxs = filtered.sort((a,b) => {
-            const dateDiff = new Date(b.date) - new Date(a.date);
-            return dateDiff !== 0 ? dateDiff : (b._id > a._id ? 1 : -1);
-        });
-
-        body.innerHTML = sortedTxs.map(t => {
-            const amount = t.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
-            const accNames = t.entries.map(e => {
-                const accId = e.account?._id || e.account;
-                const acc = accounts.find(a => a._id === accId);
-                return acc ? acc.name : 'Unknown';
-            }).join(' <span style="color:#444">|</span> ');
-
-            return `
-                <tr class="hover-row">
-                    <td style="white-space:nowrap">${t.date}</td>
-                    <td>
-                        <div style="font-weight:bold; color:#fff;">${t.description}</div>
-                        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">${accNames}</div>
-                    </td>
-                    <td style="text-align:right; color:var(--gold); font-weight:bold; font-size:1.1rem;">Rs. ${amount.toLocaleString()}</td>
-                    <td style="text-align:right">
-                        <div style="display:flex; gap:15px; justify-content:flex-end;">
-                            <button onclick="editTransaction('${t._id}')" title="Edit" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteTransaction('${t._id}')" title="Delete" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+            // Recent Transactions List (Like image)
+            const recent = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            document.getElementById('dash-recent-list').innerHTML = recent.map(tx => {
+                const amount = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                const leadAcc = tx.entries[0]?.account?.name || 'Multiple Accounts';
+                return `
+                    <div class="dashboard-recent-item">
+                        <div class="title">${tx.description || 'Voucher Entry'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="sub">${leadAcc}</div>
+                            <div style="color:#2e7d32; font-weight:bold;">${amount.toLocaleString()}</div>
                         </div>
-                    </td>
-                </tr>
-            `;
-        }).join('') || '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">No transactions found in this period.</td></tr>';
-    }
-
-    function addVoucherRow() {
-        const div = document.createElement('div');
-        div.className = "voucher-row";
-        div.style = "display:grid; grid-template-columns: 2fr 1fr 1fr 50px; gap:10px; margin-bottom:10px;";
-        div.innerHTML = `<select class="v-acc-select">${accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('')}</select>
-            <input type="number" class="v-debit" placeholder="Debit">
-            <input type="number" class="v-credit" placeholder="Credit">
-            <button onclick="this.parentElement.remove()" style="background:transparent; color:var(--danger); border:none; cursor:pointer;"><i class="fas fa-times"></i></button>`;
-        document.getElementById('v-entries-container').appendChild(div);
-    }
-
-    function editTransaction(id) {
-        const tx = transactions.find(t => t._id === id);
-        if(!tx) return;
-
-        editingVoucherId = id;
-        showTab('vouchers');
-
-        document.getElementById('v-date').value = tx.date;
-        document.getElementById('v-desc').value = tx.description;
-        document.getElementById('btn-save-voucher').innerText = "UPDATE VOUCHER";
-        document.getElementById('btn-cancel-edit').classList.remove('hidden');
-
-        const container = document.getElementById('v-entries-container');
-        container.innerHTML = '';
-
-        tx.entries.forEach(e => {
-            const div = document.createElement('div');
-            div.className = "voucher-row";
-            div.style = "display:grid; grid-template-columns: 2fr 1fr 1fr 50px; gap:10px; margin-bottom:10px;";
-            const accId = e.account?._id || e.account;
-            div.innerHTML = `
-                <select class="v-acc-select">
-                    ${accounts.map(a => `<option value="${a._id}" ${a._id === accId ? 'selected' : ''}>${a.name}</option>`).join('')}
-                </select>
-                <input type="number" class="v-debit" placeholder="Debit" value="${e.debit || ''}">
-                <input type="number" class="v-credit" placeholder="Credit" value="${e.credit || ''}">
-                <button onclick="this.parentElement.remove()" style="background:transparent; color:var(--danger); border:none; cursor:pointer;"><i class="fas fa-times"></i></button>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    function cancelVoucherEdit() {
-        editingVoucherId = null;
-        document.getElementById('v-date').value = '';
-        document.getElementById('v-desc').value = '';
-        document.getElementById('v-entries-container').innerHTML = '';
-        document.getElementById('btn-save-voucher').innerText = "SAVE VOUCHER";
-        document.getElementById('btn-cancel-edit').classList.add('hidden');
-        addVoucherRow();
-        addVoucherRow();
-    }
-
-    async function saveVoucher() {
-        const date = document.getElementById('v-date').value;
-        const desc = document.getElementById('v-desc').value;
-        const rows = document.querySelectorAll('.voucher-row');
-        const entries = [];
-        let totalDr = 0, totalCr = 0;
-
-        rows.forEach(r => {
-            const acc = r.querySelector('.v-acc-select').value;
-            const dr = Number(r.querySelector('.v-debit').value || 0);
-            const cr = Number(r.querySelector('.v-credit').value || 0);
-            if(dr || cr) {
-                entries.push({ account: acc, debit: dr, credit: cr });
-                totalDr += dr; totalCr += cr;
-            }
-        });
-
-        if(!date || !desc || entries.length < 2) return alert("Fill all details.");
-        if(Math.abs(totalDr - totalCr) > 0.01) return alert("Voucher out of balance!");
-
-        const btn = document.getElementById('btn-save-voucher');
-        btn.disabled = true;
-        btn.innerText = editingVoucherId ? "UPDATING..." : "SAVING...";
-
-        try {
-            const url = editingVoucherId ? `/api/transactions/${editingVoucherId}` : '/api/transactions';
-            const method = editingVoucherId ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method: method,
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: currentUser.uid, date, description: desc, entries })
-            });
-
-            if(res.ok) {
-                alert(editingVoucherId ? "✅ Voucher Updated!" : "✅ Voucher Saved!");
-                cancelVoucherEdit();
-                loadData();
-            } else {
-                const err = await res.json();
-                alert("❌ Action Failed: " + (err.error || "Server Error"));
-            }
-        } finally {
-            btn.disabled = false;
-        }
-    }
-
-    async function deleteTransaction(id) {
-        if(!confirm("Are you sure you want to delete this transaction?")) return;
-        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-        if(res.ok) {
-            loadData();
-        } else {
-            const err = await res.json();
-            alert("Delete Failed: " + (err.error || "Unknown error"));
-        }
-    }
-
-    async function saveAccount() {
-        const name = document.getElementById('acc-name').value;
-        const type = document.getElementById('acc-type').value;
-        const group = document.getElementById('acc-group').value;
-        const ob = Number(document.getElementById('acc-opening').value || 0);
-        const res = await fetch('/api/accounts', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, name, type, group, openingBalance: ob })
-        });
-        if(res.ok) { closeModals(); loadData(); }
-    }
-
-    async function saveBikeLog() {
-        const type = document.getElementById('bike-type').value;
-        const amount = Number(document.getElementById('bike-amount').value);
-        const odo = Number(document.getElementById('bike-odo').value);
-        const desc = document.getElementById('bike-desc').value;
-        const date = document.getElementById('bike-date').value || new Date().toISOString();
-        const res = await fetch('/api/bike', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, type, amount, odometer: odo, description: desc, date })
-        });
-        if(res.ok) { closeModals(); loadData(); }
-    }
-
-    function renderReport(type) {
-        const title = document.getElementById('reportTitle');
-        const cont = document.getElementById('reportData');
-        cont.innerHTML = '';
-
-        if(type === 'trial') {
-            title.innerText = "Trial Balance";
-            let dr = 0, cr = 0;
-            const rows = accounts.map(a => {
-                const b = Number(a.balance || 0);
-                const isDebitSide = ['Asset', 'Expense'].includes(a.type);
-                if(isDebitSide) { if(b>=0) dr += b; else cr += Math.abs(b); }
-                else { if(b>=0) cr += b; else dr += Math.abs(b); }
-
-                const dVal = (isDebitSide && b >= 0) || (!isDebitSide && b < 0) ? Math.abs(b) : 0;
-                const cVal = (!isDebitSide && b >= 0) || (isDebitSide && b < 0) ? Math.abs(b) : 0;
-
-                return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${dVal ? dVal.toLocaleString() : '-'}</td><td style="text-align:right">${cVal ? cVal.toLocaleString() : '-'}</td></tr>`;
+                    </div>
+                `;
             }).join('');
-            cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Dr</th><th style="text-align:right">Cr</th></tr></thead><tbody>${rows}</tbody>
-            <tfoot><tr style="font-weight:bold; color:var(--gold)"><td>TOTAL</td><td></td><td style="text-align:right">${dr.toLocaleString()}</td><td style="text-align:right">${cr.toLocaleString()}</td></tr></tfoot></table>`;
+
+            // Expense Pie
+            const expByCat = {};
+            accounts.filter(a => a.type === 'Expense').forEach(a => {
+                if(a.balance > 0) expByCat[a.name] = a.balance;
+            });
+
+            charts.pie = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(expByCat),
+                    datasets: [{
+                        data: Object.values(expByCat),
+                        backgroundColor: ['#ffcd56', '#ff6384', '#36a2eb', '#4bc0c0', '#9966ff'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { position: 'right', labels: { color: '#fff', font: { size: 10 } } } }
+                }
+            });
+
+            // Cash Flow
+            charts.line = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: last6Months,
+                    datasets: [{
+                        label: 'Net Monthly Cash Flow',
+                        data: monthlyInc.map((v, i) => v - monthlyExp[i]),
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                        x: { grid: { color: '#333' }, ticks: { color: '#aaa' } }
+                    },
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
+            });
         }
 
-        if(type === 'pl') {
-            title.innerText = "Profit & Loss Account";
-            const revs = accounts.filter(a => a.type === 'Revenue');
-            const exps = accounts.filter(a => a.type === 'Expense');
-            const totalRev = revs.reduce((s,a) => s + (a.balance || 0), 0);
-            const totalExp = exps.reduce((s,a) => s + (a.balance || 0), 0);
-            const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
-            const netProfit = totalRev - totalExp - bikeTotal;
-
-            cont.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h4 style="border-bottom:2px solid var(--gold)">INCOME</h4>
-                        <table>
-                            ${revs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL REVENUE</td><td style="text-align:right">${totalRev.toLocaleString()}</td></tr>
-                        </table>
-                        
-</div>
-                    <div>
-                        <h4 style="border-bottom:2px solid var(--danger)">EXPENSES</h4>
-                        <table>
-                            ${exps.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr><td>Bike Tracker Exp</td><td style="text-align:right">${bikeTotal.toLocaleString()}</td></tr>
-                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL EXPENSES</td><td style="text-align:right">${(totalExp + bikeTotal).toLocaleString()}</td></tr>
-                        </table>
-                        
-</div>
-                    
-</div>
-                <div style="margin-top:30px; padding:20px; border:2px solid var(--gold); border-radius:10px; text-align:center;">
-                    <h2 style="margin:0; color:${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">NET PROFIT: Rs. ${netProfit.toLocaleString()}</h2>
-                    
-</div>
-            `;
+        function populateStatementSelect() {
+            const select = document.getElementById('stmt-acc-select');
+            select.innerHTML = `<option value="">-- Select Account --</option>` +
+                accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         }
 
-        if(type === 'bs') {
-            title.innerText = "Balance Sheet";
-            const assets = accounts.filter(a => a.type === 'Asset');
-            const liabs = accounts.filter(a => a.type === 'Liability');
-            const equities = accounts.filter(a => a.type === 'Equity');
-            const revT = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + (a.balance || 0), 0);
-            const expT = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + (a.balance || 0), 0);
-            const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
-            const np = revT - expT - bikeTotal;
+        function renderLedgerStatement() {
+            const accId = document.getElementById('stmt-acc-select').value;
+            if(!accId) return;
 
-            const totalA = assets.reduce((s,a) => s + a.balance, 0) - bikeTotal;
-            const totalL = liabs.reduce((s,a) => s + Math.abs(a.balance), 0) + equities.reduce((s,a) => s + Math.abs(a.balance), 0) + np;
+            const acc = accounts.find(a => a._id === accId);
+            document.getElementById('stmt-acc-name').innerText = acc.name.toUpperCase();
 
-            cont.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h4 style="border-bottom:2px solid var(--gold)">ASSETS</h4>
-                        <table>
-                            ${assets.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${a.balance.toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--danger)"><td>Less: Bike Tracker Exp</td><td style="text-align:right">(${bikeTotal.toLocaleString()})</td></tr>
-                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL ASSETS</td><td style="text-align:right">Rs. ${totalA.toLocaleString()}</td></tr>
-                        </table>
-                        
-</div>
-                    <div>
-                        <h4 style="border-bottom:2px solid var(--gold)">LIABILITIES & EQUITY</h4>
-                        <table>
-                            ${liabs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            ${equities.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--success)"><td>Net Profit</td><td style="text-align:right">${np.toLocaleString()}</td></tr>
-                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL LIAB & EQ</td><td style="text-align:right">Rs. ${totalL.toLocaleString()}</td></tr>
-                        </table>
-                        
-</div>
-                    
-</div>
-            `;
-        }
+            let balance = acc.openingBalance || 0;
+            const isDrMain = ['Asset', 'Expense'].includes(acc.type);
 
-        if(type === 'rp') {
-            title.innerText = "Receivables & Payables";
-            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
-            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
-            cont.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h4 style="color:var(--success)">RECEIVABLES (लिनु पर्ने)</h4>
-                        <table>${rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}</table>
-                        
-</div>
-                    <div>
-                        <h4 style="color:var(--danger)">PAYABLES (दिनु पर्ने)</h4>
-                        <table>${pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}</table>
-                        
-</div>
-                    
-</div>
-            `;
-        }
-    }
-
-    function populateStatementAccounts() {
-        const sel = document.getElementById('statementAccount');
-        sel.innerHTML = '<option value="all">-- All Accounts --</option>' + accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-    }
-
-    function renderAllStatements() {
-        const filter = document.getElementById('statementFilter')?.value || 'all';
-        const accFilter = document.getElementById('statementAccount')?.value || 'all';
-        const search = document.getElementById('statementSearch')?.value?.toLowerCase() || '';
-        let allTx = [];
-
-        (transactions || []).forEach(t => {
-            t.entries.forEach(e => {
-                const accId = e.account?._id || e.account;
-                const accObj = (accounts || []).find(a => a._id === accId);
-                allTx.push({
-                    date: t.date,
-                    module: 'Accounting',
-                    desc: t.description,
-                    accName: accObj?.name || 'Unknown',
-                    accId,
-                    accType: accObj?.type || 'Asset',
-                    dr: e.debit || 0,
-                    cr: e.credit || 0
+            // Filter and sort transactions for this account
+            const accTx = [];
+            transactions.forEach(tx => {
+                tx.entries.forEach(e => {
+                    if(e.account && (e.account._id === accId || e.account === accId)) {
+                        accTx.push({ ...tx, debit: e.debit, credit: e.credit });
+                    }
                 });
             });
-        });
+            accTx.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        if(filter === 'all' || filter === 'bike') {
-            (bikeLogs || []).forEach(l => {
-                allTx.push({
-                    date: new Date(l.date).toISOString().split('T')[0],
-                    module: 'Bike Tracker',
-                    desc: l.description,
-                    accName: 'Bike Exp',
-                    accId: 'BIKE',
-                    accType: 'Expense',
-                    dr: l.amount,
-                    cr: 0
-                });
+            let rows = `<tr><td></td><td style="font-weight:bold;">Opening Balance</td><td></td><td class="amt"></td><td class="amt"></td><td class="amt">${Math.abs(balance).toLocaleString()} ${balance >= 0 ? (isDrMain?'Dr':'Cr') : (isDrMain?'Cr':'Dr')}</td></tr>`;
+
+            accTx.forEach(tx => {
+                if(isDrMain) balance += (tx.debit - tx.credit);
+                else balance += (tx.credit - tx.debit);
+
+                rows += `
+                    <tr>
+                        <td>${new Date(tx.date).toLocaleDateString()}</td>
+                        <td>${tx.description || 'Journal Entry'}</td>
+                        <td>Journal</td>
+                        <td class="amt">${tx.debit ? tx.debit.toLocaleString() : ''}</td>
+                        <td class="amt">${tx.credit ? tx.credit.toLocaleString() : ''}</td>
+                        <td class="amt">${Math.abs(balance).toLocaleString()} ${balance >= 0 ? (isDrMain?'Dr':'Cr') : (isDrMain?'Cr':'Dr')}</td>
+                    </tr>
+                `;
             });
+
+            document.getElementById('tbl-stmt-body').innerHTML = rows;
         }
 
-        // Sort chronologically for correct balance calculation
-        allTx.sort((a,b) => new Date(a.date) - new Date(b.date));
+        function renderDayBook() {
+            document.getElementById('tbl-daybook-body').innerHTML = transactions.map(tx => {
+                const totalAmt = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                const particulars = tx.entries.map(e => {
+                    const accName = e.account ? (e.account.name || 'Unknown') : 'Unknown';
+                    return e.debit ? accName : `To ${accName}`;
+                }).join('<br>');
 
-        const selectedAcc = (accounts || []).find(a => a._id === accFilter);
-        let runningBal = selectedAcc ? Number(selectedAcc.openingBalance || 0) : 0;
+                return `
+                    <tr>
+                        <td style="vertical-align:top;">${new Date(tx.date).toLocaleDateString()}</td>
+                        <td>${tx.description ? `<b>${tx.description}</b><br>` : ''}<div style="font-size:0.85rem; color:#555;">${particulars}</div></td>
+                        <td style="vertical-align:top;">${tx.type || 'Journal'}</td>
+                        <td class="amt" style="vertical-align:top;">${totalAmt.toLocaleString()}</td>
+                        <td style="text-align:center; vertical-align:top;">
+                            <button onclick="editVoucher('${tx._id}')" style="background:none; border:none; color:var(--tally-navy); cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteTransaction('${tx._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
-        // Calculate running balance for the filtered account(s) BEFORE applying text search
-        const accountSpecificTx = allTx.filter(tx => accFilter === 'all' || tx.accId === accFilter);
-
-        accountSpecificTx.forEach(tx => {
-            const isD = ['Asset', 'Expense'].includes(tx.accType);
-            if(isD) runningBal += (tx.dr - tx.cr); else runningBal += (tx.cr - tx.dr);
-            tx.computedBalance = runningBal;
-        });
-
-        // Apply text search filter
-        const filtered = accountSpecificTx.filter(tx =>
-            tx.desc.toLowerCase().includes(search) ||
-            tx.accName.toLowerCase().includes(search)
-        );
-
-        document.getElementById('statementBody').innerHTML = filtered.map(tx => {
-            const balStr = accFilter === 'all' ? '-' : `${Math.abs(tx.computedBalance).toLocaleString()} ${tx.computedBalance >= 0 ? 'Dr' : 'Cr'}`;
-            return `<tr>
-                <td>${tx.date}</td>
-                <td>${tx.module}</td>
-                <td>${tx.desc}</td>
-                <td>${tx.accName}</td>
-                <td style="text-align:right">${tx.dr.toLocaleString()}</td>
-                <td style="text-align:right">${tx.cr.toLocaleString()}</td>
-                <td style="text-align:right; font-weight:bold">${balStr}</td>
-            </tr>`;
-        }).reverse().join('') || '<tr><td colspan="7" style="text-align:center">No records found.</td></tr>';
-    }
-
-    async function syncStocks() {
-        const btn = event.target;
-        const oldText = btn.innerText;
-        btn.innerText = "[ SYNCING... ]";
-        try {
-            const res = await fetch('/api/stocks/sync', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: currentUser.uid })
+        function editVoucher(id) {
+            const tx = transactions.find(t => t._id === id);
+            if(!tx) return;
+            setVType(tx.type || 'JOURNAL');
+            showPage('vouchers');
+            document.getElementById('edit-tx-id').value = id;
+            document.getElementById('v-date').value = tx.date;
+            document.getElementById('v-desc').value = tx.description;
+            document.getElementById('v-rows').innerHTML = '';
+            tx.entries.forEach(e => {
+                const tr = addVLine();
+                const accId = e.account._id || e.account;
+                tr.querySelector('.v-acc').value = accId;
+                tr.querySelector('.v-byto').innerText = e.debit ? 'By' : 'To';
+                tr.querySelector('.v-dr').value = e.debit || '';
+                tr.querySelector('.v-cr').value = e.credit || '';
+                updateRowBalance(tr.querySelector('.v-acc'));
             });
-            const data = await res.json();
-            if(data.success) alert(`Stock prices updated successfully!`);
-            else alert("Market Sync Offline: " + (data.error || "Please try again later."));
-            loadData();
-        } catch(e) {
-            alert("Network Error during stock sync.");
-        } finally {
-            btn.innerText = oldText;
-        }
-    }
-
-    function filterStatements() { renderAllStatements(); }
-
-    async function loadSettingsInfo() {
-        const res = await fetch('/api/system/status');
-        const status = await res.json();
-        const s3Box = document.getElementById('s3-status-box');
-
-        if (status.s3Status === 'Connected') {
-            s3Box.innerText = `Connected: ${status.bucket}`;
-            s3Box.style.color = 'var(--success)';
-        } else if (status.s3Status === 'Error') {
-            s3Box.innerText = `Error: ${status.s3Error}`;
-            s3Box.style.color = 'var(--danger)';
-        } else {
-            s3Box.innerText = "Local Mode Only (AWS not configured)";
-            s3Box.style.color = 'var(--text-muted)';
+            validateV();
         }
 
-        const logRes = await fetch(`/api/backup/logs?userId=${currentUser.uid}`);
-        const logs = await logRes.json();
-        document.getElementById('backupLogs').innerHTML = logs.map(l => `<div>[${new Date(l.timestamp).toLocaleString()}] ${l.status} - ${l.fileKey || l.error}</div>`).join('') || "No logs.";
-
-        if(userSettings.lastClosedDate) {
-            document.getElementById('current-lock-status').innerText = `Locked until: ${userSettings.lastClosedDate}`;
-            document.getElementById('close-date').value = userSettings.lastClosedDate;
+        async function deleteTransaction(id) {
+            if(!confirm("Are you sure you want to delete this transaction?")) return;
+            const res = await fetch('/api/transactions/' + id, { method: 'DELETE' });
+            if(res.ok) { syncAll(); renderDayBook(); }
+            else { alert("Delete failed"); }
         }
 
-        populateVoucherSelects(); // Refresh merge selects too
-    }
-
-    async function closeDay() {
-        const date = document.getElementById('close-date').value;
-        if(!date) return alert("Select a date");
-        const res = await fetch('/api/settings/close-day', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, date })
-        });
-        if(res.ok) {
-            alert("Day Closed Successfully!");
-            loadData();
-        }
-    }
-
-    async function mergeAccounts() {
-        const fromId = document.getElementById('mergeFrom').value;
-        const toId = document.getElementById('mergeTo').value;
-        if(fromId === toId) return alert("Select different accounts");
-        if(!confirm("Are you sure? This will move all transactions and delete the old account.")) return;
-
-        const res = await fetch('/api/accounts/merge', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, fromId, toId })
-        });
-        if(res.ok) { alert("Merged!"); loadData(); }
-    }
-
-    async function updatePin() {
-        const pin = document.getElementById('new-pin').value;
-        const res = await fetch('/api/settings/update-pin', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, pin })
-        });
-        if(res.ok) alert("PIN Updated!");
-    }
-
-    async function triggerManualBackup() { await fetch('/api/backup/trigger', { method: 'POST', body: JSON.stringify({ userId: currentUser.uid }), headers: {'Content-Type': 'application/json'} }); alert("Backup Started!"); }
-
-    function loginWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    function syncData() { fetch('/api/recalculate', { method: 'POST', body: JSON.stringify({ userId: currentUser.uid }), headers: {'Content-Type': 'application/json'} }).then(() => loadData()); }
-
-    async function renderElectricGuide() {
-        const query = document.getElementById('electricSearch').value;
-        const res = await fetch(`/api/electric?userId=${currentUser.uid}&search=${query}`);
-        const items = await res.json();
-
-        document.getElementById('electricBody').innerHTML = items.map(i => `
-            <tr>
-                <td>${i.category}</td>
-                <td>${i.name}</td>
-                <td style="font-size:0.8rem; color:var(--text-muted)">${i.specification || '-'}</td>
-                <td>${i.unit}</td>
-                <td style="text-align:right">Rs. ${i.rate.toLocaleString()}</td>
-                <td><button onclick="deleteElectricItem('${i._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
-            </tr>
-        `).join('') || '<tr><td colspan="6" style="text-align:center">No items found.</td></tr>';
-    }
-
-    async function deleteElectricItem(id) {
-        if(!confirm("Delete this item?")) return;
-        await fetch(`/api/electric/${id}`, { method: 'DELETE' });
-        renderElectricGuide();
-    }
-
-    async function saveElectricItem() {
-        const data = {
-            userId: currentUser.uid,
-            category: document.getElementById('el-cat').value,
-            name: document.getElementById('el-name').value,
-            specification: document.getElementById('el-spec').value,
-            unit: document.getElementById('el-unit').value,
-            rate: Number(document.getElementById('el-rate').value)
-        };
-        await fetch('/api/electric', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        closeModals(); renderElectricGuide();
-    }
-
-    async function renderCinemaModule() {
-        const res = await fetch(`/api/cinema?userId=${currentUser.uid}`);
-        const shows = await res.json();
-
-        document.getElementById('cinema-total-shows').innerText = shows.length;
-        document.getElementById('cinema-total-tickets').innerText = shows.reduce((s,sh) => s + sh.tickets, 0);
-        document.getElementById('cinema-revenue').innerText = `Rs. ${shows.reduce((s,sh) => s + sh.revenue, 0).toLocaleString()}`;
-
-        document.getElementById('cinemaBody').innerHTML = shows.map(sh => `
-            <tr>
-                <td style="font-weight:bold; color:var(--gold)">${sh.movieName}</td>
-                <td>${sh.showTime}</td>
-                <td>${sh.hall}</td>
-                <td>${sh.tickets}</td>
-                <td><span style="padding:2px 8px; border-radius:10px; font-size:0.7rem; background:${sh.status==='Housefull'?'var(--danger)':'#333'}">${sh.status}</span></td>
-                <td style="text-align:right">Rs. ${sh.revenue.toLocaleString()}</td>
-                <td><button onclick="deleteCinemaShow('${sh._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
-            </tr>
-        `).join('') || '<tr><td colspan="7" style="text-align:center">No shows recorded.</td></tr>';
-    }
-
-    async function deleteCinemaShow(id) {
-        if(!confirm("Delete this show record?")) return;
-        await fetch(`/api/cinema/${id}`, { method: 'DELETE' });
-        renderCinemaModule();
-    }
-
-    async function saveCinemaShow() {
-        const data = {
-            userId: currentUser.uid,
-            movieName: document.getElementById('cm-movie').value,
-            date: document.getElementById('cm-date').value || new Date().toISOString(),
-            showTime: document.getElementById('cm-time').value,
-            hall: document.getElementById('cm-hall').value,
-            tickets: Number(document.getElementById('cm-tickets').value),
-            revenue: Number(document.getElementById('cm-revenue').value),
-            status: document.getElementById('cm-status').value
-        };
-        await fetch('/api/cinema', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        closeModals(); renderCinemaModule();
-    }
-
-    async function deleteBikeLog(id) {
-        if(!confirm("Delete this log?")) return;
-        await fetch(`/api/bike/${id}`, { method: 'DELETE' });
-        loadData();
-    }
-
-    function renderStocks() {
-        const stockBody = document.getElementById('stockBody');
-        let totalVal = 0, totalCost = 0;
-
-        stockBody.innerHTML = (stocks || []).map(s => {
-            const cost = s.qty * s.buyPrice;
-            const val = s.qty * (s.currentPrice || s.buyPrice);
-            const pl = val - cost;
-            totalVal += val;
-            totalCost += cost;
-
-            return `
+        function renderAccountsList() {
+            document.getElementById('tbl-accounts-body').innerHTML = accounts.map(a => `
                 <tr>
-                    <td style="font-weight:bold; color:var(--gold)">${s.symbol}</td>
-                    <td>${s.qty}</td>
-                    <td>${s.buyPrice.toLocaleString()}</td>
-                    <td>${(s.currentPrice || s.buyPrice).toLocaleString()}</td>
-                    <td style="text-align:right">Rs. ${val.toLocaleString()}</td>
-                    <td style="text-align:right; color:${pl >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                        ${pl >= 0 ? '+' : ''}${pl.toLocaleString()}
+                    <td>${a.name}</td>
+                    <td>${a.type}</td>
+                    <td class="amt">${a.balance.toLocaleString()}</td>
+                    <td style="text-align:center;">
+                        <button onclick="deleteAccount('${a._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
                     </td>
-                    <td><button onclick="deleteStock('${s._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteAccount(id) {
+            if(!confirm("Are you sure you want to delete this account?")) return;
+            const res = await fetch('/api/accounts/' + id, { method: 'DELETE' });
+            if(res.ok) { syncAll(); renderAccountsList(); }
+            else { const err = await res.json(); alert(err.error || "Delete failed"); }
+        }
+
+        function renderDashboardData() {
+            let cash = 0, bank = 0, receivables = 0, payables = 0, assets = 0, liabilities = 0, rev = 0, exp = 0;
+            let todayIn = 0, todayOut = 0;
+
+            // Getting local date in YYYY-MM-DD format
+            const now = new Date();
+            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+
+            accounts.forEach(a => {
+                const name = a.name.toLowerCase();
+                if(a.type === 'Asset') {
+                    assets += a.balance;
+                    if(name.includes('cash')) cash += a.balance;
+                    else if(name.includes('bank')) bank += a.balance;
+                    else receivables += a.balance;
+                }
+                if(a.type === 'Liability') {
+                    liabilities += a.balance;
+                    payables += a.balance;
+                }
+                if(a.type === 'Equity') {
+                    // Equity is handled separately or included in Net Worth calculation context
+                }
+                if(a.type === 'Revenue') rev += a.balance;
+                if(a.type === 'Expense') exp += a.balance;
+            });
+
+            transactions.forEach(tx => {
+                if(tx.date === todayStr) {
+                    tx.entries.forEach(e => {
+                        const acc = e.account; // It's populated
+                        if(acc) {
+                            if(acc.type === 'Revenue') todayIn += e.credit;
+                            if(acc.type === 'Expense') todayOut += e.debit;
+                        }
+                    });
+                }
+            });
+
+            // Dashboard Viewport Updates
+            const netWorthValue = assets - liabilities;
+            document.getElementById('val-net-worth').innerText = 'Rs. ' + netWorthValue.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('val-cashbank').innerText = 'Rs. ' + (cash + bank).toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('sub-cash').innerText = cash.toLocaleString();
+            document.getElementById('sub-bank').innerText = bank.toLocaleString();
+            document.getElementById('val-receivable').innerText = 'Rs. ' + receivables.toLocaleString();
+            document.getElementById('val-payable').innerText = 'Rs. ' + payables.toLocaleString();
+            document.getElementById('val-today-in').innerText = 'Rs. ' + todayIn.toLocaleString();
+            document.getElementById('val-today-out').innerText = 'Rs. ' + todayOut.toLocaleString();
+
+            const netProfit = rev - exp;
+            document.getElementById('val-net-pl').innerText = 'Rs. ' + netProfit.toLocaleString();
+            document.getElementById('val-net-pl').className = netProfit >= 0 ? 'val text-green' : 'val text-red';
+
+            // Live Feed (Recent 6)
+            const recent = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+            document.getElementById('live-feed').innerHTML = recent.map(tx => {
+                const amount = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                return `
+                    <div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; margin-right:10px;">
+                            <div style="font-weight:bold; color:var(--tally-navy);">${tx.description || 'Journal Voucher'}</div>
+                            <div style="font-size:0.7rem; color:#888;">${tx.date}</div>
+                        </div>
+                        <div class="text-green" style="font-weight:bold; font-family:Consolas, monospace;">${amount.toLocaleString()}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTrialBalance() {
+            document.getElementById('tbl-trial-body').innerHTML = accounts.map(a => {
+                const isDr = ['Asset', 'Expense'].includes(a.type);
+                let dr = 0, cr = 0;
+                if(isDr) {
+                    if(a.balance >= 0) dr = a.balance; else cr = Math.abs(a.balance);
+                } else {
+                    if(a.balance >= 0) cr = a.balance; else dr = Math.abs(a.balance);
+                }
+                return `<tr><td>${a.name}</td><td class="amt">${dr?dr.toLocaleString():''}</td><td class="amt">${cr?cr.toLocaleString():''}</td></tr>`;
+            }).join('');
+        }
+
+        function renderBalanceSheet() {
+            let aHtml = '<thead><tr><th>Assets</th><th class="amt">Balance</th></tr></thead>',
+                lHtml = '<thead><tr><th>Liabilities</th><th class="amt">Balance</th></tr></thead>';
+            let rev = 0, exp = 0;
+            accounts.forEach(a => {
+                if(a.type === 'Asset') aHtml += `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+                if(['Liability', 'Equity'].includes(a.type)) lHtml += `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+                if(a.type === 'Revenue') rev += a.balance;
+                if(a.type === 'Expense') exp += a.balance;
+            });
+            const netProfit = rev - exp;
+            lHtml += `<tr style="font-weight:bold; color:var(--tally-teal);"><td>Profit & Loss A/c (Net Profit)</td><td class="amt">${netProfit.toLocaleString()}</td></tr>`;
+            document.getElementById('tbl-assets').innerHTML = aHtml;
+            document.getElementById('tbl-liab').innerHTML = lHtml;
+        }
+
+        function renderPL() {
+            let rev = 0, exp = 0;
+            let rows = accounts.filter(a => ['Revenue', 'Expense'].includes(a.type)).map(a => {
+                if(a.type === 'Revenue') rev += a.balance; else exp += a.balance;
+                return `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+            }).join('');
+            document.getElementById('pl-body').innerHTML = rows;
+            document.getElementById('pl-net-result').innerText = (rev - exp).toLocaleString();
+        }
+
+        // Voucher System
+        function resetVoucher() {
+            document.getElementById('v-rows').innerHTML = '';
+            document.getElementById('edit-tx-id').value = '';
+            document.getElementById('v-desc').value = '';
+            addVLine(); addVLine();
+        }
+
+        function updateRowBalance(selectEl) {
+            const accId = selectEl.value;
+            const balDiv = selectEl.parentElement.querySelector('.v-row-bal');
+            const acc = accounts.find(a => a._id === accId);
+            if (acc) {
+                balDiv.innerText = "Bal: " + acc.balance.toLocaleString();
+                if (acc.balance < 0) balDiv.style.color = 'red';
+                else balDiv.style.color = '#777';
+            } else {
+                balDiv.innerText = "";
+            }
+        }
+
+        function addVLine() {
+            const tr = document.createElement('tr');
+
+            tr.innerHTML = `
+                <td><div class="v-byto" tabindex="0">By</div></td>
+                <td style="position:relative;">
+                    <select class="v-acc" onchange="updateRowBalance(this)">
+                        <option value="">-- Select Account --</option>
+                        ${accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('')}
+                    </select>
+                    <div class="v-row-bal"></div>
+                </td>
+                <td><input type="number" class="v-dr" style="text-align:right;" placeholder="0.00" oninput="validateV()"></td>
+                <td><input type="number" class="v-cr" style="text-align:right;" placeholder="0.00" oninput="validateV()"></td>
+                <td><button class="v-row-del" onclick="this.parentElement.parentElement.remove(); validateV();">&times;</button></td>
+            `;
+
+            document.getElementById('v-rows').appendChild(tr);
+
+            const byto = tr.querySelector('.v-byto');
+            const accSel = tr.querySelector('.v-acc');
+            const drIn = tr.querySelector('.v-dr');
+            const crIn = tr.querySelector('.v-cr');
+
+            // Default By/To based on row index and type
+            const rowCount = document.querySelectorAll('#v-rows tr').length;
+            if(rowCount === 1) {
+                if(currentVType === 'PAYMENT' || currentVType === 'CONTRA' || currentVType === 'JOURNAL') byto.innerText = 'By';
+                else if(currentVType === 'RECEIPT') byto.innerText = 'By';
+            } else {
+                byto.innerText = 'To';
+            }
+
+            // Handle Keyboard Navigation & Shortcuts
+            byto.addEventListener('keydown', (e) => {
+                if(e.key.toLowerCase() === 'b') { byto.innerText = 'By'; e.preventDefault(); accSel.focus(); filterRowAccounts(tr); }
+                if(e.key.toLowerCase() === 't') { byto.innerText = 'To'; e.preventDefault(); accSel.focus(); filterRowAccounts(tr); }
+                if(e.key === 'Enter') { e.preventDefault(); accSel.focus(); }
+            });
+
+            accSel.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter' && accSel.value) {
+                    e.preventDefault();
+                    if(byto.innerText === 'By') drIn.focus(); else crIn.focus();
+                }
+                if(e.key === 'Backspace' && !accSel.value) { e.preventDefault(); byto.focus(); }
+            });
+
+            drIn.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') { e.preventDefault(); addVLine(); }
+                if(e.key === 'Backspace' && !drIn.value) { e.preventDefault(); accSel.focus(); }
+            });
+
+            crIn.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') { e.preventDefault(); addVLine(); }
+                if(e.key === 'Backspace' && !crIn.value) { e.preventDefault(); accSel.focus(); }
+            });
+
+            // Initial filtering
+            filterRowAccounts(tr);
+
+            byto.focus();
+            return tr;
+        }
+
+        function filterRowAccounts(tr) {
+            const byto = tr.querySelector('.v-byto').innerText;
+            const select = tr.querySelector('.v-acc');
+            const drIn = tr.querySelector('.v-dr');
+            const crIn = tr.querySelector('.v-cr');
+
+            if(byto === 'By') { crIn.disabled = true; crIn.value = ''; drIn.disabled = false; }
+            else { drIn.disabled = true; drIn.value = ''; crIn.disabled = false; }
+
+            let filtered = accounts;
+            if(currentVType === 'PAYMENT' && byto === 'To') {
+                filtered = accounts.filter(a => a.name.toLowerCase().includes('cash') || a.name.toLowerCase().includes('bank'));
+            } else if(currentVType === 'RECEIPT' && byto === 'By') {
+                filtered = accounts.filter(a => a.name.toLowerCase().includes('cash') || a.name.toLowerCase().includes('bank'));
+            } else if(currentVType === 'CONTRA') {
+                filtered = accounts.filter(a => a.name.toLowerCase().includes('cash') || a.name.toLowerCase().includes('bank'));
+            }
+
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">-- Select Account --</option>` +
+                filtered.map(a => `<option value="${a._id}" ${a._id===currentVal?'selected':''}>${a.name}</option>`).join('');
+        }
+
+        function validateV() {
+            let dr = 0, cr = 0;
+            document.querySelectorAll('.v-dr').forEach(i => dr += Number(i.value || 0));
+            document.querySelectorAll('.v-cr').forEach(i => cr += Number(i.value || 0));
+            const status = document.getElementById('v-status');
+            if(dr === cr && dr > 0) { status.innerText = "Total: " + dr.toLocaleString() + " (Balanced)"; status.style.color = "green"; }
+            else { status.innerText = "Difference: " + Math.abs(dr-cr).toLocaleString(); status.style.color = "red"; }
+        }
+
+        async function postVoucher() {
+            const entries = [];
+            let errorMsg = null;
+            const editId = document.getElementById('edit-tx-id').value;
+
+            document.querySelectorAll('#v-rows tr').forEach(row => {
+                const accId = row.querySelector('.v-acc').value;
+                const dr = Number(row.querySelector('.v-dr').value || 0);
+                const cr = Number(row.querySelector('.v-cr').value || 0);
+
+                if(dr || cr) {
+                    const acc = accounts.find(a => a._id === accId);
+                    if (acc && (acc.name.toLowerCase().includes('cash') || acc.name.toLowerCase().includes('bank'))) {
+                        // Asset check: Asset balance cannot go below zero.
+                        // For Payments/Withdrawals (Credit side)
+                        if (cr > 0 && (acc.balance - cr) < 0 && !editId) {
+                            errorMsg = `Insufficient funds in ${acc.name}! Current: ${acc.balance.toLocaleString()}, Entry: ${cr.toLocaleString()}`;
+                        }
+                    }
+                    entries.push({ account: accId, debit: dr, credit: cr });
+                }
+            });
+
+            if (errorMsg) { alert(errorMsg); return; }
+            if(entries.length < 2) return alert("At least two entries required!");
+
+            const data = { userId: user.uid, date: document.getElementById('v-date').value, description: document.getElementById('v-desc').value, entries, type: currentVType };
+
+            const url = editId ? '/api/transactions/' + editId : '/api/transactions';
+            const method = editId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            if(res.ok) { syncAll(); showPage('gateway'); alert("Voucher " + (editId?'Updated':'Saved') + " Successfully!"); }
+        }
+
+        // Logic Functions
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            if(id === 'bikeModal') document.getElementById('b-date').valueAsDate = new Date();
+            if(id === 'accModal') {
+                document.getElementById('new-aname').value = '';
+                document.getElementById('new-aob').value = '0';
+                document.getElementById('new-aname').focus();
+            }
+        }
+        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+        async function saveAccount() {
+            const data = { userId: user.uid, name: document.getElementById('new-aname').value, type: document.getElementById('new-atype').value,
+                           openingBalance: Number(document.getElementById('new-aob').value || 0), balance: Number(document.getElementById('new-aob').value || 0) };
+            await fetch('/api/accounts', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            closeModals(); syncAll();
+        }
+
+        async function runRecalculate() {
+            await fetch('/api/recalculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId: user.uid}) });
+            alert("Recalculation Done!"); syncAll();
+        }
+
+        async function saveBikeLog() {
+            const data = { userId: user.uid, date: document.getElementById('b-date').value, type: document.getElementById('b-type').value,
+                           amount: Number(document.getElementById('b-amt').value), odometer: Number(document.getElementById('b-odo').value), description: document.getElementById('b-note').value };
+            await fetch('/api/bike', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            closeModals(); syncAll();
+        }
+
+        async function renderBikeLogs() {
+            const res = await fetch('/api/bike?userId=' + user.uid);
+            const logs = await res.json();
+
+            let totalAmt = 0;
+            let lastOdo = 0;
+            let fuelTotal = 0;
+
+            const rows = logs.map(l => {
+                const amt = Number(l.amount || 0);
+                totalAmt += amt;
+                if (l.type === 'Fuel') fuelTotal += amt;
+                if (l.odometer > lastOdo) lastOdo = l.odometer;
+
+                return `
+                    <tr>
+                        <td>${new Date(l.date).toLocaleDateString()}</td>
+                        <td>${l.type}</td>
+                        <td class="amt">${l.odometer ? l.odometer.toLocaleString() : '-'}</td>
+                        <td class="amt">${amt.toLocaleString()}</td>
+                        <td style="font-size:0.8rem; color:#666;">${l.description || ''}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('tbl-bike-body').innerHTML = rows;
+            document.getElementById('tbl-bike-foot').innerHTML = `
+                <tr>
+                    <td colspan="3" style="text-align:right;">Total Maintenance Cost:</td>
+                    <td class="amt">Rs. ${totalAmt.toLocaleString()}</td>
+                    <td></td>
                 </tr>
             `;
-        }).join('') || '<tr><td colspan="7" style="text-align:center">No stocks in portfolio.</td></tr>';
 
-        document.getElementById('stock-total-value').innerText = `Rs. ${totalVal.toLocaleString()}`;
-        const tPL = totalVal - totalCost;
-        document.getElementById('stock-total-pl').innerText = `Rs. ${tPL.toLocaleString()}`;
-        document.getElementById('stock-total-pl').style.color = tPL >= 0 ? 'var(--success)' : 'var(--danger)';
-    }
+            const summaryDiv = document.getElementById('bike-summary');
+            if (summaryDiv) {
+                summaryDiv.innerHTML = `
+                    <div class="info-card" style="margin-bottom:0;"><h4>Total Fuel Cost</h4><div class="val">Rs. ${fuelTotal.toLocaleString()}</div></div>
+                    <div class="info-card" style="margin-bottom:0;"><h4>Current Odo</h4><div class="val">${lastOdo.toLocaleString()} km</div></div>
+                    <div class="info-card" style="margin-bottom:0;"><h4>Total Expense</h4><div class="val">Rs. ${totalAmt.toLocaleString()}</div></div>
+                    <div class="info-card" style="margin-bottom:0;"><h4>Total Logs</h4><div class="val">${logs.length}</div></div>
+                `;
+            }
+        }
 
-    function openStockModal() { document.getElementById('stockModal').classList.remove('hidden'); }
-
-    async function saveStock() {
-        const data = {
-            userId: currentUser.uid,
-            symbol: document.getElementById('st-symbol').value.toUpperCase(),
-            qty: Number(document.getElementById('st-qty').value),
-            buyPrice: Number(document.getElementById('st-buy').value),
-            currentPrice: Number(document.getElementById('st-buy').value)
-        };
-        await fetch('/api/stocks', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        closeModals(); loadData();
-    }
-
-    async function deleteStock(id) {
-        if(!confirm("Remove from portfolio?")) return;
-        await fetch(`/api/stocks/${id}`, { method: 'DELETE' });
-        loadData();
-    }
-
-    function updateClock() {
-        const now = new Date();
-        const options = { timeZone: 'Asia/Kathmandu', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' };
-        document.getElementById('clockDisp').innerText = now.toLocaleTimeString('en-US', options);
-        document.getElementById('currentDateDisp').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
-    setInterval(updateClock, 1000); updateClock();
-
-    function exportToExcel() {
-        const table = document.querySelector('.tab-content:not(.hidden) table');
-        if(table) XLSX.writeFile(XLSX.utils.table_to_book(table), 'Pawan_Gold_Report.xlsx');
-    }
-</script>
+        function logout() { localStorage.removeItem('pawangold_user'); window.location.href = 'login.html'; }
+    </script>
 </body>
 </html>
-

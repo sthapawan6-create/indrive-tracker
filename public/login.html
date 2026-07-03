@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAWAN GOLD - Accounting Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDK (Compat Version for simple HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --tally-teal: #005c69;
+            --tally-navy: #1b2f47;
+            --tally-bg: #e9eff2;
+            --tally-text: #2c3e50;
+            --tally-border: #d5dde0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--tally-bg);
+            color: var(--tally-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border: 2px solid var(--tally-teal);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 10px 10px 0px rgba(0, 92, 105, 0.1);
+        }
+
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--tally-teal);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: var(--tally-navy);
+            margin-bottom: 35px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        .btn-tally {
+            background: var(--tally-teal);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .btn-tally:hover {
+            background: var(--tally-navy);
+        }
+
+        .btn-google {
+            background: #ffffff;
+            color: #444;
+            border: 1px solid var(--tally-border);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid var(--tally-border);
+        }
+
+        .divider:not(:empty)::before { margin-right: 15px; }
+        .divider:not(:empty)::after { margin-left: 15px; }
+
+        input {
+            background: #f8fafb;
+            border: 1px solid var(--tally-border);
+            color: var(--tally-text);
+            padding: 12px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--tally-teal);
+        }
+
+        .error {
+            color: #d32f2f;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="logo">PAWAN GOLD</div>
+        <div class="subtitle">ERP SYSTEMS INC.</div>
+
+        <div id="errorMessage" class="error"></div>
+
+        <button class="btn-tally btn-google" onclick="googleLogin()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+            Sign in with Google
+        </button>
+
+        <div class="divider">or enterprise login</div>
+
+        <input type="email" id="email" placeholder="Username / Email" value="sthapawan6@gmail.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+
+        <button class="btn-tally" onclick="handleLogin()">
+            LOGIN TO GATEWAY
+        </button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZaWUcQermGfb_pQSxXvYCpDV8i0CbKKk",
+            authDomain: "erpgold-auth.firebaseapp.com",
+            projectId: "erpgold-auth",
+            storageBucket: "erpgold-auth.appspot.com",
+            messagingSenderId: "1055678443355",
+            appId: "1:1055678443355:web:8c5b1b4d0e5c9a7d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        async function googleLogin() {
+            try {
+                // Check if config is still using the placeholder
+                if (firebaseConfig.apiKey !== "AIzaSy..." && !firebaseConfig.apiKey.includes("your-")) {
+                    const result = await auth.signInWithPopup(provider);
+                    const user = {
+                        email: result.user.email,
+                        uid: result.user.uid,
+                        displayName: result.user.displayName,
+                        photoURL: result.user.photoURL,
+                        authSource: 'google'
+                    };
+                    localStorage.setItem('pawangold_user', JSON.stringify(user));
+                    window.location.href = './';
+                } else {
+                    // Fallback to Mock for development testing
+                    console.log("Using Mock Login (No Firebase Config found)");
+                    const user = {
+                        email: 'sthapawan6@gmail.com',
+                        uid: 'google_user_demo',
+                        displayName: 'Pawan Stha (Demo)',
+                        photoURL: 'https://ui-avatars.com/api/?name=Pawan+Stha&background=FFD700&color=000'
+                    };
+                    localStorage.setItem('pawangold_user', JSON.stringify(user));
+                    window.location.href = './';
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('errorMessage').innerText = "Login Failed: " + error.message;
+            }
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (email && password) {
+                const user = {
+                    email: email,
+                    uid: email.replace(/[^a-zA-Z0-9]/g, '_'),
+                    displayName: 'Business User'
+                };
+                localStorage.setItem('pawangold_user', JSON.stringify(user));
+                window.location.href = './';
+            } else {
+                document.getElementById('errorMessage').innerText = "Invalid credentials.";
+            }
+        }
+
+        // Auto-redirect if already logged in
+        if (localStorage.getItem('pawangold_user')) {
+            window.location.href = './';
+        }
+    </script>
+</body>
+</html>
