@@ -75,6 +75,20 @@
             transition: 0.3s;
         }
         .stat-card:hover { border-color: var(--gold); transform: translateY(-5px); }
+        .stat-card.clickable { cursor: pointer; position: relative; overflow: hidden; }
+        .stat-card.clickable::after {
+            content: '\f05a';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 0.8rem;
+            color: var(--gold);
+            opacity: 0.3;
+        }
+        .stat-card.clickable:hover::after { opacity: 1; }
+        .stat-card:active { transform: scale(0.98); }
         .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
         .stat-value { font-size: 1.8rem; font-weight: 700; font-family: 'Courier New', monospace; }
 
@@ -245,21 +259,21 @@
 </div>
                     
 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showBreakdown('bank')">
                     <div class="stat-label">Bank & Cash    
 </div>
                     <div id="val-bank-cash" class="stat-value" style="color:var(--gold)">Rs. 0    
 </div>
                     
 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showBreakdown('ar')">
                     <div class="stat-label" style="color:var(--success)">Receivables    
 </div>
                     <div id="val-ar" class="stat-value" style="color:var(--success)">Rs. 0    
 </div>
                     
 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showBreakdown('ap')">
                     <div class="stat-label" style="color:var(--danger)">Payables    
 </div>
                     <div id="val-ap" class="stat-value" style="color:var(--danger)">Rs. 0    
@@ -280,12 +294,12 @@
 </div>
                     
 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable" onclick="showBreakdown('stocks')">
                     <div class="stat-label">Stock Portfolio    
 </div>
                     <div id="val-stocks" class="stat-value">Rs. 0    
 </div>
-                    <button onclick="syncStocks()" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; padding:0; margin-top:5px; text-decoration:underline;">[ SYNC LIVE ]</button>
+                    <button onclick="event.stopPropagation(); syncStocks()" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; padding:0; margin-top:5px; text-decoration:underline;">[ SYNC LIVE ]</button>
                     
 </div>
                 
@@ -653,7 +667,16 @@
     
 </div>
 
-<!-- MODALS -->
+<div id="breakdownModal" class="modal-overlay hidden">
+    <div class="modal" style="width: 500px; max-height: 80vh; display: flex; flex-direction: column;">
+        <h3 id="breakdownTitle" style="color:var(--gold); margin-top:0;">Breakdown</h3>
+        <div id="breakdownList" class="custom-scrollbar" style="flex-grow:1; overflow-y:auto; margin-bottom:15px;">
+            <!-- Dynamic content here -->
+        </div>
+        <button onclick="closeModals()" class="btn-gold" style="width:100%;">CLOSE BREAKDOWN</button>
+    </div>
+</div>
+
 <div id="accountModal" class="modal-overlay hidden">
     <div class="modal">
         <h3 style="color:var(--gold); margin-top:0;">Create New Ledger</h3>
@@ -1086,6 +1109,69 @@
     function openCinemaModal() { document.getElementById('cinemaModal').classList.remove('hidden'); }
     function openElectricModal() { document.getElementById('electricModal').classList.remove('hidden'); }
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
+
+    function showBreakdown(type) {
+        const title = document.getElementById('breakdownTitle');
+        const list = document.getElementById('breakdownList');
+        list.innerHTML = '';
+        let filtered = [];
+        let colorClass = '';
+
+        if(type === 'bank') {
+            title.innerText = "Bank & Cash Breakdown";
+            filtered = accounts.filter(a => a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash')));
+            colorClass = 'var(--gold)';
+        } else if(type === 'ar') {
+            title.innerText = "Receivables Breakdown (लिनु पर्ने)";
+            filtered = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
+                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
+            colorClass = 'var(--success)';
+        } else if(type === 'ap') {
+            title.innerText = "Payables Breakdown (दिनु पर्ने)";
+            filtered = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
+                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
+            colorClass = 'var(--danger)';
+        } else if(type === 'stocks') {
+            title.innerText = "Stock Portfolio Breakdown";
+            list.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>SYMBOL</th><th>QTY</th><th>RATE</th><th style="text-align:right">VALUE</th></tr>
+                    </thead>
+                    <tbody>
+                        ${(stocks || []).map(s => {
+                            const val = s.qty * (s.currentPrice || s.buyPrice);
+                            return `<tr>
+                                <td>${s.symbol}</td>
+                                <td>${s.qty}</td>
+                                <td>${(s.currentPrice || s.buyPrice).toLocaleString()}</td>
+                                <td style="text-align:right; font-weight:bold; color:var(--gold)">Rs. ${val.toLocaleString()}</td>
+                            </tr>`;
+                        }).join('') || '<tr><td colspan="4" style="text-align:center">No stocks found.</td></tr>'}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('breakdownModal').classList.remove('hidden');
+            return;
+        }
+
+        list.innerHTML = `
+            <table style="width:100%">
+                <thead>
+                    <tr><th style="text-align:left">ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
+                </thead>
+                <tbody>
+                    ${filtered.map(a => `
+                        <tr>
+                            <td style="padding:10px 0;">${a.name} <br> <small style="color:var(--text-muted)">${a.group || 'No Group'}</small></td>
+                            <td style="text-align:right; color:${colorClass}; font-weight:bold;">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="2" style="text-align:center; padding:20px;">No records found.</td></tr>'}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('breakdownModal').classList.remove('hidden');
+    }
 
     function renderLedgers() {
         const query = document.getElementById('ledgerSearch').value.toLowerCase();
