@@ -612,12 +612,14 @@
         // Net Worth = Assets - Liabilities (since Asset balance is Dr-positive and Liab is Cr-positive)
         const netWorth = (totalAssets - totalLiabilities) - bikeExpTotal;
 
-        // Receivables: Asset(Dr+) + Liability(Dr-)
-        const ar = accounts.filter(a => (a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0))
+        // Receivables: Asset(Dr+) + Liability(Dr-) (Excluding Bank/Cash)
+        const ar = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
+                                        !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))))
                            .reduce((s,a) => s + Math.abs(a.balance), 0);
 
-        // Payables: Liability(Cr+) + Asset(Cr-)
-        const ap = accounts.filter(a => (a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0))
+        // Payables: Liability(Cr+) + Asset(Cr-) (Excluding Bank/Cash)
+        const ap = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
+                                        !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))))
                            .reduce((s,a) => s + Math.abs(a.balance), 0);
 
         const stockVal = (stocks || []).reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
