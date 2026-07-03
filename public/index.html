@@ -4,91 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAWAN GOLD - ERP SYSTEMS</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #0f111a;
-            --sidebar-bg: #11141d;
-            --card-bg: #161922;
-            --gold: #d4af37;
-            --gold-bright: #ffcc33;
-            --text-main: #ffffff;
-            --text-muted: #8a8d91;
-            --success: #00c853;
-            --danger: #ff3d00;
-            --border: #232732;
+            --gold: #FFD700;
+            --gold-bright: #FFF200;
+            --bg-deep: #0f1115;
+            --card-bg: #161a21;
+            --text-muted: #8a8f98;
+            --border: #2d323a;
+            --success: #00ff88;
+            --danger: #ff4d4d;
         }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-deep); color: white; display: flex; overflow: hidden; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-deep);
-            color: var(--text-main);
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
+        /* Sidebar */
+        .sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: 0.3s; }
+        .brand { padding: 30px; text-align: center; border-bottom: 1px solid var(--border); }
+        .brand h2 { margin: 0; color: var(--gold); letter-spacing: 2px; }
+        .brand p { margin: 5px 0 0; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 
-        .sidebar {
-            width: 260px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            padding: 20px 0;
-            flex-shrink: 0;
-        }
-
-        .brand { padding: 0 25px 30px; }
-        .brand h2 { color: var(--gold); margin: 0; font-size: 1.2rem; letter-spacing: 1px; }
-        .brand p { font-size: 0.65rem; color: var(--text-muted); margin: 5px 0 0; text-transform: uppercase; }
-
-        .nav-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-        .nav-item {
-            padding: 12px 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: 0.2s;
-            font-size: 0.9rem;
-        }
-        .nav-item:hover, .nav-item.active {
-            color: var(--gold);
-            background: rgba(212, 175, 55, 0.05);
-            border-right: 3px solid var(--gold);
-        }
-        .nav-item.active { color: var(--gold); }
+        .nav-list { list-style: none; padding: 20px 0; margin: 0; flex-grow: 1; }
+        .nav-item { padding: 15px 30px; cursor: pointer; display: flex; align-items: center; gap: 15px; color: var(--text-muted); transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: rgba(255,215,0,0.05); color: var(--gold); border-left: 4px solid var(--gold); }
+        .nav-item i { width: 20px; text-align: center; }
 
         .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
-        .btn-sync {
-            width: 100%;
-            padding: 10px;
-            background: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-bottom: 15px;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
+        .btn-sync { width: 100%; padding: 12px; background: #1a1e26; border: 1px solid var(--gold); color: var(--gold); border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; }
+        .user-box { display: flex; align-items: center; gap: 10px; padding: 10px; background: #0f1115; border-radius: 10px; }
+        .user-img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--gold); }
+        .user-info h4 { margin: 0; font-size: 0.8rem; }
+        .user-info p { margin: 0; font-size: 0.6rem; color: var(--success); }
 
-        .user-box { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
-        .user-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--gold); }
-        .user-info h4 { margin: 0; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
-        .user-info p { margin: 0; font-size: 0.65rem; color: var(--success); }
-
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 30px; }
+        /* Main Content */
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; padding: 30px; }
         .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; }
 
         .stats-grid {
@@ -129,6 +81,9 @@
         .btn-gold { background: var(--gold); color: black; font-weight: bold; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
         .btn-gold:hover { background: var(--gold-bright); }
 
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-danger:hover { opacity: 0.9; }
+
         #loginOverlay {
             position: fixed;
             inset: 0;
@@ -142,13 +97,20 @@
         .btn-google { background: white; color: black; width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+        .modal { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 400px; border: 1px solid var(--gold); }
 
-        /* Mobile adjustment */
         @media (max-width: 768px) {
             .sidebar { width: 60px; }
             .brand, .user-info, .btn-sync span, .nav-item span { display: none; }
             .nav-item { padding: 15px; justify-content: center; }
+            .main-content { padding: 15px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .header-top { flex-direction: column; gap: 10px; }
+            .header-top div:last-child { text-align: left; }
+            .recent-box { padding: 15px; border-radius: 10px; overflow-x: auto; }
+            table { min-width: 600px; }
         }
+        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -158,7 +120,7 @@
         <h1 style="color:var(--gold); margin:0;">PAWAN GOLD</h1>
         <p style="color:var(--text-muted);">ERP SYSTEMS ENGINE</p>
         <button class="btn-google" onclick="loginWithGoogle()">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Sign in with Google
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G"> Sign in with Google
         </button>
     </div>
 </div>
@@ -174,6 +136,7 @@
         <li class="nav-item" onclick="showTab('ledgers')"><i class="fas fa-book"></i> <span>Ledger Master</span></li>
         <li class="nav-item" onclick="showTab('reports')"><i class="fas fa-chart-line"></i> <span>Reports</span></li>
         <li class="nav-item" onclick="showTab('bike')"><i class="fas fa-motorcycle"></i> <span>Bike Tracker</span></li>
+        <li class="nav-item" onclick="showTab('stocks')"><i class="fas fa-chart-line"></i> <span>Stock Portfolio</span></li>
         <li class="nav-item" onclick="showTab('statements')"><i class="fas fa-receipt"></i> <span>All Statements</span></li>
         <li class="nav-item" onclick="showTab('cinema')"><i class="fas fa-film"></i> <span>Gold Cinema</span></li>
         <li class="nav-item" onclick="showTab('electric')"><i class="fas fa-bolt"></i> <span>Electric Guide</span></li>
@@ -184,13 +147,13 @@
             <i class="fas fa-sync-alt"></i> <span>REPAIR & SYNC DATA</span>
         </button>
         <div class="user-box">
-            <img id="userImg" src="" class="user-img">
+            <img id="userImg" src="" class="user-img" alt="User">
             <div class="user-info">
                 <h4 id="userName">User</h4>
                 <p>ONLINE</p>
             </div>
         </div>
-        <button onclick="auth.signOut()" style="width:100%; background:transparent; border:1px solid #333; color:white; padding:5px; border-radius:5px; cursor:pointer; font-size:0.7rem;">DE-AUTH</button>
+        <button onclick="auth.signOut()" style="width:100%; background:transparent; border:1px solid #333; color:white; padding:5px; border-radius:5px; cursor:pointer; font-size:0.7rem; margin-top:5px;">DE-AUTH</button>
     </div>
 </div>
 
@@ -205,8 +168,6 @@
             <div style="font-size:0.7rem; color:var(--text-muted);">GMT+5:45 (NEPAL)</div>
         </div>
     </div>
-
-    <!-- TABS CONTENT -->
 
     <!-- DASHBOARD -->
     <div id="tab-dashboard" class="tab-content">
@@ -226,6 +187,7 @@
             <div class="stat-card">
                 <div class="stat-label">Stock Portfolio</div>
                 <div id="val-stocks" class="stat-value">Rs. 0</div>
+                <button onclick="syncStocks()" style="background:transparent; border:none; color:var(--gold); cursor:pointer; font-size:0.7rem; padding:0; margin-top:5px; text-decoration:underline;">[ SYNC LIVE ]</button>
             </div>
         </div>
         <div class="recent-box">
@@ -243,16 +205,16 @@
     <div id="tab-vouchers" class="tab-content hidden">
         <div class="recent-box">
             <h3 style="color:var(--gold); margin-top:0;">New Voucher Entry</h3>
-            <div style="display:grid; grid-template-columns: 1fr 2fr 1fr; gap:15px; margin-bottom:20px;">
-                <input type="date" id="v-date">
-                <input type="text" id="v-desc" placeholder="Transaction Description (e.g. Office Rent Paid)">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:15px; margin-bottom:20px;">
+                <input type="date" id="v-date" aria-label="Voucher Date">
+                <input type="text" id="v-desc" placeholder="Transaction Description" aria-label="Description">
                 <button class="btn-gold" onclick="saveVoucher()">SAVE VOUCHER</button>
             </div>
             <div id="v-entries-container">
                 <div class="voucher-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr 50px; gap:10px; margin-bottom:10px;">
-                    <select class="v-acc-select"></select>
-                    <input type="number" class="v-debit" placeholder="Debit (Dr)">
-                    <input type="number" class="v-credit" placeholder="Credit (Cr)">
+                    <select class="v-acc-select" aria-label="Account Selection"></select>
+                    <input type="number" class="v-debit" placeholder="Debit (Dr)" aria-label="Debit Amount">
+                    <input type="number" class="v-credit" placeholder="Credit (Cr)" aria-label="Credit Amount">
                     <button onclick="this.parentElement.remove()" style="background:transparent; color:var(--danger); border:none; cursor:pointer;"><i class="fas fa-times"></i></button>
                 </div>
             </div>
@@ -263,7 +225,7 @@
     <!-- LEDGERS -->
     <div id="tab-ledgers" class="tab-content hidden">
         <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <input type="text" id="ledgerSearch" placeholder="Search accounts..." onkeyup="filterLedgers()" style="width:300px;">
+            <input type="text" id="ledgerSearch" placeholder="Search accounts..." onkeyup="renderLedgers()" style="width:300px;">
             <button class="btn-gold" onclick="openAccountModal()">+ CREATE ACCOUNT</button>
         </div>
         <div class="recent-box">
@@ -302,19 +264,56 @@
                 <div class="stat-label">Total Maintenance</div>
                 <div id="bike-maint" class="stat-value">Rs. 0</div>
             </div>
-            <button class="btn-gold" onclick="openBikeModal()">+ ADD BIKE LOG</button>
+            <div class="stat-card">
+                <div class="stat-label">Total Logs</div>
+                <div id="bike-count" class="stat-value">0</div>
+            </div>
         </div>
         <div class="recent-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--gold);">Bike Logs</h3>
+                <button class="btn-gold" onclick="openBikeModal()">+ ADD BIKE LOG</button>
+            </div>
             <table>
                 <thead>
-                    <tr><th>DATE</th><th>TYPE</th><th>ODOMETER</th><th>DESCRIPTION</th><th style="text-align:right">AMOUNT</th></tr>
+                    <tr><th>DATE</th><th>TYPE</th><th>ODOMETER</th><th>DESCRIPTION</th><th style="text-align:right">AMOUNT</th><th>ACTION</th></tr>
                 </thead>
                 <tbody id="bikeBody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ALL STATEMENTS -->
+    <!-- STOCKS -->
+    <div id="tab-stocks" class="tab-content hidden">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Portfolio Value</div>
+                <div id="stock-total-value" class="stat-value" style="color:var(--gold)">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unrealized P/L</div>
+                <div id="stock-total-pl" class="stat-value">Rs. 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Action</div>
+                <button class="btn-gold" style="width:100%" onclick="openStockModal()">+ ADD STOCK</button>
+            </div>
+        </div>
+        <div class="recent-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--gold);">My Stock Portfolio</h3>
+                <button class="btn-gold" style="background:#27ae60" onclick="syncStocks()">SYNC MARKET DATA</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>SYMBOL</th><th>QUANTITY</th><th>BUY RATE</th><th>CURRENT</th><th style="text-align:right">VALUE</th><th style="text-align:right">P/L</th><th>ACTIONS</th></tr>
+                </thead>
+                <tbody id="stockBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- STATEMENTS -->
     <div id="tab-statements" class="tab-content hidden">
         <div class="recent-box">
             <h3 style="color:var(--gold); margin-top:0;">Global Transaction Statement</h3>
@@ -332,11 +331,9 @@
             </div>
             <table>
                 <thead>
-                    <tr id="statementHead">
+                    <tr>
                         <th>DATE</th><th>MODULE</th><th>DESCRIPTION</th><th>ACCOUNT</th>
-                        <th style="text-align:right">DEBIT (Dr)</th>
-                        <th style="text-align:right">CREDIT (Cr)</th>
-                        <th style="text-align:right">BALANCE</th>
+                        <th style="text-align:right">DEBIT</th><th style="text-align:right">CREDIT</th><th style="text-align:right">BALANCE</th>
                     </tr>
                 </thead>
                 <tbody id="statementBody"></tbody>
@@ -344,94 +341,195 @@
         </div>
     </div>
 
-    <!-- PLACEHOLDERS -->
-    <div id="tab-cinema" class="tab-content hidden">
-        <div class="recent-box" style="text-align:center; padding:100px;">
-            <i class="fas fa-film fa-5x" style="color:var(--gold); margin-bottom:20px;"></i>
-            <h2>GOLD CINEMA ENGINE</h2>
-            <p>Database synchronization in progress. Module restricted to Gold Members.</p>
-        </div>
-    </div>
-    <div id="tab-electric" class="tab-content hidden">
-        <div class="recent-box" style="text-align:center; padding:100px;">
-            <i class="fas fa-bolt fa-5x" style="color:var(--gold); margin-bottom:20px;"></i>
-            <h2>ELECTRIC GUIDE v2.0</h2>
-            <p>Engineering schematics and component database loading...</p>
-        </div>
-    </div>
-
     <!-- SETTINGS -->
     <div id="tab-settings" class="tab-content hidden">
         <div class="recent-box">
-            <h3 style="color:var(--gold); margin-top:0;">Backup & Security</h3>
-            <div style="padding:15px; border:1px solid var(--border); border-radius:10px; margin-bottom:20px;">
-                <h4 style="margin-top:0;">Cloud Backup Status (AWS S3)</h4>
-                <div id="s3-status-box" style="padding:10px; background:#111; border-radius:5px; font-family:monospace; font-size:0.8rem;">
-                    Checking status...
-                </div>
-                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">
-                    Ensure AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_BUCKET_NAME are set in .env
-                </p>
-                <button class="btn-gold" style="margin-top:10px;" onclick="triggerManualBackup()">BACKUP NOW</button>
+            <h3 style="color:var(--gold); margin-top:0;">System Settings & Security</h3>
+            <div style="margin-bottom:20px;">
+                <p>Cloud Storage: <span id="s3-status-box" style="font-weight:bold">Checking...</span></p>
+                <button class="btn-gold" onclick="triggerManualBackup()">BACKUP TO CLOUD NOW</button>
+                <div id="backupLogs" style="margin-top:15px; font-size:0.75rem; color:var(--text-muted); background:#000; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #333;"></div>
             </div>
 
-            <div style="padding:15px; border:1px solid var(--border); border-radius:10px;">
-                <h4 style="margin-top:0;">Access Control</h4>
+            <div style="border-top:1px solid #333; padding-top:20px; margin-bottom:20px;">
+                <h4>Day Close (Accounting Lock)</h4>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Transactions before or on this date cannot be modified.</p>
                 <div style="display:flex; gap:10px;">
-                    <input type="password" id="new-pin" placeholder="Enter New 4-Digit PIN" maxlength="4">
+                    <input type="date" id="close-date" style="flex:1">
+                    <button class="btn-gold" onclick="closeDay()">LOCK DATE</button>
+                </div>
+                <p id="current-lock-status" style="font-size:0.8rem; color:var(--success); margin-top:5px;"></p>
+            </div>
+
+            <div style="border-top:1px solid #333; padding-top:20px; margin-bottom:20px;">
+                <h4>Transaction PIN Security</h4>
+                <div style="display:flex; gap:10px;">
+                    <input type="password" id="new-pin" placeholder="Enter New 4-Digit PIN" maxlength="4" style="flex:1">
                     <button class="btn-gold" onclick="updatePin()">UPDATE PIN</button>
                 </div>
             </div>
-
-            <div style="margin-top:30px;">
-                <h4 style="color:var(--gold);">Recent Backup Logs</h4>
-                <div id="backupLogs"></div>
+            <div style="border-top:1px solid #333; padding-top:20px;">
+                <h4>Merge Accounts</h4>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px;">Warning: This will move all transactions from one ledger to another and delete the old one.</p>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <select id="mergeFrom" class="v-acc-select" style="padding:10px; flex:1; min-width:150px;"></select>
+                    <i class="fas fa-arrow-right" style="color:var(--gold)"></i>
+                    <select id="mergeTo" class="v-acc-select" style="padding:10px; flex:1; min-width:150px;"></select>
+                    <button class="btn-danger" onclick="mergeAccounts()">MERGE LEDGERS</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- GOLD CINEMA -->
+    <div id="tab-cinema" class="tab-content hidden">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Shows</div>
+                <div id="cinema-total-shows" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tickets Sold</div>
+                <div id="cinema-total-tickets" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cinema Revenue</div>
+                <div id="cinema-revenue" class="stat-value">Rs. 0</div>
+            </div>
+        </div>
+        <div class="recent-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--gold);">Movie Screenings</h3>
+                <button class="btn-gold" onclick="openCinemaModal()">+ ADD NEW SHOW</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>MOVIE NAME</th><th>SHOW TIME</th><th>HALL</th><th>TICKETS</th><th>STATUS</th><th style="text-align:right">REVENUE</th><th>ACTIONS</th></tr>
+                </thead>
+                <tbody id="cinemaBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ELECTRIC GUIDE -->
+    <div id="tab-electric" class="tab-content hidden">
+        <div class="recent-box" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:var(--gold);">Electrical Component Price List</h3>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="electricSearch" placeholder="Search items..." onkeyup="renderElectricGuide()" style="padding:5px; border-radius:5px; border:1px solid #333; background:#111; color:white;">
+                    <button class="btn-gold" onclick="openElectricModal()">+ ADD ITEM</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>CATEGORY</th><th>ITEM NAME</th><th>SPECIFICATION</th><th>UNIT</th><th style="text-align:right">RATE (Rs.)</th><th>ACTIONS</th></tr>
+                </thead>
+                <tbody id="electricBody"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- MODALS -->
 <div id="accountModal" class="modal-overlay hidden">
-    <div class="recent-box" style="width:400px;">
-        <h3 style="color:var(--gold); margin-top:0;">Account Master</h3>
-        <div style="display:flex; flex-direction:column; gap:15px;">
-            <input type="text" id="acc-name" placeholder="Account Name (e.g. Sales, Rent)">
-            <select id="acc-type">
-                <option value="Asset">Asset</option>
-                <option value="Liability">Liability</option>
-                <option value="Equity">Equity</option>
-                <option value="Revenue">Revenue</option>
-                <option value="Expense">Expense</option>
-            </select>
-            <input type="text" id="acc-group" placeholder="Group (e.g. Cash, Bank, Indirect Exp)">
-            <input type="number" id="acc-opening" placeholder="Opening Balance">
-            <div style="display:flex; gap:10px;">
-                <button class="btn-gold" style="flex:1" onclick="saveAccount()">SAVE</button>
-                <button class="btn-gold" style="flex:1; background:#333; color:white;" onclick="closeModals()">CANCEL</button>
-            </div>
+    <div class="modal">
+        <h3 style="color:var(--gold); margin-top:0;">Create New Ledger</h3>
+        <input type="text" id="acc-name" placeholder="Account Name" style="width:100%; margin-bottom:10px;">
+        <select id="acc-type" style="width:100%; margin-bottom:10px;">
+            <option value="Asset">Asset</option>
+            <option value="Liability">Liability</option>
+            <option value="Equity">Equity (Capital)</option>
+            <option value="Revenue">Revenue (Income)</option>
+            <option value="Expense">Expense</option>
+        </select>
+        <input type="text" id="acc-group" placeholder="Group (e.g. Bank, Party)" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="acc-opening" placeholder="Opening Balance" style="width:100%; margin-bottom:20px;">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="saveAccount()">SAVE</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="cinemaModal" class="modal-overlay hidden">
+    <div class="modal">
+        <h3 style="color:var(--gold); margin-top:0;">New Movie Screening</h3>
+        <input type="text" id="cm-movie" placeholder="Movie Name" style="width:100%; margin-bottom:10px;">
+        <input type="date" id="cm-date" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="cm-time" placeholder="Show Time (e.g. 11:00 AM)" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="cm-hall" placeholder="Hall Name" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="cm-tickets" placeholder="Tickets Sold" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="cm-revenue" placeholder="Revenue" style="width:100%; margin-bottom:10px;">
+        <select id="cm-status" style="width:100%; margin-bottom:20px;">
+            <option value="Booking">Booking</option>
+            <option value="Housefull">Housefull</option>
+            <option value="Completed">Completed</option>
+        </select>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="saveCinemaShow()">SAVE SHOW</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="electricModal" class="modal-overlay hidden">
+    <div class="modal">
+        <h3 style="color:var(--gold); margin-top:0;">Add Electrical Item</h3>
+        <input type="text" id="el-cat" placeholder="Category (e.g. Wiring, Lighting)" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="el-name" placeholder="Item Name" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="el-spec" placeholder="Specification (Brand/Model)" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="el-unit" placeholder="Unit (e.g. Pc, Coil, Mtr)" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="el-rate" placeholder="Rate (Rs.)" style="width:100%; margin-bottom:20px;">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="saveElectricItem()">SAVE ITEM</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
         </div>
     </div>
 </div>
 
 <div id="bikeModal" class="modal-overlay hidden">
-    <div class="recent-box" style="width:400px;">
-        <h3 style="color:var(--gold); margin-top:0;">Bike Log Entry</h3>
-        <div style="display:flex; flex-direction:column; gap:15px;">
-            <select id="bike-type">
-                <option value="Fuel">Fuel</option>
-                <option value="Service">Service</option>
-                <option value="Repair">Repair</option>
-                <option value="Tax">Tax</option>
-            </select>
-            <input type="number" id="bike-amount" placeholder="Amount (Rs.)">
-            <input type="number" id="bike-odo" placeholder="Odometer Reading">
-            <input type="text" id="bike-desc" placeholder="Details (e.g. Mobil Oil Change)">
-            <div style="display:flex; gap:10px;">
-                <button class="btn-gold" style="flex:1" onclick="saveBikeLog()">SAVE LOG</button>
-                <button class="btn-gold" style="flex:1; background:#333; color:white;" onclick="closeModals()">CANCEL</button>
-            </div>
+    <div class="modal">
+        <h3 style="color:var(--gold); margin-top:0;">Add Bike Log</h3>
+        <select id="bike-type" style="width:100%; margin-bottom:10px;">
+            <option value="Fuel">Fuel</option>
+            <option value="Service">Service</option>
+            <option value="Repair">Repair</option>
+            <option value="Other">Other</option>
+        </select>
+        <input type="number" id="bike-amount" placeholder="Amount (Rs.)" style="width:100%; margin-bottom:10px;">
+        <input type="date" id="bike-date" style="width:100%; margin-bottom:10px;">
+        <input type="number" id="bike-odo" placeholder="Odometer" style="width:100%; margin-bottom:10px;">
+        <input type="text" id="bike-desc" placeholder="Details" style="width:100%; margin-bottom:20px;">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="saveBikeLog()">SAVE</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="stockModal" class="modal-overlay hidden">
+    <div class="modal">
+        <h3 style="color:var(--gold); margin-top:0;">Add to Portfolio</h3>
+        <input type="text" id="st-symbol" placeholder="Stock Symbol (e.g. NICA, HDL)" style="width:100%; margin-bottom:10px;" aria-label="Stock Symbol">
+        <input type="number" id="st-qty" placeholder="Quantity" style="width:100%; margin-bottom:10px;" aria-label="Quantity">
+        <input type="number" id="st-buy" placeholder="Buy Price (LTP)" style="width:100%; margin-bottom:20px;" aria-label="Buy Price">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="saveStock()">ADD STOCK</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="pinModal" class="modal-overlay hidden">
+    <div class="modal" style="width:300px; text-align:center;">
+        <i class="fas fa-lock" style="font-size:3rem; color:var(--gold); margin-bottom:15px;"></i>
+        <h3 style="margin:0 0 10px;">Enter System PIN</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:20px;">Access to this module is restricted.</p>
+        <input type="password" id="pinInput" maxlength="4" placeholder="****" style="width:100%; text-align:center; font-size:2rem; letter-spacing:10px; margin-bottom:20px;">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-gold" style="flex:1" onclick="verifyPin()">UNLOCK</button>
+            <button onclick="closeModals()" style="flex:1; background:#333; color:white; border:none; border-radius:8px; cursor:pointer;">CANCEL</button>
         </div>
     </div>
 </div>
@@ -439,24 +537,22 @@
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyDZaWUcQermGfb_pQSxXvYCpDV8i0CbKKk",
-        authDomain: "pawan-accounting.firebaseapp.com",
-        projectId: "pawan-accounting",
-        storageBucket: "pawan-accounting.appspot.com",
-        messagingSenderId: "1047065509704",
+        authDomain: "perfect-solution-accounting.firebaseapp.com",
+        projectId: "perfect-solution-accounting",
         appId: "1:1047065509704:web:d15acdd34608def4ec7d7d"
     };
-
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     let currentUser = null;
-    let accounts = [], transactions = [], bikeLogs = [], stocks = [], goal = {};
+    let accounts = [], transactions = [], bikeLogs = [], stocks = [], cinemaShows = [], electricItems = [];
+    let userSettings = {};
 
     auth.onAuthStateChanged(user => {
-        if (user) {
+        if(user) {
             currentUser = user;
             document.getElementById('loginOverlay').classList.add('hidden');
-            document.getElementById('userName').innerText = user.displayName;
-            document.getElementById('userImg').src = user.photoURL;
+            document.getElementById('userName').innerText = user.displayName || user.email;
+            if(user.photoURL) document.getElementById('userImg').src = user.photoURL;
             loadData();
         } else {
             document.getElementById('loginOverlay').classList.remove('hidden');
@@ -465,101 +561,165 @@
 
     async function loadData() {
         if(!currentUser) return;
-        try {
-            const [accRes, txRes, bikeRes, stockRes, goalRes] = await Promise.all([
-                fetch(`/api/accounts?userId=${currentUser.uid}`),
-                fetch(`/api/transactions?userId=${currentUser.uid}`),
-                fetch(`/api/bike?userId=${currentUser.uid}`),
-                fetch(`/api/stocks?userId=${currentUser.uid}`),
-                fetch(`/api/goals?userId=${currentUser.uid}`)
-            ]);
-            accounts = await accRes.json();
-            transactions = await txRes.json();
-            bikeLogs = await bikeRes.json();
-            stocks = await stockRes.json();
-            goal = await goalRes.json();
-            updateUI();
-        } catch(e) { console.error("Load Failed", e); }
+        const [accRes, txRes, bikeRes, stockRes, cinemaRes, electricRes, settingsRes] = await Promise.all([
+            fetch(`/api/accounts?userId=${currentUser.uid}`),
+            fetch(`/api/transactions?userId=${currentUser.uid}`),
+            fetch(`/api/bike?userId=${currentUser.uid}`),
+            fetch(`/api/stocks?userId=${currentUser.uid}`),
+            fetch(`/api/cinema?userId=${currentUser.uid}`),
+            fetch(`/api/electric?userId=${currentUser.uid}`),
+            fetch(`/api/settings?userId=${currentUser.uid}`)
+        ]);
+        accounts = await accRes.json();
+        transactions = await txRes.json();
+        bikeLogs = await bikeRes.json();
+        stocks = await stockRes.json();
+        cinemaShows = await cinemaRes.json();
+        electricItems = await electricRes.json();
+        userSettings = await settingsRes.json();
+        updateUI();
     }
 
     function updateUI() {
-        let cash = 0, ar = 0, ap = 0, asset = 0, liab = 0, rev = 0, exp = 0, equity = 0;
-        accounts.forEach(a => {
-            const bal = Number(a.balance || 0);
-            const grp = (a.group || "").toLowerCase();
-            const type = (a.type || "Asset");
-            if(grp.includes('cash') || grp.includes('bank')) cash += bal;
-            if(grp.includes('debtor')) ar += bal;
-            if(grp.includes('creditor')) ap += bal;
+        if(!accounts || !Array.isArray(accounts)) return;
 
-            if(type === 'Asset') asset += bal;
-            else if(type === 'Liability') liab += bal;
-            else if(type === 'Revenue') rev += bal;
-            else if(type === 'Expense') exp += bal;
-            else if(type === 'Equity') equity += bal;
-        });
+        // Accounting Calcs: Corrected logic for Net Worth, AR, and AP
+        const totalAssets = accounts.filter(a => a.type === 'Asset').reduce((s,a) => s + (a.balance || 0), 0);
+        const totalLiabilities = accounts.filter(a => a.type === 'Liability').reduce((s,a) => s + (a.balance || 0), 0);
+        const bikeExpTotal = (bikeLogs || []).reduce((sum, l) => sum + (l.amount || 0), 0);
 
-        const stockVal = stocks.reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
-        const bikeExpTotal = bikeLogs.reduce((sum, l) => sum + (l.amount || 0), 0);
+        // Net Worth = Assets - Liabilities (since Asset balance is Dr-positive and Liab is Cr-positive)
+        const netWorth = (totalAssets - totalLiabilities) - bikeExpTotal;
 
-        // REAL NET WORTH = (Accounting Assets - Accounting Liabilities) - Unposted Bike Expenses
-        // This ensures unrecorded daily expenses from the bike module are reflected.
-        const netWorth = (asset - liab) - bikeExpTotal;
+        // Receivables: Asset(Dr+) + Liability(Dr-)
+        const ar = accounts.filter(a => (a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0))
+                           .reduce((s,a) => s + Math.abs(a.balance), 0);
+
+        // Payables: Liability(Cr+) + Asset(Cr-)
+        const ap = accounts.filter(a => (a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0))
+                           .reduce((s,a) => s + Math.abs(a.balance), 0);
+
+        const stockVal = (stocks || []).reduce((sum, s) => sum + (s.qty * (s.currentPrice || s.buyPrice)), 0);
 
         document.getElementById('val-networth').innerText = `Rs. ${netWorth.toLocaleString()}`;
         document.getElementById('val-stocks').innerText = `Rs. ${stockVal.toLocaleString()}`;
-        document.getElementById('val-ar').innerText = `Rs. ${Math.abs(ar).toLocaleString()}`;
-        document.getElementById('val-ap').innerText = `Rs. ${Math.abs(ap).toLocaleString()}`;
+        document.getElementById('val-ar').innerText = `Rs. ${ar.toLocaleString()}`;
+        document.getElementById('val-ap').innerText = `Rs. ${ap.toLocaleString()}`;
 
-        // Tx Stream - Show last 20 or all if preferred
-        document.getElementById('txBody').innerHTML = transactions.slice(0, 20).map(t => `
+        // Tx Stream
+        document.getElementById('txBody').innerHTML = (transactions || []).slice(0, 10).map(t => `
             <tr>
                 <td>${t.date}</td>
                 <td>${t.description}</td>
                 <td style="color:var(--gold)">${t.entries[0]?.account?.name || 'Multiple'}</td>
-                <td style="text-align:right; font-weight:bold; color:${t.entries[0]?.debit > 0 ? 'var(--success)' : 'white'}">
-                    Rs. ${Number(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}
-                </td>
+                <td style="text-align:right">Rs. ${Math.abs(t.entries[0]?.debit || t.entries[0]?.credit || 0).toLocaleString()}</td>
             </tr>
-        `).join('') || '<tr><td colspan="4" style="text-align:center">No transactions found.</td></tr>';
+        `).join('') || '<tr><td colspan="4" style="text-align:center">No transactions.</td></tr>';
 
         // Bike Stats
-        const fuel = bikeLogs.filter(l => l.type === 'Fuel').reduce((s,l) => s + l.amount, 0);
-        const maint = bikeLogs.filter(l => l.type !== 'Fuel').reduce((s,l) => s + l.amount, 0);
+        const bikeLogsSafe = bikeLogs || [];
+        const fuel = bikeLogsSafe.filter(l => l.type === 'Fuel').reduce((s,l) => s + (l.amount || 0), 0);
+        const maint = bikeLogsSafe.filter(l => l.type !== 'Fuel').reduce((s,l) => s + (l.amount || 0), 0);
         document.getElementById('bike-fuel').innerText = `Rs. ${fuel.toLocaleString()}`;
         document.getElementById('bike-maint').innerText = `Rs. ${maint.toLocaleString()}`;
-        document.getElementById('bikeBody').innerHTML = bikeLogs.map(l => `
+        document.getElementById('bike-count').innerText = bikeLogsSafe.length;
+        document.getElementById('bikeBody').innerHTML = bikeLogsSafe.map(l => `
             <tr>
                 <td>${new Date(l.date).toLocaleDateString()}</td>
                 <td>${l.type}</td>
                 <td>${l.odometer || '-'}</td>
                 <td>${l.description}</td>
                 <td style="text-align:right">Rs. ${l.amount.toLocaleString()}</td>
+                <td><button onclick="deleteBikeLog('${l._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
             </tr>
-        `).join('');
+        `).join('') || '<tr><td colspan="6" style="text-align:center">No bike logs.</td></tr>';
 
         renderAllStatements();
     }
 
-    // TABS & MODALS
     function showTab(t) {
+        const sensitive = ['reports', 'settings', 'ledgers', 'cinema'];
+        if(sensitive.includes(t) && userSettings.accessPin) {
+            pendingTab = t;
+            document.getElementById('pinModal').classList.remove('hidden');
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinInput').focus();
+            return;
+        }
+        actuallyShowTab(t);
+    }
+
+    function actuallyShowTab(t) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         document.getElementById('tab-' + t).classList.remove('hidden');
         document.getElementById('pageTitle').innerText = t.toUpperCase() + " ENGINE";
-        if(event) event.currentTarget.classList.add('active');
+
+        // Update active class on nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if(item.getAttribute('onclick')?.includes(`'${t}'`)) item.classList.add('active');
+        });
 
         if(t === 'ledgers') renderLedgers();
         if(t === 'vouchers') populateVoucherSelects();
         if(t === 'settings') loadSettingsInfo();
         if(t === 'statements') { populateStatementAccounts(); renderAllStatements(); }
+        if(t === 'electric') renderElectricGuide();
+        if(t === 'cinema') renderCinemaModule();
+        if(t === 'stocks') renderStocks();
     }
+
+    function verifyPin() {
+        const pin = document.getElementById('pinInput').value;
+        if(pin === userSettings.accessPin) {
+            closeModals();
+            actuallyShowTab(pendingTab);
+        } else {
+            alert("Incorrect PIN!");
+            document.getElementById('pinInput').value = '';
+        }
+    }
+    let pendingTab = null;
 
     function openAccountModal() { document.getElementById('accountModal').classList.remove('hidden'); }
     function openBikeModal() { document.getElementById('bikeModal').classList.remove('hidden'); }
+    function openCinemaModal() { document.getElementById('cinemaModal').classList.remove('hidden'); }
+    function openElectricModal() { document.getElementById('electricModal').classList.remove('hidden'); }
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
 
-    // VOUCHER ENGINE
+    function renderLedgers() {
+        const query = document.getElementById('ledgerSearch').value.toLowerCase();
+        const filtered = accounts.filter(a => a.name.toLowerCase().includes(query) || (a.group && a.group.toLowerCase().includes(query)));
+        document.getElementById('accBody').innerHTML = filtered.map(a => `
+            <tr>
+                <td>${a.name}</td>
+                <td>${a.group || '-'}</td>
+                <td>${a.type}</td>
+                <td style="text-align:right; font-weight:bold; color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                    ${Math.abs(a.balance).toLocaleString()} ${a.balance >= 0 ? 'Dr' : 'Cr'}
+                </td>
+                <td>
+                    <button onclick="deleteAccount('${a._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" style="text-align:center">No accounts found.</td></tr>';
+    }
+
+    async function deleteAccount(id) {
+        if(!confirm("Are you sure? This will fail if there are transactions.")) return;
+        const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+        if(res.ok) loadData();
+        else {
+            const err = await res.json();
+            alert(err.error || "Delete failed");
+        }
+    }
+
+    function populateVoucherSelects() {
+        const opts = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        document.querySelectorAll('.v-acc-select').forEach(s => s.innerHTML = opts);
+    }
+
     function addVoucherRow() {
         const div = document.createElement('div');
         div.className = "voucher-row";
@@ -569,11 +729,6 @@
             <input type="number" class="v-credit" placeholder="Credit">
             <button onclick="this.parentElement.remove()" style="background:transparent; color:var(--danger); border:none; cursor:pointer;"><i class="fas fa-times"></i></button>`;
         document.getElementById('v-entries-container').appendChild(div);
-    }
-
-    function populateVoucherSelects() {
-        const opts = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-        document.querySelectorAll('.v-acc-select').forEach(s => s.innerHTML = opts);
     }
 
     async function saveVoucher() {
@@ -589,93 +744,52 @@
             const cr = Number(r.querySelector('.v-credit').value || 0);
             if(dr || cr) {
                 entries.push({ account: acc, debit: dr, credit: cr });
-                totalDr += dr;
-                totalCr += cr;
+                totalDr += dr; totalCr += cr;
             }
         });
 
-        if(!date || !desc || entries.length < 2) return alert("Please fill all details (Date, Description, and at least 2 entries).");
-        if(Math.abs(totalDr - totalCr) > 0.01) return alert(`Voucher out of balance! Dr: ${totalDr}, Cr: ${totalCr}. Difference: ${Math.abs(totalDr - totalCr)}`);
+        if(!date || !desc || entries.length < 2) return alert("Fill all details.");
+        if(Math.abs(totalDr - totalCr) > 0.1) return alert("Voucher out of balance!");
 
         const res = await fetch('/api/transactions', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ userId: currentUser.uid, date, description: desc, entries })
         });
-        if(res.ok) {
-            alert("Voucher Posted Successfully!");
-            loadData();
-            showTab('dashboard');
-            // Clear form
-            document.getElementById('v-desc').value = '';
-            document.getElementById('v-entries-container').innerHTML = '';
-            addVoucherRow(); addVoucherRow();
-        } else {
-            const err = await res.json();
-            alert("Error: " + err.error);
-        if(type === 'rp') {
-            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
-            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
-            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
-
-            cont.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
-                    </div>
-                    <div>
-                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // LEDGER ENGINE
-    function renderLedgers() {
-        const body = document.getElementById('accBody');
-        body.innerHTML = accounts.map(a => `
-            <tr>
-                <td>${a.name}</td>
-                <td>${a.group || '-'}</td>
-                <td>${a.type}</td>
-                <td style="text-align:right; color:${a.balance >= 0 ? 'var(--success)' : 'var(--danger)'}">Rs. ${Math.abs(a.balance).toLocaleString()} ${a.balance >= 0 ? 'Dr' : 'Cr'}</td>
-                <td><button onclick="deleteAccount('${a._id}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td>
-            </tr>
-        `).join('');
+        if(res.ok) loadData();
     }
 
     async function saveAccount() {
         const name = document.getElementById('acc-name').value;
         const type = document.getElementById('acc-type').value;
         const group = document.getElementById('acc-group').value;
-        const openingBalance = Number(document.getElementById('acc-opening').value || 0);
+        const ob = Number(document.getElementById('acc-opening').value || 0);
         const res = await fetch('/api/accounts', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, name, type, group, openingBalance })
+            body: JSON.stringify({ userId: currentUser.uid, name, type, group, openingBalance: ob })
         });
-        if(res.ok) { closeModals(); loadData(); renderLedgers(); }
+        if(res.ok) { closeModals(); loadData(); }
     }
 
-    // REPORT ENGINE
+    async function saveBikeLog() {
+        const type = document.getElementById('bike-type').value;
+        const amount = Number(document.getElementById('bike-amount').value);
+        const odo = Number(document.getElementById('bike-odo').value);
+        const desc = document.getElementById('bike-desc').value;
+        const date = document.getElementById('bike-date').value || new Date().toISOString();
+        const res = await fetch('/api/bike', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, type, amount, odometer: odo, description: desc, date })
+        });
+        if(res.ok) { closeModals(); loadData(); }
+    }
+
     function renderReport(type) {
-        const cont = document.getElementById('reportData');
         const title = document.getElementById('reportTitle');
+        const cont = document.getElementById('reportData');
+        cont.innerHTML = '';
 
         if(type === 'trial') {
             title.innerText = "Trial Balance";
@@ -683,10 +797,15 @@
             const rows = accounts.map(a => {
                 const b = Number(a.balance || 0);
                 const isDebitSide = ['Asset', 'Expense'].includes(a.type);
-                if(isDebitSide) dr += b; else cr += b;
-                return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${isDebitSide ? b.toLocaleString() : '-'}</td><td style="text-align:right">${!isDebitSide ? b.toLocaleString() : '-'}</td></tr>`;
+                if(isDebitSide) { if(b>=0) dr += b; else cr += Math.abs(b); }
+                else { if(b>=0) cr += b; else dr += Math.abs(b); }
+
+                const dVal = (isDebitSide && b >= 0) || (!isDebitSide && b < 0) ? Math.abs(b) : 0;
+                const cVal = (!isDebitSide && b >= 0) || (isDebitSide && b < 0) ? Math.abs(b) : 0;
+
+                return `<tr><td>${a.name}</td><td>${a.type}</td><td style="text-align:right">${dVal ? dVal.toLocaleString() : '-'}</td><td style="text-align:right">${cVal ? cVal.toLocaleString() : '-'}</td></tr>`;
             }).join('');
-            cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Debit (Dr)</th><th style="text-align:right">Credit (Cr)</th></tr></thead><tbody>${rows}</tbody>
+            cont.innerHTML = `<table><thead><tr><th>Account</th><th>Type</th><th style="text-align:right">Dr</th><th style="text-align:right">Cr</th></tr></thead><tbody>${rows}</tbody>
             <tfoot><tr style="font-weight:bold; color:var(--gold)"><td>TOTAL</td><td></td><td style="text-align:right">${dr.toLocaleString()}</td><td style="text-align:right">${cr.toLocaleString()}</td></tr></tfoot></table>`;
         }
 
@@ -694,33 +813,31 @@
             title.innerText = "Profit & Loss Account";
             const revs = accounts.filter(a => a.type === 'Revenue');
             const exps = accounts.filter(a => a.type === 'Expense');
-            const totalRev = revs.reduce((s,a) => s + Math.abs(a.balance), 0);
-            const totalExp = exps.reduce((s,a) => s + Math.abs(a.balance), 0);
-            const totalBikeExp = bikeLogs.reduce((s, l) => s + (l.amount || 0), 0);
-            const netProfit = totalRev - totalExp - totalBikeExp;
+            const totalRev = revs.reduce((s,a) => s + (a.balance || 0), 0);
+            const totalExp = exps.reduce((s,a) => s + (a.balance || 0), 0);
+            const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
+            const netProfit = totalRev - totalExp - bikeTotal;
 
             cont.innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                     <div>
-                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">REVENUES</h4>
-                        <table style="font-size:0.9rem;">
+                        <h4 style="border-bottom:2px solid var(--gold)">INCOME</h4>
+                        <table>
                             ${revs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="font-weight:bold; color:var(--success)"><td>Total Income</td><td style="text-align:right">${totalRev.toLocaleString()}</td></tr>
+                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL REVENUE</td><td style="text-align:right">${totalRev.toLocaleString()}</td></tr>
                         </table>
                     </div>
                     <div>
-                        <h4 style="border-bottom:2px solid var(--danger); padding-bottom:5px;">EXPENSES</h4>
-                        <table style="font-size:0.9rem;">
+                        <h4 style="border-bottom:2px solid var(--danger)">EXPENSES</h4>
+                        <table>
                             ${exps.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--danger)"><td>Bike Tracker Expenses</td><td style="text-align:right">${totalBikeExp.toLocaleString()}</td></tr>
-                            <tr style="font-weight:bold; color:var(--danger)"><td>Total Expenses</td><td style="text-align:right">${(totalExp + totalBikeExp).toLocaleString()}</td></tr>
+                            <tr><td>Bike Tracker Exp</td><td style="text-align:right">${bikeTotal.toLocaleString()}</td></tr>
+                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL EXPENSES</td><td style="text-align:right">${(totalExp + bikeTotal).toLocaleString()}</td></tr>
                         </table>
                     </div>
                 </div>
-                <div style="margin-top:20px; text-align:center; padding:15px; background:rgba(255,215,0,0.1); border-radius:10px;">
-                    <h2 style="margin:0; color:${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                        ${netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS'}: Rs. ${Math.abs(netProfit).toLocaleString()}
-                    </h2>
+                <div style="margin-top:30px; padding:20px; border:2px solid var(--gold); border-radius:10px; text-align:center;">
+                    <h2 style="margin:0; color:${netProfit >= 0 ? 'var(--success)' : 'var(--danger)'}">NET PROFIT: Rs. ${netProfit.toLocaleString()}</h2>
                 </div>
             `;
         }
@@ -730,304 +847,337 @@
             const assets = accounts.filter(a => a.type === 'Asset');
             const liabs = accounts.filter(a => a.type === 'Liability');
             const equities = accounts.filter(a => a.type === 'Equity');
+            const revT = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + (a.balance || 0), 0);
+            const expT = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + (a.balance || 0), 0);
+            const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
+            const np = revT - expT - bikeTotal;
 
-            // Calculate Net Profit to balance the sheet (Retained Earnings)
-            const revTotal = accounts.filter(a => a.type === 'Revenue').reduce((s,a) => s + Math.abs(a.balance), 0);
-            const expTotal = accounts.filter(a => a.type === 'Expense').reduce((s,a) => s + Math.abs(a.balance), 0);
-            const totalBikeExp = bikeLogs.reduce((s, l) => s + (l.amount || 0), 0);
-            const netProfit = revTotal - expTotal - totalBikeExp;
-
-            const totalAssets = assets.reduce((s,a) => s + a.balance, 0) - totalBikeExp;
-            const totalLiabEquities = liabs.reduce((s,a) => s + Math.abs(a.balance), 0) +
-                                     equities.reduce((s,a) => s + Math.abs(a.balance), 0) + netProfit;
+            const totalA = assets.reduce((s,a) => s + a.balance, 0) - bikeTotal;
+            const totalL = liabs.reduce((s,a) => s + Math.abs(a.balance), 0) + equities.reduce((s,a) => s + Math.abs(a.balance), 0) + np;
 
             cont.innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                     <div>
-                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">ASSETS</h4>
-                        <table style="font-size:0.9rem;">
+                        <h4 style="border-bottom:2px solid var(--gold)">ASSETS</h4>
+                        <table>
                             ${assets.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${a.balance.toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--danger)"><td>Less: Bike Expenses (Unposted)</td><td style="text-align:right">(${totalBikeExp.toLocaleString()})</td></tr>
-                            <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL ASSETS</td><td style="text-align:right">${totalAssets.toLocaleString()}</td></tr>
+                            <tr style="color:var(--danger)"><td>Less: Bike Tracker Exp</td><td style="text-align:right">(${bikeTotal.toLocaleString()})</td></tr>
+                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL ASSETS</td><td style="text-align:right">Rs. ${totalA.toLocaleString()}</td></tr>
                         </table>
                     </div>
                     <div>
-                        <h4 style="border-bottom:2px solid var(--gold); padding-bottom:5px;">LIABILITIES & EQUITY</h4>
-                        <table style="font-size:0.9rem;">
+                        <h4 style="border-bottom:2px solid var(--gold)">LIABILITIES & EQUITY</h4>
+                        <table>
                             ${liabs.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
                             ${equities.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}
-                            <tr style="color:var(--gold)"><td>Adjusted Net Profit</td><td style="text-align:right">${netProfit.toLocaleString()}</td></tr>
-                            <tr style="font-weight:bold; border-top:1px solid #444;"><td>TOTAL LIABILITIES & EQUITY</td><td style="text-align:right">${totalLiabEquities.toLocaleString()}</td></tr>
+                            <tr style="color:var(--success)"><td>Net Profit</td><td style="text-align:right">${np.toLocaleString()}</td></tr>
+                            <tr style="font-weight:bold; border-top:1px solid #555"><td>TOTAL LIAB & EQ</td><td style="text-align:right">Rs. ${totalL.toLocaleString()}</td></tr>
                         </table>
                     </div>
                 </div>
-                <div style="margin-top:15px; text-align:center;">
-                    <small style="color:${Math.abs(totalAssets - totalLiabEquities) < 1 ? 'var(--success)' : 'var(--danger)'}">
-                        ${Math.abs(totalAssets - totalLiabEquities) < 1 ? '● Balance Sheet is Balanced' : '○ Warning: Balance Sheet Mismatch'}
-                    </small>
-                </div>
             `;
+        }
+
         if(type === 'rp') {
-            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
+            title.innerText = "Receivables & Payables";
             const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
             const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
-
             cont.innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                     <div>
-                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
+                        <h4 style="color:var(--success)">RECEIVABLES (लिनु पर्ने)</h4>
+                        <table>${rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}</table>
                     </div>
                     <div>
-                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
+                        <h4 style="color:var(--danger)">PAYABLES (दिनु पर्ने)</h4>
+                        <table>${pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('')}</table>
                     </div>
                 </div>
             `;
         }
     }
 
-    // BIKE ENGINE
-    async function saveBikeLog() {
-        const type = document.getElementById('bike-type').value;
-        const amount = Number(document.getElementById('bike-amount').value);
-        const odometer = Number(document.getElementById('bike-odo').value);
-        const description = document.getElementById('bike-desc').value;
-        const res = await fetch('/api/bike', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid, type, amount, odometer, description })
-        });
-        if(res.ok) { closeModals(); loadData(); }
-    }
-
-    // STATEMENT ENGINE
     function populateStatementAccounts() {
         const sel = document.getElementById('statementAccount');
-        const current = sel.value;
-        sel.innerHTML = '<option value="all">-- All Accounts --</option>' +
-            accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-        sel.value = current;
+        sel.innerHTML = '<option value="all">-- All Accounts --</option>' + accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
     }
 
     function renderAllStatements() {
         const filter = document.getElementById('statementFilter')?.value || 'all';
-        const accountFilter = document.getElementById('statementAccount')?.value || 'all';
+        const accFilter = document.getElementById('statementAccount')?.value || 'all';
         const search = document.getElementById('statementSearch')?.value?.toLowerCase() || '';
         let allTx = [];
 
-        // 1. Core Transactions
-        transactions.forEach(t => {
+        (transactions || []).forEach(t => {
             t.entries.forEach(e => {
                 const accId = e.account?._id || e.account;
-                const accObj = accounts.find(a => a._id === accId);
-
-                allTx.push({
-                    date: t.date,
-                    module: 'Accounting',
-                    desc: t.description,
-                    accName: accObj?.name || 'Unknown',
-                    accId: accId,
-                    accType: accObj?.type || 'Asset',
-                    dr: Number(e.debit || 0),
-                    cr: Number(e.credit || 0)
-                });
+                const accObj = (accounts || []).find(a => a._id === accId);
+                allTx.push({ date: t.date, module: 'Accounting', desc: t.description, accName: accObj?.name || 'Unknown', accId, accType: accObj?.type || 'Asset', dr: e.debit || 0, cr: e.credit || 0 });
             });
         });
 
-        // 2. Bike Logs
-        if (filter === 'all' || filter === 'bike') {
-            bikeLogs.forEach(l => {
-                allTx.push({
-                    date: new Date(l.date).toISOString().split('T')[0],
-                    module: 'Bike Tracker',
-                    desc: l.description,
-                    accName: 'Bike Expense (' + l.type + ')',
-                    accId: 'BIKE_MOD',
-                    accType: 'Expense',
-                    dr: Number(l.amount || 0),
-                    cr: 0
-                });
+        if(filter === 'all' || filter === 'bike') {
+            (bikeLogs || []).forEach(l => {
+                allTx.push({ date: new Date(l.date).toISOString().split('T')[0], module: 'Bike Tracker', desc: l.description, accName: 'Bike Exp', accId: 'BIKE', accType: 'Expense', dr: l.amount, cr: 0 });
             });
         }
 
-        // Sort by Date Ascending for Running Balance calculation
         allTx.sort((a,b) => new Date(a.date) - new Date(b.date));
 
-        let runningBal = 0;
-        let openingRow = '';
+        const selectedAcc = (accounts || []).find(a => a._id === accFilter);
+        let runningBal = selectedAcc ? Number(selectedAcc.openingBalance || 0) : 0;
 
-        if (accountFilter !== 'all') {
-            const acc = accounts.find(a => a._id === accountFilter);
-            if (acc) {
-                runningBal = Number(acc.openingBalance || 0);
-                openingRow = `
-                    <tr style="background: rgba(255,215,0,0.05); font-style: italic;">
-                        <td colspan="4" style="text-align:right; font-weight:bold;">OPENING BALANCE:</td>
-                        <td colspan="2"></td>
-                        <td style="text-align:right; font-weight:bold;">${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td>
-                    </tr>
-                `;
-            }
-        }
+        const filtered = allTx.filter(tx => (accFilter === 'all' || tx.accId === accFilter) && (tx.desc.toLowerCase().includes(search) || tx.accName.toLowerCase().includes(search)));
 
-        const filtered = allTx.filter(tx => {
-            const matchesSearch = tx.desc.toLowerCase().includes(search) || tx.accName.toLowerCase().includes(search);
-            const matchesModule = filter === 'all' || tx.module.toLowerCase().replace(' ', '') === filter;
-            const matchesAccount = accountFilter === 'all' || tx.accId === accountFilter;
-            return matchesSearch && matchesModule && matchesAccount;
-        });
-
-        const rows = filtered.map(tx => {
-            const isDebitInc = ['Asset', 'Expense'].includes(tx.accType);
-            if (isDebitInc) runningBal += (tx.dr - tx.cr);
-            else runningBal += (tx.cr - tx.dr);
-
-            return `
-                <tr>
-                    <td>${tx.date}</td>
-                    <td style="font-size:0.7rem; color:var(--text-muted)">${tx.module}</td>
-                    <td>${tx.desc}</td>
-                    <td style="color:var(--gold)">${tx.accName}</td>
-                    <td style="text-align:right; color:var(--success)">${tx.dr > 0 ? tx.dr.toLocaleString() : '-'}</td>
-                    <td style="text-align:right; color:var(--danger)">${tx.cr > 0 ? tx.cr.toLocaleString() : '-'}</td>
-                    <td style="text-align:right; font-weight:bold">
-                        ${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? 'Dr' : 'Cr'}
-                    </td>
-                </tr>
-            `;
-        }).reverse(); // Show latest on top
-
-        const tableBody = document.getElementById('statementBody');
-        tableBody.innerHTML = rows.join('') + (accountFilter !== 'all' ? openingRow : '');
-
-        if (rows.length === 0 && !openingRow) {
-            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center">No records match filter.</td></tr>';
-        }
+        document.getElementById('statementBody').innerHTML = filtered.map(tx => {
+            const isD = ['Asset', 'Expense'].includes(tx.accType);
+            if(isD) runningBal += (tx.dr - tx.cr); else runningBal += (tx.cr - tx.dr);
+            return `<tr><td>${tx.date}</td><td>${tx.module}</td><td>${tx.desc}</td><td>${tx.accName}</td><td style="text-align:right">${tx.dr.toLocaleString()}</td><td style="text-align:right">${tx.cr.toLocaleString()}</td><td style="text-align:right; font-weight:bold">${Math.abs(runningBal).toLocaleString()} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td></tr>`;
+        }).reverse().join('') || '<tr><td colspan="7" style="text-align:center">No records found.</td></tr>';
     }
 
-    function renderReport(type) {
-        const title = document.getElementById('reportTitle');
-        const cont = document.getElementById('reportData');
-        cont.innerHTML = '';
-
-        if(type === 'rp') {
-            title.innerText = "Receivables & Payables (लिनु पर्ने र दिनु पर्ने)";
-            const rec = accounts.filter(a => a.balance > 0 && (a.type === 'Asset' || a.type === 'Liability'));
-            const pay = accounts.filter(a => a.balance < 0 && (a.type === 'Asset' || a.type === 'Liability'));
-
-            cont.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-                    <div>
-                        <h4 style="color:var(--success); border-bottom:2px solid var(--success); padding-bottom:5px;">RECEIVABLES (लिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${rec.length ? rec.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--success)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No receivables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${rec.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
-                    </div>
-                    <div>
-                        <h4 style="color:var(--danger); border-bottom:2px solid var(--danger); padding-bottom:5px;">PAYABLES (दिनु पर्ने)</h4>
-                        <table>
-                            <thead><tr><th>Name</th><th style="text-align:right">Amount</th></tr></thead>
-                            <tbody>
-                                ${pay.length ? pay.map(a => `<tr><td>${a.name}</td><td style="text-align:right; color:var(--danger)">${Math.abs(a.balance).toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="2">No payables</td></tr>'}
-                            </tbody>
-                            <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right">${pay.reduce((s,a)=>s+Math.abs(a.balance),0).toLocaleString()}</td></tr>
-                        </table>
-                    </div>
-                </div>
-            `;
+    async function syncStocks() {
+        const btn = event.target;
+        const oldText = btn.innerText;
+        btn.innerText = "[ SYNCING... ]";
+        try {
+            const res = await fetch('/api/stocks/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: currentUser.uid })
+            });
+            const data = await res.json();
+            if(data.success) alert(`Stock prices updated successfully!`);
+            else alert("Market Sync Offline: " + (data.error || "Please try again later."));
+            loadData();
+        } catch(e) {
+            alert("Network Error during stock sync.");
+        } finally {
+            btn.innerText = oldText;
         }
     }
 
     function filterStatements() { renderAllStatements(); }
 
-    // SETTINGS & BACKUP ENGINE
     async function loadSettingsInfo() {
-        try {
-            const res = await fetch('/api/system/status');
-            const status = await res.json();
-            const box = document.getElementById('s3-status-box');
-            if(status.s3Configured) {
-                box.innerHTML = `<span style="color:var(--success)">● CONNECTED</span><br>Bucket: ${status.bucket}<br>Region: ${status.region}`;
-            } else {
-                box.innerHTML = `<span style="color:var(--danger)">○ NOT CONFIGURED</span><br>Local backups only. Add S3 keys to .env for cloud safety.`;
-            }
+        const res = await fetch('/api/system/status');
+        const status = await res.json();
+        document.getElementById('s3-status-box').innerText = status.s3Configured ? `Connected: ${status.bucket}` : "Local Mode Only";
 
-            const logRes = await fetch(`/api/backup/logs?userId=${currentUser.uid}`);
-            const logs = await logRes.json();
-            document.getElementById('backupLogs').innerHTML = logs.map(l => `
-                <div style="font-size:0.8rem; padding:5px 0; border-bottom:1px solid #222;">
-                    ${new Date(l.timestamp).toLocaleString()} -
-                    <span style="color:${l.status === 'Success' ? 'var(--success)' : 'var(--danger)'}">${l.status}</span>
-                    ${l.error ? `<br><small style="color:red">${l.error}</small>` : ''}
-                </div>
-            `).join('') || 'No logs found.';
-        } catch(e) { console.error(e); }
+        const logRes = await fetch(`/api/backup/logs?userId=${currentUser.uid}`);
+        const logs = await logRes.json();
+        document.getElementById('backupLogs').innerHTML = logs.map(l => `<div>[${new Date(l.timestamp).toLocaleString()}] ${l.status} - ${l.fileKey || l.error}</div>`).join('') || "No logs.";
+
+        if(userSettings.lastClosedDate) {
+            document.getElementById('current-lock-status').innerText = `Locked until: ${userSettings.lastClosedDate}`;
+            document.getElementById('close-date').value = userSettings.lastClosedDate;
+        }
+
+        populateVoucherSelects(); // Refresh merge selects too
     }
 
-    async function triggerManualBackup() {
-        const res = await fetch('/api/backup/trigger', {
+    async function closeDay() {
+        const date = document.getElementById('close-date').value;
+        if(!date) return alert("Select a date");
+        const res = await fetch('/api/settings/close-day', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid })
+            body: JSON.stringify({ userId: currentUser.uid, date })
         });
-        if(res.ok) { alert("Backup Requested!"); loadSettingsInfo(); }
+        if(res.ok) {
+            alert("Day Closed Successfully!");
+            loadData();
+        }
+    }
+
+    async function mergeAccounts() {
+        const fromId = document.getElementById('mergeFrom').value;
+        const toId = document.getElementById('mergeTo').value;
+        if(fromId === toId) return alert("Select different accounts");
+        if(!confirm("Are you sure? This will move all transactions and delete the old account.")) return;
+
+        const res = await fetch('/api/accounts/merge', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.uid, fromId, toId })
+        });
+        if(res.ok) { alert("Merged!"); loadData(); }
     }
 
     async function updatePin() {
         const pin = document.getElementById('new-pin').value;
-        if(pin.length !== 4) return alert("PIN must be 4 digits");
         const res = await fetch('/api/settings/update-pin', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ userId: currentUser.uid, pin })
         });
-        if(res.ok) alert("PIN Updated Successfully!");
+        if(res.ok) alert("PIN Updated!");
     }
 
-    // UTILS
+    async function triggerManualBackup() { await fetch('/api/backup/trigger', { method: 'POST', body: JSON.stringify({ userId: currentUser.uid }), headers: {'Content-Type': 'application/json'} }); alert("Backup Started!"); }
+
     function loginWithGoogle() { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    function syncData() {
-        if(!confirm("Recover orphaned data for this account?")) return;
-        fetch('/api/recalculate', {
+    function syncData() { fetch('/api/recalculate', { method: 'POST', body: JSON.stringify({ userId: currentUser.uid }), headers: {'Content-Type': 'application/json'} }).then(() => loadData()); }
+
+    async function renderElectricGuide() {
+        const query = document.getElementById('electricSearch').value;
+        const res = await fetch(`/api/electric?userId=${currentUser.uid}&search=${query}`);
+        const items = await res.json();
+
+        document.getElementById('electricBody').innerHTML = items.map(i => `
+            <tr>
+                <td>${i.category}</td>
+                <td>${i.name}</td>
+                <td style="font-size:0.8rem; color:var(--text-muted)">${i.specification || '-'}</td>
+                <td>${i.unit}</td>
+                <td style="text-align:right">Rs. ${i.rate.toLocaleString()}</td>
+                <td><button onclick="deleteElectricItem('${i._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+            </tr>
+        `).join('') || '<tr><td colspan="6" style="text-align:center">No items found.</td></tr>';
+    }
+
+    async function deleteElectricItem(id) {
+        if(!confirm("Delete this item?")) return;
+        await fetch(`/api/electric/${id}`, { method: 'DELETE' });
+        renderElectricGuide();
+    }
+
+    async function saveElectricItem() {
+        const data = {
+            userId: currentUser.uid,
+            category: document.getElementById('el-cat').value,
+            name: document.getElementById('el-name').value,
+            specification: document.getElementById('el-spec').value,
+            unit: document.getElementById('el-unit').value,
+            rate: Number(document.getElementById('el-rate').value)
+        };
+        await fetch('/api/electric', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.uid })
-        }).then(r => r.json()).then(d => {
-            alert(d.message);
-            loadData();
-        }).catch(err => alert("Sync Failed: " + err.message));
+            body: JSON.stringify(data)
+        });
+        closeModals(); renderElectricGuide();
     }
+
+    async function renderCinemaModule() {
+        const res = await fetch(`/api/cinema?userId=${currentUser.uid}`);
+        const shows = await res.json();
+
+        document.getElementById('cinema-total-shows').innerText = shows.length;
+        document.getElementById('cinema-total-tickets').innerText = shows.reduce((s,sh) => s + sh.tickets, 0);
+        document.getElementById('cinema-revenue').innerText = `Rs. ${shows.reduce((s,sh) => s + sh.revenue, 0).toLocaleString()}`;
+
+        document.getElementById('cinemaBody').innerHTML = shows.map(sh => `
+            <tr>
+                <td style="font-weight:bold; color:var(--gold)">${sh.movieName}</td>
+                <td>${sh.showTime}</td>
+                <td>${sh.hall}</td>
+                <td>${sh.tickets}</td>
+                <td><span style="padding:2px 8px; border-radius:10px; font-size:0.7rem; background:${sh.status==='Housefull'?'var(--danger)':'#333'}">${sh.status}</span></td>
+                <td style="text-align:right">Rs. ${sh.revenue.toLocaleString()}</td>
+                <td><button onclick="deleteCinemaShow('${sh._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+            </tr>
+        `).join('') || '<tr><td colspan="7" style="text-align:center">No shows recorded.</td></tr>';
+    }
+
+    async function deleteCinemaShow(id) {
+        if(!confirm("Delete this show record?")) return;
+        await fetch(`/api/cinema/${id}`, { method: 'DELETE' });
+        renderCinemaModule();
+    }
+
+    async function saveCinemaShow() {
+        const data = {
+            userId: currentUser.uid,
+            movieName: document.getElementById('cm-movie').value,
+            date: document.getElementById('cm-date').value || new Date().toISOString(),
+            showTime: document.getElementById('cm-time').value,
+            hall: document.getElementById('cm-hall').value,
+            tickets: Number(document.getElementById('cm-tickets').value),
+            revenue: Number(document.getElementById('cm-revenue').value),
+            status: document.getElementById('cm-status').value
+        };
+        await fetch('/api/cinema', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        closeModals(); renderCinemaModule();
+    }
+
+    async function deleteBikeLog(id) {
+        if(!confirm("Delete this log?")) return;
+        await fetch(`/api/bike/${id}`, { method: 'DELETE' });
+        loadData();
+    }
+
+    function renderStocks() {
+        const stockBody = document.getElementById('stockBody');
+        let totalVal = 0, totalCost = 0;
+
+        stockBody.innerHTML = (stocks || []).map(s => {
+            const cost = s.qty * s.buyPrice;
+            const val = s.qty * (s.currentPrice || s.buyPrice);
+            const pl = val - cost;
+            totalVal += val;
+            totalCost += cost;
+
+            return `
+                <tr>
+                    <td style="font-weight:bold; color:var(--gold)">${s.symbol}</td>
+                    <td>${s.qty}</td>
+                    <td>${s.buyPrice.toLocaleString()}</td>
+                    <td>${(s.currentPrice || s.buyPrice).toLocaleString()}</td>
+                    <td style="text-align:right">Rs. ${val.toLocaleString()}</td>
+                    <td style="text-align:right; color:${pl >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                        ${pl >= 0 ? '+' : ''}${pl.toLocaleString()}
+                    </td>
+                    <td><button onclick="deleteStock('${s._id}')" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="7" style="text-align:center">No stocks in portfolio.</td></tr>';
+
+        document.getElementById('stock-total-value').innerText = `Rs. ${totalVal.toLocaleString()}`;
+        const tPL = totalVal - totalCost;
+        document.getElementById('stock-total-pl').innerText = `Rs. ${tPL.toLocaleString()}`;
+        document.getElementById('stock-total-pl').style.color = tPL >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    function openStockModal() { document.getElementById('stockModal').classList.remove('hidden'); }
+
+    async function saveStock() {
+        const data = {
+            userId: currentUser.uid,
+            symbol: document.getElementById('st-symbol').value.toUpperCase(),
+            qty: Number(document.getElementById('st-qty').value),
+            buyPrice: Number(document.getElementById('st-buy').value),
+            currentPrice: Number(document.getElementById('st-buy').value)
+        };
+        await fetch('/api/stocks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        closeModals(); loadData();
+    }
+
+    async function deleteStock(id) {
+        if(!confirm("Remove from portfolio?")) return;
+        await fetch(`/api/stocks/${id}`, { method: 'DELETE' });
+        loadData();
+    }
+
     function updateClock() {
         const now = new Date();
-        document.getElementById('clockDisp').innerText = now.toLocaleTimeString('en-US', { hour12: true });
-        document.getElementById('currentDateDisp').innerText = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        const options = { timeZone: 'Asia/Kathmandu', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        document.getElementById('clockDisp').innerText = now.toLocaleTimeString('en-US', options);
+        document.getElementById('currentDateDisp').innerText = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
     setInterval(updateClock, 1000); updateClock();
 
     function exportToExcel() {
-        const activeTab = document.querySelector('.tab-content:not(.hidden)');
-        const table = activeTab.querySelector('table');
-        if(!table) return alert("No table found to export");
-        const wb = XLSX.utils.table_to_book(table);
-        const fileName = activeTab.id === 'tab-statements' ? 'All_Statements.xlsx' : 'Pawan_Gold_Report.xlsx';
-        XLSX.writeFile(wb, fileName);
+        const table = document.querySelector('.tab-content:not(.hidden) table');
+        if(table) XLSX.writeFile(XLSX.utils.table_to_book(table), 'Pawan_Gold_Report.xlsx');
     }
 </script>
 </body>

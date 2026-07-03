@@ -103,6 +103,28 @@ const StockSchema = new mongoose.Schema({
 });
 const Stock = mongoose.model('Stock', StockSchema);
 
+const CinemaShowSchema = new mongoose.Schema({
+    userId: String,
+    movieName: String,
+    showTime: String,
+    hall: String,
+    tickets: { type: Number, default: 0 },
+    revenue: { type: Number, default: 0 },
+    status: { type: String, default: 'Booking' },
+    date: { type: Date, default: Date.now }
+});
+const CinemaShow = mongoose.model('CinemaShow', CinemaShowSchema);
+
+const ElectricItemSchema = new mongoose.Schema({
+    userId: String,
+    category: String,
+    name: String,
+    specification: String,
+    unit: String,
+    rate: Number
+});
+const ElectricItem = mongoose.model('ElectricItem', ElectricItemSchema);
+
 // --- APIs ---
 
 const checkLock = async (userId, date) => {
@@ -266,6 +288,8 @@ app.post('/api/recalculate', async (req, res) => {
         await Stock.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
         await Goal.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
         await Setting.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await CinemaShow.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
+        await ElectricItem.updateMany({ $or: [{ userId: { $exists: false } }, { userId: "" }, { userId: null }] }, { $set: { userId: userId } });
 
         // २. ब्यालेन्स पुन: गणना गर्ने
         const accounts = await Account.find({ userId });
@@ -376,10 +400,23 @@ app.get('/api/bike', async (req, res) => {
 
 app.post('/api/bike', async (req, res) => {
     try {
+        const { userId, date } = req.body;
+        if (date && await checkLock(userId, date.split('T')[0])) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
         const log = new BikeLog({ ...req.body });
         await log.save();
         res.json(log);
     } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
+});
+
+app.delete('/api/bike/:id', async (req, res) => {
+    try {
+        const log = await BikeLog.findById(req.params.id);
+        if (log && await checkLock(log.userId, new Date(log.date).toISOString().split('T')[0])) {
+            return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+        }
+        await BikeLog.findByIdAndDelete(req.params.id);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
 });
 
 // ७. सेयर बजार (Stocks)
@@ -478,6 +515,66 @@ app.delete('/api/stocks/:id', async (req, res) => {
     try {
         await Stock.findByIdAndDelete(req.params.id);
         res.json({ message: "Stock removed" });
+    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
+});
+
+// ८. गोल्ड सिनेमा (Gold Cinema)
+app.get('/api/cinema', async (req, res) => {
+    try {
+        const shows = await CinemaShow.find({ userId: req.query.userId }).sort({ date: -1 });
+        res.json(shows);
+    } catch (err) { res.status(500).json({ error: "Cinema load failed" }); }
+});
+
+app.post('/api/cinema', async (req, res) => {
+    try {
+        const { userId, date } = req.body;
+        const targetDate = date ? date.split('T')[0] : new Date().toISOString().split('T')[0];
+        if (await checkLock(userId, targetDate)) return res.status(403).json({ error: "हिसाब क्लोज भइसकेको छ।" });
+        const show = new CinemaShow({ ...req.body });
+        await show.save();
+        res.json(show);
+    } catch (err) { res.status(500).json({ error: "Cinema save failed" }); }
+});
+
+app.delete('/api/cinema/:id', async (req, res) => {
+    try {
+        const show = await CinemaShow.findById(req.params.id);
+        if (show && await checkLock(show.userId, new Date(show.date).toISOString().split('T')[0])) {
+            return res.status(403).json({ error: "हिसाब क्लोज भइसकेको छ।" });
+        }
+        await CinemaShow.findByIdAndDelete(req.params.id);
+        res.json({ message: "Show deleted" });
+    } catch (err) { res.status(500).json({ error: "Delete failed" }); }
+});
+
+// ९. इलेक्ट्रिक गाइड (Electric Guide / Inventory)
+app.get('/api/electric', async (req, res) => {
+    try {
+        const query = req.query.search || '';
+        const items = await ElectricItem.find({
+            userId: req.query.userId,
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { category: { $regex: query, $options: 'i' } }
+            ]
+        }).sort({ category: 1 });
+        res.json(items);
+    } catch (err) { res.status(500).json({ error: "Electric guide load failed" }); }
+});
+
+app.post('/api/electric', async (req, res) => {
+    try {
+        const item = new ElectricItem({ ...req.body });
+        await item.save();
+        res.json(item);
+    } catch (err) { res.status(500).json({ error: "Item save failed" }); }
+});
+
+app.delete('/api/electric/:id', async (req, res) => {
+    try {
+        await ElectricItem.findByIdAndDelete(req.params.id);
+        res.json({ message: "Item deleted" });
     } catch (err) { res.status(500).json({ error: "Delete failed" }); }
 });
 
