@@ -333,35 +333,20 @@
                 
 </div>
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px;">
-                <div class="recent-box">
-                    <h3 style="margin:0 0 15px; color:var(--success);">Receivables (लिनु पर्ने)</h3>
-                    <div class="table-wrapper">
-                        <table style="min-width: unset;">
-                            <thead>
-                                <tr><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
-                            </thead>
-                            <tbody id="arBreakdown"></tbody>
-                        </table>
-                        
-</div>
-                    
-</div>
-                <div class="recent-box">
-                    <h3 style="margin:0 0 15px; color:var(--danger);">Payables (दिनु पर्ने)</h3>
-                    <div class="table-wrapper">
-                        <table style="min-width: unset;">
-                            <thead>
-                                <tr><th>ACCOUNT</th><th style="text-align:right">AMOUNT</th></tr>
-                            </thead>
-                            <tbody id="apBreakdown"></tbody>
-                        </table>
-                        
-</div>
-                    
-</div>
-                
-</div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap:20px;">
+                <div class="recent-box" style="min-height: 380px; display: flex; flex-direction: column;">
+                    <h3 style="margin:0 0 15px; color:var(--gold);">Expense Breakdown by Category</h3>
+                    <div style="flex-grow:1; position: relative; height: 300px; display: flex; align-items: center; justify-content: center;">
+                        <canvas id="expenseCategoryChart"></canvas>
+                    </div>
+                </div>
+                <div class="recent-box" style="min-height: 380px; display: flex; flex-direction: column;">
+                    <h3 style="margin:0 0 15px; color:var(--gold);">Monthly Cash Flow</h3>
+                    <div style="flex-grow:1; position: relative; height: 300px;">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                </div>
+            </div>
             
 </div>
 
@@ -380,17 +365,28 @@
                 
 </div>
             <div id="v-entries-container">
-                <div class="voucher-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr 50px; gap:10px; margin-bottom:10px;">
-                    <select class="v-acc-select" aria-label="Account Selection"></select>
-                    <input type="number" class="v-debit" placeholder="Debit (Dr)" aria-label="Debit Amount">
-                    <input type="number" class="v-credit" placeholder="Credit (Cr)" aria-label="Credit Amount">
-                    <button onclick="this.parentElement.remove()" style="background:transparent; color:var(--danger); border:none; cursor:pointer;"><i class="fas fa-times"></i></button>
-                    
-</div>
-                
-</div>
-            <button onclick="addVoucherRow()" style="background:transparent; color:var(--gold); border:1px dashed var(--gold); padding:8px 20px; border-radius:8px; cursor:pointer;">+ ADD LINE</button>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                <button onclick="addVoucherRow()" style="background:transparent; color:var(--gold); border:1px dashed var(--gold); padding:8px 20px; border-radius:8px; cursor:pointer;">+ ADD LINE</button>
+                <div id="voucher-total-status" style="font-size:0.9rem; font-weight:bold;"></div>
+            </div>
             
+            <div style="margin-top:40px; border-top:1px solid var(--border); padding-top:20px;">
+                <h3 style="color:var(--gold); margin-bottom:15px;">Recent Voucher Entries</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>PARTICULARS</th>
+                                <th style="text-align:right">AMOUNT</th>
+                                <th style="text-align:right">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vouchersListBody"></tbody>
+                    </table>
+                </div>
+            </div>
 </div>
         
 </div>
@@ -809,7 +805,7 @@
     let currentUser = null;
     let accounts = [], transactions = [], bikeLogs = [], stocks = [], cinemaShows = [], electricItems = [];
     let userSettings = {};
-    let incomeExpenseChart = null;
+    let incomeExpenseChart = null, expenseCategoryChart = null, cashFlowChart = null;
     let editingVoucherId = null;
 
     auth.onAuthStateChanged(user => {
@@ -914,24 +910,8 @@
         // Monthly Chart Data
         updateDashboardChart();
 
-        // Breakdown Tables (Excluding Bank/Cash from party lists)
-        const arList = accounts.filter(a => ((a.type === 'Asset' && a.balance > 0) || (a.type === 'Liability' && a.balance < 0)) &&
-                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
-        document.getElementById('arBreakdown').innerHTML = arList.map(a => `
-            <tr>
-                <td>${a.name}</td>
-                <td style="text-align:right; color:var(--success)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
-            </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align:center">No party receivables.</td></tr>';
-
-        const apList = accounts.filter(a => ((a.type === 'Liability' && a.balance > 0) || (a.type === 'Asset' && a.balance < 0)) &&
-                                            !(a.group && (a.group.toLowerCase().includes('bank') || a.group.toLowerCase().includes('cash'))));
-        document.getElementById('apBreakdown').innerHTML = apList.map(a => `
-            <tr>
-                <td>${a.name}</td>
-                <td style="text-align:right; color:var(--danger)">Rs. ${Math.abs(a.balance).toLocaleString()}</td>
-            </tr>
-        `).join('') || '<tr><td colspan="2" style="text-align:center">No party payables.</td></tr>';
+        // Update Vouchers List if on that tab
+        renderVouchersList();
 
         // Today's Transaction Stream (Compact Feed)
         document.getElementById('txBody').innerHTML = todaysTxs.map(t => {
@@ -981,11 +961,14 @@
 
     function updateDashboardChart() {
         const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+        const ctxExp = document.getElementById('expenseCategoryChart').getContext('2d');
+        const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
 
         // Group by month for last 6 months
         const months = [];
         const incomeData = [];
         const expenseData = [];
+        const flowData = [];
 
         for(let i=5; i>=0; i--) {
             const d = new Date();
@@ -1010,12 +993,18 @@
                     });
                 }
             });
+
+            // Add bike logs for the month
+            bikeLogs.forEach(l => {
+                if(new Date(l.date).toISOString().startsWith(monthStr)) mExp += l.amount;
+            });
+
             incomeData.push(mInc);
             expenseData.push(mExp);
+            flowData.push(mInc - mExp);
         }
 
         if(incomeExpenseChart) incomeExpenseChart.destroy();
-
         incomeExpenseChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1041,21 +1030,66 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#2d323a' },
-                        ticks: { color: '#8a8f98' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#8a8f98' }
-                    }
+                    y: { beginAtZero: true, grid: { color: '#2d323a' }, ticks: { color: '#8a8f98' } },
+                    x: { grid: { display: false }, ticks: { color: '#8a8f98' } }
                 },
+                plugins: { legend: { labels: { color: '#fff' } } }
+            }
+        });
+
+        // 2. Expense Category Chart (Doughnut)
+        const expGroups = {};
+        accounts.filter(a => a.type === 'Expense').forEach(a => {
+            const g = a.group || 'Other';
+            expGroups[g] = (expGroups[g] || 0) + Math.abs(a.balance);
+        });
+        const bikeTotal = bikeLogs.reduce((s,l) => s + l.amount, 0);
+        if(bikeTotal > 0) expGroups['Bike Tracker'] = (expGroups['Bike Tracker'] || 0) + bikeTotal;
+
+        if(expenseCategoryChart) expenseCategoryChart.destroy();
+        expenseCategoryChart = new Chart(ctxExp, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(expGroups),
+                datasets: [{
+                    data: Object.values(expGroups),
+                    backgroundColor: ['#FFD700', '#ff4d4d', '#00ff88', '#3498db', '#9b59b6', '#e67e22'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        labels: { color: '#fff' }
-                    }
-                }
+                    legend: { position: 'right', labels: { color: '#8a8f98', font: { size: 10 } } }
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 3. Monthly Cash Flow (Line Chart)
+        if(cashFlowChart) cashFlowChart.destroy();
+        cashFlowChart = new Chart(ctxFlow, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Net Flow',
+                    data: flowData,
+                    borderColor: '#FFD700',
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: '#2d323a' }, ticks: { color: '#8a8f98' } },
+                    x: { grid: { display: false }, ticks: { color: '#8a8f98' } }
+                },
+                plugins: { legend: { display: false } }
             }
         });
     }
@@ -1084,7 +1118,7 @@
         });
 
         if(t === 'ledgers') renderLedgers();
-        if(t === 'vouchers') populateVoucherSelects();
+        if(t === 'vouchers') { populateVoucherSelects(); renderVouchersList(); }
         if(t === 'settings') loadSettingsInfo();
         if(t === 'statements') { populateStatementAccounts(); renderAllStatements(); }
         if(t === 'electric') renderElectricGuide();
@@ -1204,6 +1238,43 @@
     function populateVoucherSelects() {
         const opts = accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
         document.querySelectorAll('.v-acc-select').forEach(s => s.innerHTML = opts);
+    }
+
+    function renderVouchersList() {
+        const body = document.getElementById('vouchersListBody');
+        if(!body) return;
+
+        // Sort transactions by date descending, then by creation if date is same
+        const sortedTxs = [...transactions].sort((a,b) => {
+            const dateDiff = new Date(b.date) - new Date(a.date);
+            return dateDiff !== 0 ? dateDiff : (b._id > a._id ? 1 : -1);
+        });
+
+        body.innerHTML = sortedTxs.map(t => {
+            const amount = t.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+            const accNames = t.entries.map(e => {
+                const accId = e.account?._id || e.account;
+                const acc = accounts.find(a => a._id === accId);
+                return acc ? acc.name : 'Unknown';
+            }).join(' <span style="color:#444">|</span> ');
+
+            return `
+                <tr class="hover-row">
+                    <td style="white-space:nowrap">${t.date}</td>
+                    <td>
+                        <div style="font-weight:bold; color:#fff;">${t.description}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">${accNames}</div>
+                    </td>
+                    <td style="text-align:right; color:var(--gold); font-weight:bold; font-size:1.1rem;">Rs. ${amount.toLocaleString()}</td>
+                    <td style="text-align:right">
+                        <div style="display:flex; gap:15px; justify-content:flex-end;">
+                            <button onclick="editTransaction('${t._id}')" title="Edit" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteTransaction('${t._id}')" title="Delete" style="background:transparent; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">No transactions found in this period.</td></tr>';
     }
 
     function addVoucherRow() {
