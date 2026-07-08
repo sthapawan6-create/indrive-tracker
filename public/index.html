@@ -1660,6 +1660,22 @@
                     if(byto.innerText === 'By') drIn.focus(); else crIn.focus();
                 }
                 if(e.key === 'Backspace' && !accSel.value) { e.preventDefault(); byto.focus(); }
+
+                // Alt+C Shortcut on select
+                if(e.altKey && e.key.toLowerCase() === 'c') {
+                    e.preventDefault();
+                    window.lastVoucherSelect = e.target;
+                    openModal('accModal');
+                }
+            });
+
+            accSel.addEventListener('change', (e) => {
+                if(e.target.value === 'NEW_ACC') {
+                    window.lastVoucherSelect = e.target; // Save reference
+                    openModal('accModal');
+                    e.target.value = ''; // Reset select
+                }
+                updateRowBalance(e.target);
             });
 
             drIn.addEventListener('keydown', (e) => {
@@ -1688,7 +1704,7 @@
             if(byto === 'By') { crIn.disabled = true; crIn.value = ''; drIn.disabled = false; }
             else { drIn.disabled = true; drIn.value = ''; crIn.disabled = false; }
 
-            let filtered = accounts;
+            let filtered = [...accounts];
             if(currentVType === 'PAYMENT' && byto === 'To') {
                 filtered = accounts.filter(a => a.name.toLowerCase().includes('cash') || a.name.toLowerCase().includes('bank'));
             } else if(currentVType === 'RECEIPT' && byto === 'By') {
@@ -1697,8 +1713,18 @@
                 filtered = accounts.filter(a => a.name.toLowerCase().includes('cash') || a.name.toLowerCase().includes('bank'));
             }
 
+            // Ensure current selection or recently created account is always in the list
             const currentVal = select.value;
-            select.innerHTML = `<option value="">-- Select Account --</option>` +
+            if (currentVal && !filtered.find(a => a._id === currentVal)) {
+                const selectedAcc = accounts.find(a => a._id === currentVal);
+                if (selectedAcc) filtered.push(selectedAcc);
+            }
+            if (window.tempForceAcc && !filtered.find(a => a._id === (window.tempForceAcc._id || window.tempForceAcc.id))) {
+                filtered.push(window.tempForceAcc);
+            }
+
+            select.innerHTML = `<option value="">-- Select Account --</option>
+                                <option value="NEW_ACC" style="font-weight:bold; color:var(--tally-teal);">[+ Add New Account (Alt+C)]</option>` +
                 filtered.map(a => `<option value="${a._id}" ${a._id===currentVal?'selected':''}>${a.name}</option>`).join('');
         }
 
@@ -1807,9 +1833,28 @@
 
             const res = await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             if(res.ok) {
+                const newAcc = await res.json();
                 closeModals();
-                syncAll();
+                await syncAll(); // Refresh accounts list
+
                 if(document.getElementById('page-accounts').classList.contains('active')) renderAccountsList();
+
+                // If created from voucher, auto-select it
+                if(window.lastVoucherSelect) {
+                    const select = window.lastVoucherSelect;
+                    const row = select.closest('tr');
+                    window.tempForceAcc = newAcc;
+                    filterRowAccounts(row); // Refresh this row's dropdown
+                    window.tempForceAcc = null;
+                    select.value = newAcc._id || newAcc.id; // Select the new account
+                    updateRowBalance(select);
+                    window.lastVoucherSelect = null;
+
+                    // Focus on next amount field
+                    const dr = row.querySelector('.v-dr');
+                    const cr = row.querySelector('.v-cr');
+                    if(!dr.disabled) dr.focus(); else cr.focus();
+                }
             } else {
                 alert("Account save failed");
             }
