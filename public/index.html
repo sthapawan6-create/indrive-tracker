@@ -334,7 +334,7 @@
                 </div>
             </div>
 
-            <!-- Accounts List Page -->
+            <!-- Dashboard Page -->
             <div id="page-dashboard" class="main-content" style="background: #121218;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #ffc107; margin-bottom: 15px; padding-bottom:5px;">
                     <h2 style="border-bottom:none; margin:0; color: #ffc107;">PAWAN GOLD - Performance Dashboard</h2>
@@ -409,9 +409,8 @@
                         <label style="font-size:0.7rem; color:#666; display:block;">Date:</label>
                         <input type="date" id="v-date" style="width:100%; border:1px solid #ccc; padding:4px;">
                     </div>
-                    <div>
-                        <label style="font-size:0.7rem; color:#666; display:block;">Narration:</label>
-                        <input type="text" id="v-desc" placeholder="Details..." style="width:100%; border:1px solid #ccc; padding:4px;">
+                    <div style="display:flex; align-items:flex-end; color:#888; font-size:0.8rem; font-style:italic;">
+                        * Press F4-F7 to change Voucher Type
                     </div>
                 </div>
 
@@ -430,20 +429,27 @@
                     </table>
                 </div>
 
+                <div style="margin-top:10px; padding:10px; background:#f0f7f8; border:1px solid var(--tally-border);">
+                    <label style="font-size:0.75rem; color:var(--tally-navy); font-weight:bold; display:block; margin-bottom:5px;">Narration:</label>
+                    <input type="text" id="v-desc" placeholder="Being..." style="width:100%; border:1px solid #ccc; padding:8px; font-size:0.9rem; font-family:inherit;">
+                </div>
+
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding:5px 0;">
                     <button onclick="addVLine()" class="btn" style="background:#555; font-size:0.75rem; padding:6px 12px;">+ Add Line (Alt+L)</button>
                     <div id="v-status" style="font-weight:bold; font-family:monospace; font-size:0.85rem;"></div>
-                    <button onclick="postVoucher()" class="btn" style="background:var(--tally-navy); padding:8px 40px; font-size:0.85rem; border-radius:2px;">Accept (Ctrl+A)</button>
+                    <button onclick="postVoucher()" class="btn" style="background:var(--tally-navy); padding:10px 50px; font-size:0.9rem; border-radius:2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">Accept (Ctrl+A)</button>
                 </div>
             </div>
 
-            <!-- Ledger Statement Page -->
             <div id="page-statement" class="main-content">
                 <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
                     <h2 style="border-bottom:none; margin:0;">Ledger Statement</h2>
-                    <div style="display:flex; gap:10px;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="date" id="stmt-from" style="padding:4px;" onchange="renderLedgerStatement()">
+                        <span>to</span>
+                        <input type="date" id="stmt-to" style="padding:4px;" onchange="renderLedgerStatement()">
                         <select id="stmt-acc-select" onchange="renderLedgerStatement()" style="padding:5px; min-width:200px;"></select>
-                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Statement (Alt+P)</button>
+                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print (Alt+P)</button>
                     </div>
                 </div>
 
@@ -508,13 +514,16 @@
 
             <!-- Reports: P&L -->
             <div id="page-reports-pl" class="main-content">
-                <h2>Profit & Loss Account</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Profit & Loss Account</h2>
+                    <button class="btn no-print" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;">Print Report</button>
+                </div>
                 <table id="tbl-pl">
-                    <thead><tr><th>Particulars</th><th class="amt">Amount</th></tr></thead>
+                    <thead><tr><th style="background:var(--tally-navy); color:white;">Particulars</th><th class="amt" style="background:var(--tally-navy); color:white;">Amount (Rs.)</th></tr></thead>
                     <tbody id="pl-body"></tbody>
-                    <tfoot>
-                        <tr style="font-weight:bold; background:#f9f9f9;">
-                            <td>Net Profit</td>
+                    <tfoot id="pl-foot">
+                        <tr style="font-weight:bold; background:#eee; font-size:1.1rem; border-top:2px solid #333;">
+                            <td id="pl-result-label">Net Profit</td>
                             <td id="pl-net-result" class="amt">0</td>
                         </tr>
                     </tfoot>
@@ -559,10 +568,22 @@
             <!-- Settings -->
             <div id="page-settings" class="main-content">
                 <h2>System Settings</h2>
-                <div class="box" style="padding:20px; border:1px solid #ddd;">
-                    <h3>Data Integrity</h3>
-                    <p>हिसाबमा कुनै समस्या देखिएमा ब्यालेन्स मिलाउन यहाँ क्लिक गर्नुहोस्:</p>
-                    <button class="btn" onclick="runRecalculate()">Force Recalculate Everything</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div class="box" style="padding:20px; border:1px solid #ddd; background:#f9f9f9;">
+                        <h3><i class="fas fa-lock"></i> Day Closing (दिन बन्द गर्ने)</h3>
+                        <p style="font-size:0.85rem; color:#666;">हिसाब क्लोज गरेपछि त्यो मिति वा सोभन्दा अघिको कारोबार संशोधन वा मेटाउन मिल्दैन।</p>
+                        <div style="display:flex; gap:10px; align-items:center; margin-top:15px;">
+                            <input type="date" id="close-day-date" style="padding:8px; border:1px solid #ccc;">
+                            <button class="btn" onclick="closeDay()" style="background:#d32f2f;">Close Day</button>
+                        </div>
+                        <div id="closed-date-info" style="margin-top:10px; font-weight:bold; color:var(--tally-teal); font-size:0.85rem;"></div>
+                    </div>
+
+                    <div class="box" style="padding:20px; border:1px solid #ddd; background:#f9f9f9;">
+                        <h3><i class="fas fa-sync"></i> Data Integrity</h3>
+                        <p style="font-size:0.85rem; color:#666;">हिसाबमा कुनै समस्या देखिएमा ब्यालेन्स मिलाउन यहाँ क्लिक गर्नुहोस्:</p>
+                        <button class="btn" onclick="runRecalculate()" style="margin-top:15px;">Force Recalculate Everything</button>
+                    </div>
                 </div>
             </div>
 
@@ -596,21 +617,47 @@
 
     <!-- Modals -->
     <div id="accModal" class="modal">
-        <div class="modal-content">
-            <h3 style="color:var(--tally-teal); border-bottom:1px solid #ddd; padding-bottom:10px;">Create Ledger Account</h3>
-            <label>Name:</label><input type="text" id="new-aname" style="width:100%; margin-bottom:15px;">
-            <label>Under Group:</label>
-            <select id="new-atype" style="width:100%; margin-bottom:15px;">
-                <option value="Asset">Assets</option>
-                <option value="Liability">Liabilities</option>
-                <option value="Revenue">Income</option>
-                <option value="Expense">Expenses</option>
-                <option value="Equity">Equity</option>
-            </select>
-            <label>Opening Balance:</label><input type="number" id="new-aob" value="0" style="width:100%; margin-bottom:20px;">
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <div class="modal-content" style="width:550px;">
+            <h3 id="acc-modal-title" style="color:var(--tally-teal); border-bottom:1px solid #ddd; padding-bottom:10px;">Create Ledger Account</h3>
+            <input type="hidden" id="edit-acc-id">
+
+            <!-- Quick Selection for Banks/Wallets -->
+            <div id="quick-acc-btns" style="margin-bottom:15px; display:flex; gap:5px; flex-wrap:wrap;">
+                <span style="font-size:0.7rem; color:#666; width:100%; font-weight:bold; text-transform:uppercase;">Quick Select (Bank/Wallet):</span>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem;" onclick="prefillAcc('Global IME Bank')">Global</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem;" onclick="prefillAcc('Prabhu Bank')">Prabhu</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem;" onclick="prefillAcc('Nabil Bank')">Nabil</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem;" onclick="prefillAcc('Laxmi Sunrise Bank')">Laxmi</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem;" onclick="prefillAcc('Garima Bikas Bank')">Garima</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem; background:#2e7d32; color:white; border-color:#2e7d32;" onclick="prefillAcc('eSewa Wallet')">eSewa</button>
+                <button class="v-type-btn" style="padding:2px 6px; font-size:0.65rem; background:#5d2d91; color:white; border-color:#5d2d91;" onclick="prefillAcc('Khalti Wallet')">Khalti</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div>
+                    <label>Name:</label><input type="text" id="new-aname" style="width:100%; margin-bottom:10px;">
+                    <label>Under Group:</label>
+                    <select id="new-atype" style="width:100%; margin-bottom:10px;">
+                        <option value="Asset">Assets</option>
+                        <option value="Receivable">Receivables (lina bakki)</option>
+                        <option value="Liability">Liabilities</option>
+                        <option value="Payable">Payables (tina bakki)</option>
+                        <option value="Revenue">Income</option>
+                        <option value="Expense">Expenses</option>
+                        <option value="Equity">Equity</option>
+                    </select>
+                    <label>Opening Balance:</label><input type="number" id="new-aob" value="0" style="width:100%; margin-bottom:10px;">
+                </div>
+                <div>
+                    <label>Phone:</label><input type="text" id="new-aphone" style="width:100%; margin-bottom:10px;">
+                    <label>Address:</label><input type="text" id="new-aaddress" style="width:100%; margin-bottom:10px;">
+                    <label>PAN / VAT:</label><input type="text" id="new-apanvat" style="width:100%; margin-bottom:10px;">
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
                 <button class="btn" style="background:#666;" onclick="closeModals()">Cancel</button>
-                <button class="btn" onclick="saveAccount()">Save</button>
+                <button class="btn" onclick="saveAccount()">Save (Ctrl+S)</button>
             </div>
         </div>
     </div>
@@ -685,6 +732,7 @@
 
         let accounts = [], transactions = [];
         let currentVType = 'JOURNAL';
+        let lastClosedDate = "";
 
         window.onload = () => {
             document.getElementById('uNameDisplay').innerText = user.displayName || user.email;
@@ -760,21 +808,22 @@
                 title = "Cash & Bank Details";
                 list = accounts.filter(a => {
                     const n = a.name.toLowerCase();
-                    return a.type === 'Asset' && (n.includes('cash') || n.includes('bank'));
+                    return (a.type === 'Asset' || a.type === 'Receivable') &&
+                           (n.includes('cash') || n.includes('bank') || n.includes('wallet') || n.includes('esewa') || n.includes('khalti') || n.includes('ime'));
                 });
             } else if (type === 'receivable') {
                 title = "Receivables (lina bakki)";
                 list = accounts.filter(a => {
                     const n = a.name.toLowerCase();
-                    return a.type === 'Asset' && !n.includes('cash') && !n.includes('bank');
+                    return a.type === 'Receivable' || (a.type === 'Asset' && !n.includes('cash') && !n.includes('bank'));
                 });
             } else if (type === 'payable') {
                 title = "Payables (tina bakki)";
-                list = accounts.filter(a => a.type === 'Liability');
+                list = accounts.filter(a => a.type === 'Liability' || a.type === 'Payable');
             } else if (type === 'networth') {
                 title = "Net Worth Breakdown";
-                const assets = accounts.filter(a => a.type === 'Asset');
-                const liabs = accounts.filter(a => a.type === 'Liability');
+                const assets = accounts.filter(a => a.type === 'Asset' || a.type === 'Receivable');
+                const liabs = accounts.filter(a => a.type === 'Liability' || a.type === 'Payable');
                 const equity = accounts.filter(a => a.type === 'Equity');
 
                 let html = `<div style="font-weight:bold; color:var(--tally-teal); margin-bottom:5px; border-bottom:1px solid #eee; padding-bottom:5px;">ASSETS (सम्पत्ति)</div>`;
@@ -827,7 +876,7 @@
                 html += `
                     <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:10px 0; align-items:center;">
                         <div style="flex:1;">
-                            <div style="font-weight:bold; color:var(--tally-navy); font-size:0.95rem;">${a.name}</div>
+                            <div style="font-weight:bold; color:var(--tally-navy); font-size:0.95rem;">${a.name} ${a.type==='Receivable'?'(Receivable)':(a.type==='Payable'?'(Payable)':'')}</div>
                             ${a.phone ? `<div style="font-size:0.7rem; color:#888;"><i class="fas fa-phone"></i> ${a.phone}</div>` : ''}
                         </div>
                         <div style="text-align:right; margin-right:15px;">
@@ -863,12 +912,20 @@
 
         async function syncAll() {
             try {
-                const [resA, resT] = await Promise.all([
+                const [resA, resT, resS] = await Promise.all([
                     fetch('/api/accounts?userId=' + user.uid),
-                    fetch('/api/transactions?userId=' + user.uid)
+                    fetch('/api/transactions?userId=' + user.uid),
+                    fetch('/api/settings?userId=' + user.uid)
                 ]);
                 accounts = await resA.json();
                 transactions = await resT.json();
+                const settings = await resS.json();
+                lastClosedDate = settings.lastClosedDate || "";
+
+                if(lastClosedDate) {
+                    document.getElementById('closed-date-info').innerText = "Last Closed Date: " + lastClosedDate;
+                    document.getElementById('close-day-date').value = lastClosedDate;
+                }
 
                 renderDashboardData();
                 renderTrialBalance();
@@ -1020,14 +1077,17 @@
             const accId = document.getElementById('stmt-acc-select').value;
             if(!accId) return;
 
+            const fromDate = document.getElementById('stmt-from').value;
+            const toDate = document.getElementById('stmt-to').value;
+
             const acc = accounts.find(a => a._id === accId);
             document.getElementById('stmt-acc-name').innerText = acc.name.toUpperCase();
 
             let balance = acc.openingBalance || 0;
-            const isDrMain = ['Asset', 'Expense'].includes(acc.type);
+            const isDrMain = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
 
             // Filter and sort transactions for this account
-            const accTx = [];
+            let accTx = [];
             transactions.forEach(tx => {
                 tx.entries.forEach(e => {
                     if(e.account && (e.account._id === accId || e.account === accId)) {
@@ -1037,9 +1097,23 @@
             });
             accTx.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            let rows = `<tr><td></td><td style="font-weight:bold;">Opening Balance</td><td></td><td class="amt"></td><td class="amt"></td><td class="amt">${Math.abs(balance).toLocaleString()} ${balance >= 0 ? (isDrMain?'Dr':'Cr') : (isDrMain?'Cr':'Dr')}</td></tr>`;
+            // Calculate Opening Balance for the selected date range
+            let periodTx = accTx;
+            if(fromDate) {
+                const beforeTx = accTx.filter(t => t.date < fromDate);
+                beforeTx.forEach(tx => {
+                    if(isDrMain) balance += (tx.debit - tx.credit);
+                    else balance += (tx.credit - tx.debit);
+                });
+                periodTx = accTx.filter(t => t.date >= fromDate);
+            }
+            if(toDate) {
+                periodTx = periodTx.filter(t => t.date <= toDate);
+            }
 
-            accTx.forEach(tx => {
+            let rows = `<tr><td></td><td style="font-weight:bold;">${fromDate ? 'Opening Balance (as of '+fromDate+')' : 'Initial Opening Balance'}</td><td></td><td class="amt"></td><td class="amt"></td><td class="amt">${Math.abs(balance).toLocaleString()} ${balance >= 0 ? (isDrMain?'Dr':'Cr') : (isDrMain?'Cr':'Dr')}</td></tr>`;
+
+            periodTx.forEach(tx => {
                 if(isDrMain) balance += (tx.debit - tx.credit);
                 else balance += (tx.credit - tx.debit);
 
@@ -1047,7 +1121,7 @@
                     <tr>
                         <td>${new Date(tx.date).toLocaleDateString()}</td>
                         <td>${tx.description || 'Journal Entry'}</td>
-                        <td>Journal</td>
+                        <td>${tx.type || 'Journal'}</td>
                         <td class="amt">${tx.debit ? tx.debit.toLocaleString() : ''}</td>
                         <td class="amt">${tx.credit ? tx.credit.toLocaleString() : ''}</td>
                         <td class="amt">${Math.abs(balance).toLocaleString()} ${balance >= 0 ? (isDrMain?'Dr':'Cr') : (isDrMain?'Cr':'Dr')}</td>
@@ -1076,15 +1150,19 @@
                     return e.debit ? accName : `To ${accName}`;
                 }).join('<br>');
 
+                const isLocked = lastClosedDate && tx.date <= lastClosedDate;
+
                 return `
-                    <tr>
-                        <td style="vertical-align:top;">${new Date(tx.date).toLocaleDateString()}</td>
+                    <tr style="${isLocked ? 'opacity:0.7; background:#f9f9f9;' : ''}">
+                        <td style="vertical-align:top;">${new Date(tx.date).toLocaleDateString()} ${isLocked ? '<i class="fas fa-lock" title="Closed"></i>' : ''}</td>
                         <td>${tx.description ? `<b>${tx.description}</b><br>` : ''}<div style="font-size:0.85rem; color:#555;">${particulars}</div></td>
                         <td style="vertical-align:top;">${tx.type || 'Journal'}</td>
                         <td class="amt" style="vertical-align:top;">${totalAmt.toLocaleString()}</td>
                         <td style="text-align:center; vertical-align:top;">
-                            <button onclick="editVoucher('${tx._id}')" style="background:none; border:none; color:var(--tally-navy); cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteTransaction('${tx._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                            ${isLocked ? '' : `
+                                <button onclick="editVoucher('${tx._id}')" style="background:none; border:none; color:var(--tally-navy); cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteTransaction('${tx._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                            `}
                         </td>
                     </tr>
                 `;
@@ -1126,6 +1204,7 @@
                     <td>${a.type}</td>
                     <td class="amt">${a.balance.toLocaleString()}</td>
                     <td style="text-align:center;">
+                        <button onclick="editAccount('${a._id}')" style="background:none; border:none; color:var(--tally-teal); cursor:pointer; margin-right:10px;"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteAccount('${a._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
@@ -1149,13 +1228,13 @@
 
             accounts.forEach(a => {
                 const name = a.name.toLowerCase();
-                if(a.type === 'Asset') {
+                if(a.type === 'Asset' || a.type === 'Receivable') {
                     assets += a.balance;
                     if(name.includes('cash')) cash += a.balance;
                     else if(name.includes('bank')) bank += a.balance;
                     else receivables += a.balance;
                 }
-                if(a.type === 'Liability') {
+                if(a.type === 'Liability' || a.type === 'Payable') {
                     liabilities += a.balance;
                     payables += a.balance;
                 }
@@ -1212,7 +1291,7 @@
         function renderTrialBalance() {
             let totalDr = 0, totalCr = 0;
             let rows = accounts.map(a => {
-                const isDr = ['Asset', 'Expense'].includes(a.type);
+                const isDr = ['Asset', 'Expense', 'Receivable'].includes(a.type);
                 let dr = 0, cr = 0;
                 if(isDr) {
                     if(a.balance >= 0) dr = a.balance; else cr = Math.abs(a.balance);
@@ -1238,37 +1317,73 @@
         }
 
         function renderBalanceSheet() {
-            let aHtml = '<thead><tr><th>Assets</th><th class="amt">Balance</th></tr></thead>',
-                lHtml = '<thead><tr><th>Liabilities</th><th class="amt">Balance</th></tr></thead>';
-            let rev = 0, exp = 0;
-            let totalA = 0, totalL = 0;
+            let aHtml = '<thead><tr><th>Assets</th><th class="amt">Balance</th></tr></thead>';
+            let lHtml = '<thead><tr><th>Liabilities</th><th class="amt">Balance</th></tr></thead>';
 
+            let groups = {
+                'Asset': { total: 0, items: [] },
+                'Receivable': { total: 0, name: 'Current Assets / Receivables', items: [] },
+                'Liability': { total: 0, items: [] },
+                'Payable': { total: 0, name: 'Current Liabilities / Payables', items: [] },
+                'Equity': { total: 0, name: 'Capital Account', items: [] }
+            };
+
+            let rev = 0, exp = 0;
             accounts.forEach(a => {
-                if(a.type === 'Asset') {
-                    aHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
-                                <td>${a.name}</td>
-                                <td class="amt">${a.balance.toLocaleString()}</td>
-                              </tr>`;
-                    totalA += a.balance;
-                }
-                if(['Liability', 'Equity'].includes(a.type)) {
-                    lHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
-                                <td>${a.name}</td>
-                                <td class="amt">${a.balance.toLocaleString()}</td>
-                              </tr>`;
-                    totalL += a.balance;
+                if (groups[a.type]) {
+                    groups[a.type].items.push(a);
+                    groups[a.type].total += a.balance;
                 }
                 if(a.type === 'Revenue') rev += a.balance;
                 if(a.type === 'Expense') exp += a.balance;
             });
+
             const netProfit = rev - exp;
+
+            // Assets Side
+            const assetGroups = ['Asset', 'Receivable'];
+            let totalA = 0;
+            assetGroups.forEach(gKey => {
+                const g = groups[gKey];
+                if (g.items.length > 0) {
+                    aHtml += `<tr style="font-weight:bold; background:#f9f9f9;"><td colspan="2">${g.name || gKey}</td></tr>`;
+                    g.items.forEach(a => {
+                        aHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
+                                    <td style="padding-left:20px;">${a.name}</td>
+                                    <td class="amt">${a.balance.toLocaleString()}</td>
+                                  </tr>`;
+                    });
+                    totalA += g.total;
+                }
+            });
+
+            // Liabilities Side
+            const liabGroups = ['Equity', 'Liability', 'Payable'];
+            let totalL = 0;
+            liabGroups.forEach(gKey => {
+                const g = groups[gKey];
+                if (g.items.length > 0) {
+                    lHtml += `<tr style="font-weight:bold; background:#f9f9f9;"><td colspan="2">${g.name || gKey}</td></tr>`;
+                    g.items.forEach(a => {
+                        lHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
+                                    <td style="padding-left:20px;">${a.name}</td>
+                                    <td class="amt">${a.balance.toLocaleString()}</td>
+                                  </tr>`;
+                    });
+                    totalL += g.total;
+                }
+            });
+
+            // Add P/L to Liabilities
+            lHtml += `<tr style="font-weight:bold; border-top:1px solid #ddd;">
+                        <td>Profit & Loss A/c (Net Profit)</td>
+                        <td class="amt">${netProfit.toLocaleString()}</td>
+                      </tr>`;
             totalL += netProfit;
 
-            lHtml += `<tr style="font-weight:bold; color:var(--tally-teal);"><td>Profit & Loss A/c (Net Profit)</td><td class="amt">${netProfit.toLocaleString()}</td></tr>`;
-
-            // Add Totals
-            aHtml += `<tr style="font-weight:bold; border-top:2px solid #000; background:#f2f5f7;"><td>Total</td><td class="amt">${totalA.toLocaleString()}</td></tr>`;
-            lHtml += `<tr style="font-weight:bold; border-top:2px solid #000; background:#f2f5f7;"><td>Total</td><td class="amt">${totalL.toLocaleString()}</td></tr>`;
+            // Final Totals
+            aHtml += `<tr style="font-weight:bold; border-top:2px solid var(--tally-navy); background:#eee;"><td>Total</td><td class="amt">${totalA.toLocaleString()}</td></tr>`;
+            lHtml += `<tr style="font-weight:bold; border-top:2px solid var(--tally-navy); background:#eee;"><td>Total</td><td class="amt">${totalL.toLocaleString()}</td></tr>`;
 
             document.getElementById('tbl-assets').innerHTML = aHtml;
             document.getElementById('tbl-liab').innerHTML = lHtml;
@@ -1276,14 +1391,29 @@
 
         function renderPL() {
             let rev = 0, exp = 0;
-            let rows = accounts.filter(a => ['Revenue', 'Expense'].includes(a.type)).map(a => {
-                if(a.type === 'Revenue') rev += a.balance; else exp += a.balance;
-                return `<tr><td>${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
-            }).join('');
-            document.getElementById('pl-body').innerHTML = rows;
+            let revHtml = '<tr style="font-weight:bold; background:#f0f7f8;"><td colspan="2">Incomes / Revenues</td></tr>';
+            let expHtml = '<tr style="font-weight:bold; background:#fff0f0;"><td colspan="2">Expenses</td></tr>';
+
+            accounts.filter(a => a.type === 'Revenue').forEach(a => {
+                rev += a.balance;
+                revHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+            });
+
+            accounts.filter(a => a.type === 'Expense').forEach(a => {
+                exp += a.balance;
+                expHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+            });
+
             const netResult = rev - exp;
+
+            let html = revHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc;"><td>Total Income</td><td class="amt">${rev.toLocaleString()}</td></tr>`;
+            html += `<tr><td colspan="2">&nbsp;</td></tr>`;
+            html += expHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc;"><td>Total Expense</td><td class="amt">${exp.toLocaleString()}</td></tr>`;
+
+            document.getElementById('pl-body').innerHTML = html;
             document.getElementById('pl-net-result').innerText = netResult.toLocaleString();
             document.getElementById('pl-net-result').className = netResult >= 0 ? 'amt text-green' : 'amt text-red';
+            document.getElementById('pl-result-label').innerText = netResult >= 0 ? "Net Profit:" : "Net Loss:";
         }
 
         // Voucher System
@@ -1302,8 +1432,50 @@
                 balDiv.innerText = "Bal: " + acc.balance.toLocaleString();
                 if (acc.balance < 0) balDiv.style.color = 'red';
                 else balDiv.style.color = '#777';
+
+                generateAutoNarration();
             } else {
                 balDiv.innerText = "";
+            }
+        }
+
+        function generateAutoNarration() {
+            const descInput = document.getElementById('v-desc');
+            // Only auto-generate if narration is empty or already starts with "Being"
+            if (descInput.value && !descInput.value.startsWith("Being")) return;
+
+            let mainAcc = "";
+            let amount = 0;
+            const rows = document.querySelectorAll('#v-rows tr');
+
+            rows.forEach(row => {
+                const accSel = row.querySelector('.v-acc');
+                const dr = Number(row.querySelector('.v-dr').value || 0);
+                const cr = Number(row.querySelector('.v-cr').value || 0);
+
+                if (accSel.value) {
+                    const accName = accSel.options[accSel.selectedIndex].text;
+                    if (currentVType === 'PAYMENT' && row.querySelector('.v-byto').innerText === 'By') {
+                        mainAcc = accName;
+                        amount = dr;
+                    } else if (currentVType === 'RECEIPT' && row.querySelector('.v-byto').innerText === 'To') {
+                        mainAcc = accName;
+                        amount = cr;
+                    } else if (currentVType === 'CONTRA' && !mainAcc) {
+                        mainAcc = accName;
+                        amount = dr || cr;
+                    } else if (currentVType === 'JOURNAL' && row.querySelector('.v-byto').innerText === 'By' && !mainAcc) {
+                        mainAcc = accName;
+                        amount = dr;
+                    }
+                }
+            });
+
+            if (mainAcc) {
+                if (currentVType === 'PAYMENT') descInput.value = `Being amount paid to ${mainAcc} Rs. ${amount.toLocaleString()}`;
+                else if (currentVType === 'RECEIPT') descInput.value = `Being amount received from ${mainAcc} Rs. ${amount.toLocaleString()}`;
+                else if (currentVType === 'CONTRA') descInput.value = `Being cash/bank transfer involving ${mainAcc}`;
+                else descInput.value = `Being journal entry for ${mainAcc} Rs. ${amount.toLocaleString()}`;
             }
         }
 
@@ -1319,8 +1491,8 @@
                     </select>
                     <div class="v-row-bal"></div>
                 </td>
-                <td><input type="number" class="v-dr" style="text-align:right;" placeholder="0.00" oninput="validateV()"></td>
-                <td><input type="number" class="v-cr" style="text-align:right;" placeholder="0.00" oninput="validateV()"></td>
+                <td><input type="number" class="v-dr" style="text-align:right;" placeholder="0.00" oninput="validateV(); generateAutoNarration();"></td>
+                <td><input type="number" class="v-cr" style="text-align:right;" placeholder="0.00" oninput="validateV(); generateAutoNarration();"></td>
                 <td><button class="v-row-del" onclick="this.parentElement.parentElement.remove(); validateV();">&times;</button></td>
             `;
 
@@ -1408,6 +1580,11 @@
             const entries = [];
             let errorMsg = null;
             const editId = document.getElementById('edit-tx-id').value;
+            const vDate = document.getElementById('v-date').value;
+
+            if (lastClosedDate && vDate <= lastClosedDate) {
+                return alert("You cannot post transactions in a closed period!");
+            }
 
             document.querySelectorAll('#v-rows tr').forEach(row => {
                 const accId = row.querySelector('.v-acc').value;
@@ -1440,22 +1617,83 @@
         }
 
         // Logic Functions
-        function openModal(id) {
+        function openModal(id, editId = null) {
             document.getElementById(id).style.display = 'flex';
             if(id === 'bikeModal') document.getElementById('b-date').valueAsDate = new Date();
             if(id === 'accModal') {
-                document.getElementById('new-aname').value = '';
-                document.getElementById('new-aob').value = '0';
+                document.getElementById('quick-acc-btns').style.display = editId ? 'none' : 'flex';
+                if(editId) {
+                    const acc = accounts.find(a => a._id === editId);
+                    document.getElementById('acc-modal-title').innerText = 'Edit Ledger Account';
+                    document.getElementById('edit-acc-id').value = editId;
+                    document.getElementById('new-aname').value = acc.name;
+                    document.getElementById('new-atype').value = acc.type;
+                    document.getElementById('new-aob').value = acc.openingBalance;
+                    document.getElementById('new-aphone').value = acc.phone || "";
+                    document.getElementById('new-aaddress').value = acc.address || "";
+                    document.getElementById('new-apanvat').value = acc.panVat || "";
+                } else {
+                    document.getElementById('acc-modal-title').innerText = 'Create Ledger Account';
+                    document.getElementById('edit-acc-id').value = '';
+                    document.getElementById('new-aname').value = '';
+                    document.getElementById('new-aob').value = '0';
+                    document.getElementById('new-aphone').value = "";
+                    document.getElementById('new-aaddress').value = "";
+                    document.getElementById('new-apanvat').value = "";
+                }
                 document.getElementById('new-aname').focus();
             }
         }
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
 
+        function editAccount(id) {
+            openModal('accModal', id);
+        }
+
+        function prefillAcc(name) {
+            document.getElementById('new-aname').value = name;
+            document.getElementById('new-atype').value = 'Asset';
+        }
+
         async function saveAccount() {
-            const data = { userId: user.uid, name: document.getElementById('new-aname').value, type: document.getElementById('new-atype').value,
-                           openingBalance: Number(document.getElementById('new-aob').value || 0), balance: Number(document.getElementById('new-aob').value || 0) };
-            await fetch('/api/accounts', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            closeModals(); syncAll();
+            const editId = document.getElementById('edit-acc-id').value;
+            const data = {
+                userId: user.uid,
+                name: document.getElementById('new-aname').value,
+                type: document.getElementById('new-atype').value,
+                openingBalance: Number(document.getElementById('new-aob').value || 0),
+                phone: document.getElementById('new-aphone').value,
+                address: document.getElementById('new-aaddress').value,
+                panVat: document.getElementById('new-apanvat').value
+            };
+
+            const url = editId ? '/api/accounts/' + editId : '/api/accounts';
+            const method = editId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            if(res.ok) {
+                closeModals();
+                syncAll();
+                if(document.getElementById('page-accounts').classList.contains('active')) renderAccountsList();
+            } else {
+                alert("Account save failed");
+            }
+        }
+
+        async function closeDay() {
+            const date = document.getElementById('close-day-date').value;
+            if(!date) return alert("Please select a date to close.");
+            if(!confirm("Are you sure? Once closed, transactions up to this date cannot be edited.")) return;
+
+            const res = await fetch('/api/settings/close-day', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userId: user.uid, date})
+            });
+            if(res.ok) {
+                alert("Day Closed Successfully!");
+                syncAll();
+            }
         }
 
         async function runRecalculate() {

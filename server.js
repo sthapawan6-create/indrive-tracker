@@ -45,7 +45,7 @@ const BackupLog = mongoose.model('BackupLog', BackupLogSchema);
 const AccountSchema = new mongoose.Schema({
     userId: String,
     name: { type: String, required: true },
-    type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'], required: true },
+    type: { type: String, enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense', 'Receivable', 'Payable'], required: true },
     group: String,
     openingBalance: { type: Number, default: 0 },
     balance: { type: Number, default: 0 },
@@ -135,6 +135,26 @@ const checkLock = async (userId, date) => {
     return false;
 };
 
+// ३. सेटिङ्स (Settings)
+app.get('/api/settings', async (req, res) => {
+    try {
+        let s = await Setting.findOne({ userId: req.query.userId });
+        if (!s) s = new Setting({ userId: req.query.userId });
+        res.json(s);
+    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
+});
+
+app.post('/api/settings/close-day', async (req, res) => {
+    try {
+        const { userId, date } = req.body;
+        let s = await Setting.findOne({ userId });
+        if (!s) s = new Setting({ userId });
+        s.lastClosedDate = date;
+        await s.save();
+        res.json(s);
+    } catch (err) { res.status(500).json({ error: "क्लोज असफल" }); }
+});
+
 // १. खाताहरू (Accounts)
 app.get('/api/accounts', async (req, res) => {
     try {
@@ -147,6 +167,8 @@ app.get('/api/accounts', async (req, res) => {
 app.post('/api/accounts', async (req, res) => {
     try {
         const account = new Account({ ...req.body });
+        // Set initial balance to openingBalance
+        account.balance = account.openingBalance || 0;
         await account.save();
         res.status(200).json(account);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -154,7 +176,34 @@ app.post('/api/accounts', async (req, res) => {
 
 app.put('/api/accounts/:id', async (req, res) => {
     try {
-        const acc = await Account.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { name, type, openingBalance, phone, address, panVat, userId } = req.body;
+        const acc = await Account.findById(req.params.id);
+        if (!acc) return res.status(404).json({ error: "खाता भेटिएन" });
+
+        acc.name = name || acc.name;
+        acc.type = type || acc.type;
+        acc.phone = phone !== undefined ? phone : acc.phone;
+        acc.address = address !== undefined ? address : acc.address;
+        acc.panVat = panVat !== undefined ? panVat : acc.panVat;
+
+        if (openingBalance !== undefined) {
+            acc.openingBalance = openingBalance;
+        }
+
+        // Recalculate balance for this account
+        const transactions = await Transaction.find({ userId: acc.userId, "entries.account": acc._id });
+        let newBalance = acc.openingBalance || 0;
+        transactions.forEach(tx => {
+            tx.entries.forEach(e => {
+                if (e.account && e.account.toString() === acc._id.toString()) {
+                    const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
+                    newBalance += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                }
+            });
+        });
+        acc.balance = newBalance;
+
+        await acc.save();
         res.json(acc);
     } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
 });
@@ -186,7 +235,7 @@ app.post('/api/transactions', async (req, res) => {
         for (const entry of entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
-                const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 acc.balance += isDebitInc ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                 await acc.save();
             }
@@ -198,14 +247,17 @@ app.post('/api/transactions', async (req, res) => {
 app.put('/api/transactions/:id', async (req, res) => {
     try {
         const { userId, date, description, entries, type } = req.body;
+        if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+
         const oldTx = await Transaction.findById(req.params.id);
         if (!oldTx) return res.status(404).json({ error: "भेटिएन" });
+        if (await checkLock(userId, oldTx.date)) return res.status(403).json({ error: "पुरानो मितिको हिसाब क्लोज भइसकेको छ।" });
 
         // Reverse old balances
         for (const entry of oldTx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
-                const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 acc.balance -= isDebitInc ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                 await acc.save();
             }
@@ -222,7 +274,7 @@ app.put('/api/transactions/:id', async (req, res) => {
         for (const entry of entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
-                const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 acc.balance += isDebitInc ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                 await acc.save();
             }
@@ -252,12 +304,13 @@ app.delete('/api/transactions/:id', async (req, res) => {
     try {
         const tx = await Transaction.findById(req.params.id);
         if (!tx) return res.status(404).json({ error: "भेटिएन" });
+        if (await checkLock(tx.userId, tx.date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
 
         // ब्यालेन्स फिर्ता घटाउने/बढाउने
         for (const entry of tx.entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
-                const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 acc.balance -= isDebitInc ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                 await acc.save();
             }
@@ -277,8 +330,8 @@ app.post('/api/recalculate', async (req, res) => {
             let newBalance = acc.openingBalance || 0;
             transactions.forEach(tx => {
                 tx.entries.forEach(e => {
-                    if (e.account.toString() === acc._id.toString()) {
-                        const isDebitInc = ['Asset', 'Expense'].includes(acc.type);
+                    if (e.account && e.account.toString() === acc._id.toString()) {
+                        const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                         newBalance += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
                     }
                 });
