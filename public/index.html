@@ -501,22 +501,33 @@
 
             <!-- Reports: Balance Sheet -->
             <div id="page-reports-bs" class="main-content">
-                <h2>Balance Sheet</h2>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0;">
+                <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Balance Sheet</h2>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="date" id="bs-date" style="padding:4px;" onchange="renderBalanceSheet()">
+                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;">Print</button>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0; border:1px solid var(--tally-border);">
                     <div style="border-right:1px solid var(--tally-border);">
-                        <table id="tbl-assets"></table>
+                        <table id="tbl-assets" class="v-table"></table>
                     </div>
                     <div>
-                        <table id="tbl-liab"></table>
+                        <table id="tbl-liab" class="v-table"></table>
                     </div>
                 </div>
             </div>
 
             <!-- Reports: P&L -->
             <div id="page-reports-pl" class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
                     <h2 style="border-bottom:none; margin:0;">Profit & Loss Account</h2>
-                    <button class="btn no-print" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;">Print Report</button>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="date" id="pl-from" style="padding:4px;" onchange="renderPL()">
+                        <span>to</span>
+                        <input type="date" id="pl-to" style="padding:4px;" onchange="renderPL()">
+                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;">Print</button>
+                    </div>
                 </div>
                 <table id="tbl-pl">
                     <thead><tr><th style="background:var(--tally-navy); color:white;">Particulars</th><th class="amt" style="background:var(--tally-navy); color:white;">Amount (Rs.)</th></tr></thead>
@@ -1317,8 +1328,25 @@
         }
 
         function renderBalanceSheet() {
-            let aHtml = '<thead><tr><th>Assets</th><th class="amt">Balance</th></tr></thead>';
-            let lHtml = '<thead><tr><th>Liabilities</th><th class="amt">Balance</th></tr></thead>';
+            const asOfDate = document.getElementById('bs-date').value || new Date().toISOString().split('T')[0];
+            document.getElementById('bs-date').value = asOfDate;
+
+            let aHtml = '<thead><tr><th style="background:#2d3e50; color:white;">Assets</th><th class="amt" style="background:#2d3e50; color:white;">Balance</th></tr></thead>';
+            let lHtml = '<thead><tr><th style="background:#2d3e50; color:white;">Liabilities</th><th class="amt" style="background:#2d3e50; color:white;">Balance</th></tr></thead>';
+
+            // Calculate balances as of date
+            const balances = {};
+            accounts.forEach(a => balances[a._id] = a.openingBalance || 0);
+            transactions.forEach(tx => {
+                if (tx.date <= asOfDate) {
+                    tx.entries.forEach(e => {
+                        const accId = e.account._id || e.account;
+                        if (balances[accId] !== undefined) {
+                            balances[accId] += (e.debit - e.credit);
+                        }
+                    });
+                }
+            });
 
             let groups = {
                 'Asset': { total: 0, items: [] },
@@ -1330,23 +1358,24 @@
 
             let rev = 0, exp = 0;
             accounts.forEach(a => {
+                const bal = balances[a._id];
                 if (groups[a.type]) {
-                    groups[a.type].items.push(a);
-                    groups[a.type].total += a.balance;
+                    groups[a.type].items.push({ name: a.name, balance: bal, _id: a._id });
+                    groups[a.type].total += bal;
                 }
-                if(a.type === 'Revenue') rev += a.balance;
-                if(a.type === 'Expense') exp += a.balance;
+                if(a.type === 'Revenue') rev += bal;
+                if(a.type === 'Expense') exp += bal;
             });
 
             const netProfit = rev - exp;
 
-            // Assets Side
+            // Assets Side (Debits are positive for assets)
             const assetGroups = ['Asset', 'Receivable'];
             let totalA = 0;
             assetGroups.forEach(gKey => {
                 const g = groups[gKey];
                 if (g.items.length > 0) {
-                    aHtml += `<tr style="font-weight:bold; background:#f9f9f9;"><td colspan="2">${g.name || gKey}</td></tr>`;
+                    aHtml += `<tr style="font-weight:bold; background:#f0f4f7;"><td colspan="2">${g.name || gKey}</td></tr>`;
                     g.items.forEach(a => {
                         aHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
                                     <td style="padding-left:20px;">${a.name}</td>
@@ -1357,63 +1386,84 @@
                 }
             });
 
-            // Liabilities Side
+            // Liabilities Side (Credits are positive, but our bal calculation is Dr-Cr, so we flip for Liab)
             const liabGroups = ['Equity', 'Liability', 'Payable'];
             let totalL = 0;
             liabGroups.forEach(gKey => {
                 const g = groups[gKey];
                 if (g.items.length > 0) {
-                    lHtml += `<tr style="font-weight:bold; background:#f9f9f9;"><td colspan="2">${g.name || gKey}</td></tr>`;
+                    lHtml += `<tr style="font-weight:bold; background:#f0f4f7;"><td colspan="2">${g.name || gKey}</td></tr>`;
                     g.items.forEach(a => {
+                        const displayBal = -a.balance; // Flip sign for Liab/Equity
                         lHtml += `<tr class="clickable-ledger" onclick="showPage('statement'); document.getElementById('stmt-acc-select').value='${a._id}'; renderLedgerStatement();">
                                     <td style="padding-left:20px;">${a.name}</td>
-                                    <td class="amt">${a.balance.toLocaleString()}</td>
+                                    <td class="amt">${displayBal.toLocaleString()}</td>
                                   </tr>`;
                     });
-                    totalL += g.total;
+                    totalL += (-g.total);
                 }
             });
 
-            // Add P/L to Liabilities
+            // Add P/L to Liabilities (Profit is Credit, so flip sign)
+            const displayProfit = -netProfit;
             lHtml += `<tr style="font-weight:bold; border-top:1px solid #ddd;">
                         <td>Profit & Loss A/c (Net Profit)</td>
-                        <td class="amt">${netProfit.toLocaleString()}</td>
+                        <td class="amt">${displayProfit.toLocaleString()}</td>
                       </tr>`;
-            totalL += netProfit;
+            totalL += displayProfit;
 
             // Final Totals
-            aHtml += `<tr style="font-weight:bold; border-top:2px solid var(--tally-navy); background:#eee;"><td>Total</td><td class="amt">${totalA.toLocaleString()}</td></tr>`;
-            lHtml += `<tr style="font-weight:bold; border-top:2px solid var(--tally-navy); background:#eee;"><td>Total</td><td class="amt">${totalL.toLocaleString()}</td></tr>`;
+            aHtml += `<tr style="font-weight:bold; border-top:2px solid #333; background:#dee2e6;"><td>Total</td><td class="amt">${totalA.toLocaleString()}</td></tr>`;
+            lHtml += `<tr style="font-weight:bold; border-top:2px solid #333; background:#dee2e6;"><td>Total</td><td class="amt">${totalL.toLocaleString()}</td></tr>`;
 
             document.getElementById('tbl-assets').innerHTML = aHtml;
             document.getElementById('tbl-liab').innerHTML = lHtml;
         }
 
         function renderPL() {
+            const from = document.getElementById('pl-from').value;
+            const to = document.getElementById('pl-to').value;
+
+            // Calculate period balances
+            const periodBals = {};
+            accounts.forEach(a => periodBals[a._id] = 0);
+            transactions.forEach(tx => {
+                if ((!from || tx.date >= from) && (!to || tx.date <= to)) {
+                    tx.entries.forEach(e => {
+                        const accId = e.account._id || e.account;
+                        if (periodBals[accId] !== undefined) {
+                            periodBals[accId] += (e.debit - e.credit);
+                        }
+                    });
+                }
+            });
+
             let rev = 0, exp = 0;
             let revHtml = '<tr style="font-weight:bold; background:#f0f7f8;"><td colspan="2">Incomes / Revenues</td></tr>';
             let expHtml = '<tr style="font-weight:bold; background:#fff0f0;"><td colspan="2">Expenses</td></tr>';
 
-            accounts.filter(a => a.type === 'Revenue').forEach(a => {
-                rev += a.balance;
-                revHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
-            });
-
-            accounts.filter(a => a.type === 'Expense').forEach(a => {
-                exp += a.balance;
-                expHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${a.balance.toLocaleString()}</td></tr>`;
+            accounts.forEach(a => {
+                const bal = periodBals[a._id];
+                if (a.type === 'Revenue' && bal !== 0) {
+                    const displayBal = -bal; // Revenue is Credit
+                    rev += displayBal;
+                    revHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${displayBal.toLocaleString()}</td></tr>`;
+                } else if (a.type === 'Expense' && bal !== 0) {
+                    exp += bal; // Expense is Debit
+                    expHtml += `<tr><td style="padding-left:20px;">${a.name}</td><td class="amt">${bal.toLocaleString()}</td></tr>`;
+                }
             });
 
             const netResult = rev - exp;
 
-            let html = revHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc;"><td>Total Income</td><td class="amt">${rev.toLocaleString()}</td></tr>`;
-            html += `<tr><td colspan="2">&nbsp;</td></tr>`;
-            html += expHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc;"><td>Total Expense</td><td class="amt">${exp.toLocaleString()}</td></tr>`;
+            let html = revHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc; background:#e9ecef;"><td>Total Income (A)</td><td class="amt">${rev.toLocaleString()}</td></tr>`;
+            html += `<tr><td colspan="2" style="height:20px;"></td></tr>`;
+            html += expHtml + `<tr style="font-weight:bold; border-top:1px solid #ccc; background:#e9ecef;"><td>Total Expense (B)</td><td class="amt">${exp.toLocaleString()}</td></tr>`;
 
             document.getElementById('pl-body').innerHTML = html;
-            document.getElementById('pl-net-result').innerText = netResult.toLocaleString();
+            document.getElementById('pl-net-result').innerText = Math.abs(netResult).toLocaleString();
             document.getElementById('pl-net-result').className = netResult >= 0 ? 'amt text-green' : 'amt text-red';
-            document.getElementById('pl-result-label').innerText = netResult >= 0 ? "Net Profit:" : "Net Loss:";
+            document.getElementById('pl-result-label').innerText = netResult >= 0 ? "Net Profit (A-B):" : "Net Loss (B-A):";
         }
 
         // Voucher System
