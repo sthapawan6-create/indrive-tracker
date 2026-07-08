@@ -981,12 +981,15 @@
                 }
 
                 renderDashboardData();
+                renderDashboard();
                 renderTrialBalance();
                 renderBalanceSheet();
                 renderPL();
                 renderBikeLogs();
 
-                if(document.getElementById('page-dashboard').classList.contains('active')) renderCharts();
+                if(document.getElementById('page-dashboard').classList.contains('active')) {
+                    renderCharts();
+                }
             } catch(e) { console.error("Sync Error", e); }
         }
 
@@ -1265,16 +1268,31 @@
         }
 
         function renderDashboard() {
+            // Recalculate balances from transactions to ensure accuracy
+            const balances = {};
+            accounts.forEach(a => balances[a._id] = a.openingBalance || 0);
+            transactions.forEach(tx => {
+                tx.entries.forEach(e => {
+                    const accId = e.account._id || e.account;
+                    if (balances[accId] !== undefined) {
+                        balances[accId] += (e.debit - e.credit);
+                    }
+                });
+            });
+            accounts.forEach(a => a.balance = balances[a._id]);
+
             // Update Stats Cards
             let cash = 0, bank = 0, rec = 0, pay = 0, rev = 0, exp = 0;
             accounts.forEach(a => {
                 const name = a.name.toLowerCase();
-                if (name.includes('cash')) cash += a.balance;
-                if (name.includes('bank') || name.includes('nic')) bank += a.balance;
-                if (a.type === 'Receivable') rec += a.balance;
-                if (a.type === 'Payable') pay += a.balance;
-                if (a.type === 'Revenue') rev += a.balance;
-                if (a.type === 'Expense') exp += a.balance;
+                const bal = a.balance;
+                if (name.includes('cash')) cash += bal;
+                else if (name.includes('bank') || name.includes('nic') || name.includes('nabil')) bank += bal;
+
+                if (a.type === 'Receivable') rec += bal;
+                if (a.type === 'Payable') pay += (-bal);
+                if (a.type === 'Revenue') rev += (-bal);
+                if (a.type === 'Expense') exp += bal;
             });
 
             const cashEl = document.getElementById('dash-cash-val');
@@ -1313,50 +1331,66 @@
         }
 
         function renderDashboardData() {
-            renderDashboard(); // Call our new dashboard renderer
-            // ... original logic if still needed elsewhere
+            // First, calculate actual balances for all accounts from transactions
+            const balances = {};
+            accounts.forEach(a => balances[a._id] = a.openingBalance || 0);
+
+            transactions.forEach(tx => {
+                tx.entries.forEach(e => {
+                    const accId = e.account._id || e.account;
+                    if (balances[accId] !== undefined) {
+                        balances[accId] += (e.debit - e.credit);
+                    }
+                });
+            });
+
+            // Update the main accounts array with calculated balances for other functions to use
+            accounts.forEach(a => {
+                a.balance = balances[a._id];
+            });
+
+            // Now call our specific dashboard renderers
+            renderDashboard(); // Updates the new Graphical Dashboard cards
+
             let cash = 0, bank = 0, receivables = 0, payables = 0, assets = 0, liabilities = 0, rev = 0, exp = 0;
             let todayIn = 0, todayOut = 0;
 
-            // Getting local date in YYYY-MM-DD format
             const now = new Date();
-            const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            const todayStr = now.toISOString().split('T')[0];
 
             accounts.forEach(a => {
                 const name = a.name.toLowerCase();
+                const bal = a.balance;
+
                 if(a.type === 'Asset' || a.type === 'Receivable') {
-                    assets += a.balance;
-                    if(name.includes('cash')) cash += a.balance;
-                    else if(name.includes('bank')) bank += a.balance;
-                    else receivables += a.balance;
+                    assets += bal;
+                    if(name.includes('cash')) cash += bal;
+                    else if(name.includes('bank') || name.includes('nic') || name.includes('nabil')) bank += bal;
+                    else if(a.type === 'Receivable') receivables += bal;
                 }
                 if(a.type === 'Liability' || a.type === 'Payable') {
-                    liabilities += a.balance;
-                    payables += a.balance;
+                    liabilities += (-bal); // Liab are credit, so Dr-Cr will be negative
+                    if(a.type === 'Payable') payables += (-bal);
                 }
-                if(a.type === 'Equity') {
-                    // Equity is handled separately or included in Net Worth calculation context
-                }
-                if(a.type === 'Revenue') rev += a.balance;
-                if(a.type === 'Expense') exp += a.balance;
+                if(a.type === 'Revenue') rev += (-bal);
+                if(a.type === 'Expense') exp += bal;
             });
 
-            transactions.forEach(tx => {
-                if(tx.date === todayStr) {
-                    tx.entries.forEach(e => {
-                        const acc = e.account; // It's populated
-                        if(acc) {
-                            if(acc.type === 'Revenue') todayIn += e.credit;
-                            if(acc.type === 'Expense') todayOut += e.debit;
-                        }
-                    });
-                }
+            // Calculate Today's Transactions
+            transactions.filter(tx => tx.date === todayStr).forEach(tx => {
+                tx.entries.forEach(e => {
+                    const acc = accounts.find(a => (a._id === (e.account._id || e.account)));
+                    if(acc) {
+                        if(acc.type === 'Revenue') todayIn += e.credit;
+                        if(acc.type === 'Expense') todayOut += e.debit;
+                    }
+                });
             });
 
-            // Dashboard Viewport Updates
+            // Update Sidebar / Gateway Stats
             const netWorthValue = assets - liabilities;
-            document.getElementById('val-net-worth').innerText = 'Rs. ' + netWorthValue.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('val-cashbank').innerText = 'Rs. ' + (cash + bank).toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('val-net-worth').innerText = 'Rs. ' + netWorthValue.toLocaleString();
+            document.getElementById('val-cashbank').innerText = 'Rs. ' + (cash + bank).toLocaleString();
             document.getElementById('sub-cash').innerText = cash.toLocaleString();
             document.getElementById('sub-bank').innerText = bank.toLocaleString();
             document.getElementById('val-receivable').innerText = 'Rs. ' + receivables.toLocaleString();
@@ -1365,10 +1399,13 @@
             document.getElementById('val-today-out').innerText = 'Rs. ' + todayOut.toLocaleString();
 
             const netProfit = rev - exp;
-            document.getElementById('val-net-pl').innerText = 'Rs. ' + netProfit.toLocaleString();
-            document.getElementById('val-net-pl').className = netProfit >= 0 ? 'val text-green' : 'val text-red';
+            const profitEl = document.getElementById('val-net-pl');
+            if(profitEl) {
+                profitEl.innerText = 'Rs. ' + netProfit.toLocaleString();
+                profitEl.className = netProfit >= 0 ? 'val text-green' : 'val text-red';
+            }
 
-            // Live Feed (Recent 6)
+            // Update Live Feed (Recent 6)
             const recent = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
             document.getElementById('live-feed').innerHTML = recent.map(tx => {
                 const amount = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
@@ -1378,7 +1415,7 @@
                             <div style="font-weight:bold; color:var(--tally-navy);">${tx.description || 'Journal Voucher'}</div>
                             <div style="font-size:0.7rem; color:#888;">${tx.date}</div>
                         </div>
-                        <div class="text-green" style="font-weight:bold; font-family:Consolas, monospace;">${amount.toLocaleString()}</div>
+                        <div style="font-weight:bold; font-family:Consolas, monospace; color:var(--tally-teal);">${amount.toLocaleString()}</div>
                     </div>
                 `;
             }).join('');
