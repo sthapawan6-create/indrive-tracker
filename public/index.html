@@ -205,7 +205,14 @@
 
     <div class="app-wrapper">
         <div class="top-bar">
-            <div class="logo">PAWAN GOLD <span style="font-weight:normal; opacity:0.8; font-size:0.75rem;">| ERP SYSTEMS INC.</span></div>
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div class="logo">PAWAN GOLD <span style="font-weight:normal; opacity:0.8; font-size:0.75rem;">| ERP SYSTEMS INC.</span></div>
+                <div style="position:relative;">
+                    <input type="text" id="goto-bar" placeholder="Go To (Alt+G)..." oninput="showGoToSuggestions()" onkeydown="handleGoToKey(event)" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:6px 12px; color:white; width:250px; outline:none; font-size:0.85rem;">
+                    <div id="goto-suggestions" style="position:absolute; top:40px; left:0; width:100%; background:white; color:black; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:1000; display:none; max-height:300px; overflow-y:auto;">
+                    </div>
+                </div>
+            </div>
             <div style="display:flex; gap:20px; align-items:center;">
                 <span id="uNameDisplay" style="font-weight:bold;"></span>
                 <img id="uImgDisplay" src="" style="width:24px; border-radius:50%; border:1px solid white;">
@@ -385,10 +392,13 @@
             <!-- Accounts List Page -->
             <div id="page-accounts" class="main-content">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
-                    <h2 style="border-bottom:none; margin:0;">Chart of Accounts</h2>
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        <h2 style="border-bottom:none; margin:0;">Chart of Accounts</h2>
+                        <input type="text" id="acc-search" placeholder="Search accounts..." oninput="renderAccountsList()" style="padding:4px 10px; border:1px solid var(--tally-border); width:200px; font-size:0.8rem;">
+                    </div>
                     <button class="btn" onclick="openModal('accModal')" style="font-size: 0.8rem; padding: 5px 15px;">+ Create (Alt+C)</button>
                 </div>
-                <table>
+                <table id="tbl-accounts-main">
                     <thead>
                         <tr style="background: var(--tally-navy); color: white;">
                             <th style="color:white;">Account Name</th>
@@ -496,9 +506,12 @@
                         <h2 style="border-bottom:none; margin:0;">Day Book</h2>
                         <input type="text" id="daybook-search" placeholder="Search (Date, Account, Type...)" oninput="renderDayBook()" style="padding:4px 10px; border:1px solid var(--tally-border); width:250px; font-size:0.8rem;">
                     </div>
-                    <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Day Book</button>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn" onclick="downloadCSV('tbl-daybook-main', 'DayBook.csv')" style="font-size: 0.8rem; padding: 5px 15px; background:#2e7d32;"><i class="fas fa-file-excel"></i> Export</button>
+                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print</button>
+                    </div>
                 </div>
-                <table>
+                <table id="tbl-daybook-main">
                     <thead>
                         <tr style="background: var(--tally-navy); color: white;">
                             <th style="color:white;">Date</th>
@@ -613,6 +626,18 @@
                         <h3><i class="fas fa-sync"></i> Data Integrity</h3>
                         <p style="font-size:0.85rem; color:#666;">हिसाबमा कुनै समस्या देखिएमा ब्यालेन्स मिलाउन यहाँ क्लिक गर्नुहोस्:</p>
                         <button class="btn" onclick="runRecalculate()" style="margin-top:15px;">Force Recalculate Everything</button>
+                    </div>
+
+                    <div class="box" style="padding:20px; border:1px solid #ddd; background:#f9f9f9;">
+                        <h3><i class="fas fa-database"></i> Backup & Restore</h3>
+                        <p style="font-size:0.85rem; color:#666;">डाटा सुरक्षित राख्न ब्याकअप लिनुहोस् वा पुरानो डाटा रिस्टोर गर्नुहोस्।</p>
+                        <div style="display:flex; gap:10px; margin-top:15px;">
+                            <button class="btn" onclick="backupData()" style="background:#2e7d32;"><i class="fas fa-download"></i> Backup Data</button>
+                            <label class="btn" style="background:var(--tally-navy); cursor:pointer;">
+                                <i class="fas fa-upload"></i> Restore Data
+                                <input type="file" id="restore-input" onchange="restoreData(event)" style="display:none;">
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1250,7 +1275,12 @@
         }
 
         function renderAccountsList() {
-            document.getElementById('tbl-accounts-body').innerHTML = accounts.map(a => `
+            const query = (document.getElementById('acc-search')?.value || "").toLowerCase();
+            const filtered = accounts.filter(a =>
+                a.name.toLowerCase().includes(query) ||
+                a.type.toLowerCase().includes(query)
+            );
+            document.getElementById('tbl-accounts-body').innerHTML = filtered.map(a => `
                 <tr>
                     <td>${a.name}</td>
                     <td>${a.type}</td>
@@ -1261,6 +1291,26 @@
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function downloadCSV(tableId, filename) {
+            let csv = [];
+            let rows = document.querySelectorAll(`#${tableId} tr`);
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll("td, th");
+                for (let j = 0; j < cols.length - 1; j++) { // Skip the last 'Action' column
+                    let data = cols[j].innerText.replace(/,/g, "").replace(/\n/g, " ").replace(/"/g, '""');
+                    row.push('"' + data + '"');
+                }
+                csv.push(row.join(","));
+            }
+            let csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            let downloadLink = document.createElement("a");
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
         }
 
         async function deleteAccount(id) {
@@ -1955,6 +2005,91 @@
             await fetch('/api/recalculate', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId: user.uid}) });
             alert("Recalculation Done!"); syncAll();
         }
+
+        // New Features Logic
+        function backupData() {
+            const data = {
+                accounts,
+                transactions,
+                bikeLogs: typeof bikeLogs !== 'undefined' ? bikeLogs : [],
+                exportDate: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `PAWAN_GOLD_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        async function restoreData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!confirm("Caution: This will overwrite local data if sync is not performed. Continue?")) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    alert("Backup file loaded. Please contact administrator to push this to server, or use it for local reference.");
+                    console.log("Restored Data:", data);
+                } catch (err) {
+                    alert("Invalid backup file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        const goToRoutes = [
+            { name: 'Dashboard', page: 'gateway' },
+            { name: 'Day Book', page: 'daybook' },
+            { name: 'Chart of Accounts', page: 'accounts' },
+            { name: 'Balance Sheet', page: 'reports-bs' },
+            { name: 'Profit & Loss', page: 'reports-pl' },
+            { name: 'Cash/Bank Book', page: 'reports-stmt' },
+            { name: 'Bike Log', page: 'bike' },
+            { name: 'Voucher Entry', page: 'vouchers' },
+            { name: 'Settings', page: 'settings' }
+        ];
+
+        function showGoToSuggestions() {
+            const query = (document.getElementById('goto-bar')?.value || "").toLowerCase();
+            const suggestionsEl = document.getElementById('goto-suggestions');
+            if (!query) { suggestionsEl.style.display = 'none'; return; }
+
+            const matches = goToRoutes.filter(r => r.name.toLowerCase().includes(query));
+            if (matches.length > 0) {
+                suggestionsEl.innerHTML = matches.map(m => `
+                    <div onclick="navigateToGoTo('${m.page}')" style="padding:10px; cursor:pointer; border-bottom:1px solid #eee; font-size:0.9rem;">
+                        <i class="fas fa-arrow-right" style="font-size:0.7rem; color:var(--tally-teal);"></i> ${m.name}
+                    </div>
+                `).join('');
+                suggestionsEl.style.display = 'block';
+            } else {
+                suggestionsEl.style.display = 'none';
+            }
+        }
+
+        function navigateToGoTo(page) {
+            showPage(page);
+            document.getElementById('goto-bar').value = '';
+            document.getElementById('goto-suggestions').style.display = 'none';
+        }
+
+        function handleGoToKey(e) {
+            if (e.key === 'Enter') {
+                const query = document.getElementById('goto-bar').value.toLowerCase();
+                const firstMatch = goToRoutes.find(r => r.name.toLowerCase().includes(query));
+                if (firstMatch) navigateToGoTo(firstMatch.page);
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key === 'g') {
+                e.preventDefault();
+                document.getElementById('goto-bar').focus();
+            }
+        });
 
         async function saveBikeLog() {
             const data = { userId: user.uid, date: document.getElementById('b-date').value, type: document.getElementById('b-type').value,
