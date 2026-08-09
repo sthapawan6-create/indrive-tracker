@@ -1036,7 +1036,8 @@
                 if(monthDiff >= 0 && monthDiff < 6) {
                     const idx = 5 - monthDiff;
                     tx.entries.forEach(e => {
-                        const acc = e.account;
+                        const accId = (e.account._id || e.account).toString();
+                        const acc = accounts.find(a => a._id.toString() === accId);
                         if(acc) {
                             if(acc.type === 'Revenue') monthlyInc[idx] += (e.credit || 0);
                             if(acc.type === 'Expense') monthlyExp[idx] += (e.debit || 0);
@@ -1110,10 +1111,10 @@
                 },
                 options: {
                     scales: {
-                        y: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
-                        x: { grid: { color: '#333' }, ticks: { color: '#aaa' } }
+                        y: { grid: { color: '#f0f0f0' }, ticks: { color: '#666' } },
+                        x: { grid: { display: false }, ticks: { color: '#666' } }
                     },
-                    plugins: { legend: { labels: { color: '#fff' } } }
+                    plugins: { legend: { labels: { color: '#333' } } }
                 }
             });
         }
@@ -1328,6 +1329,7 @@
             let rHtml = '';
             recent.forEach(tx => {
                 const amt = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+                const isLocked = lastClosedDate && tx.date <= lastClosedDate;
                 rHtml += `<tr>
                     <td style="border:none; border-bottom:1px solid #f1f1f1; font-size:0.85rem; color:#666;">${new Date(tx.date).toLocaleDateString()}</td>
                     <td style="border:none; border-bottom:1px solid #f1f1f1;">
@@ -1335,6 +1337,12 @@
                     </td>
                     <td style="border:none; border-bottom:1px solid #f1f1f1;"><span style="background:#eef2f5; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">${tx.type || 'JOURNAL'}</span></td>
                     <td class="amt" style="border:none; border-bottom:1px solid #f1f1f1; color:var(--tally-teal);">Rs. ${amt.toLocaleString()}</td>
+                    <td style="border:none; border-bottom:1px solid #f1f1f1; text-align:center;">
+                        ${isLocked ? '<i class="fas fa-lock" title="Closed"></i>' : `
+                            <button onclick="editVoucher('${tx._id}')" style="background:none; border:none; color:var(--tally-navy); cursor:pointer; margin-right:5px;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteTransaction('${tx._id}')" style="background:none; border:none; color:#d32f2f; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        `}
+                    </td>
                 </tr>`;
             });
             const listEl = document.getElementById('dash-recent-list');
@@ -1371,10 +1379,18 @@
 
             transactions.filter(tx => tx.date === todayStr).forEach(tx => {
                 tx.entries.forEach(e => {
-                    const acc = accounts.find(a => a._id.toString() === (e.account._id || e.account).toString());
+                    const accId = (e.account._id || e.account).toString();
+                    const acc = accounts.find(a => a._id.toString() === accId);
                     if(acc) {
-                        if(acc.type === 'Revenue' || (acc.type === 'Asset' && e.credit > 0)) todayIn += (e.credit || 0);
-                        if(acc.type === 'Expense' || (acc.type === 'Asset' && e.debit > 0)) todayOut += (e.debit || 0);
+                        const name = (acc.name || "").toLowerCase();
+                        const isLiquid = name.includes('cash') || name.includes('bank') || name.includes('wallet') || name.includes('esewa') || name.includes('khalti') || name.includes('nic') || name.includes('nabil');
+
+                        if(!isLiquid) {
+                            // Today In: Revenue Credits, Receivable Credits, Asset Credits (Non-liquid)
+                            if(acc.type === 'Revenue' || acc.type === 'Receivable' || acc.type === 'Asset') todayIn += (e.credit || 0);
+                            // Today Out: Expense Debits, Payable Debits, Asset Debits (Non-liquid)
+                            if(acc.type === 'Expense' || acc.type === 'Payable' || acc.type === 'Liability' || acc.type === 'Asset') todayOut += (e.debit || 0);
+                        }
                     }
                 });
             });
@@ -1984,10 +2000,26 @@
             const summaryDiv = document.getElementById('bike-summary');
             if (summaryDiv) {
                 summaryDiv.innerHTML = `
-                    <div class="info-card" style="margin-bottom:0;"><h4>Total Fuel Cost</h4><div class="val">Rs. ${fuelTotal.toLocaleString()}</div></div>
-                    <div class="info-card" style="margin-bottom:0;"><h4>Current Odo</h4><div class="val">${lastOdo.toLocaleString()} km</div></div>
-                    <div class="info-card" style="margin-bottom:0;"><h4>Total Expense</h4><div class="val">Rs. ${totalAmt.toLocaleString()}</div></div>
-                    <div class="info-card" style="margin-bottom:0;"><h4>Total Logs</h4><div class="val">${logs.length}</div></div>
+                    <div class="info-card" style="background: linear-gradient(135deg, #0891b2, #06b6d4); color: white;">
+                        <h4 style="color:rgba(255,255,255,0.8)">Total Fuel Cost</h4>
+                        <div class="val" style="color:white;">Rs. ${fuelTotal.toLocaleString()}</div>
+                        <i class="fas fa-gas-pump" style="position:absolute; right:15px; bottom:15px; font-size:2rem; opacity:0.2;"></i>
+                    </div>
+                    <div class="info-card" style="border-bottom: 4px solid var(--tally-teal);">
+                        <h4>Current Odo</h4>
+                        <div class="val" style="color:var(--tally-teal);">${lastOdo.toLocaleString()} km</div>
+                        <i class="fas fa-tachometer-alt" style="position:absolute; right:15px; top:15px; opacity:0.1;"></i>
+                    </div>
+                    <div class="info-card" style="border-bottom: 4px solid var(--danger-color);">
+                        <h4>Total Maint. Expense</h4>
+                        <div class="val" style="color:var(--danger-color);">Rs. ${totalAmt.toLocaleString()}</div>
+                        <i class="fas fa-tools" style="position:absolute; right:15px; top:15px; opacity:0.1;"></i>
+                    </div>
+                    <div class="info-card" style="background: var(--tally-navy); color: white;">
+                        <h4 style="color:rgba(255,255,255,0.8)">Log Entries</h4>
+                        <div class="val" style="color:white;">${logs.length}</div>
+                        <i class="fas fa-clipboard-list" style="position:absolute; right:15px; bottom:15px; font-size:2rem; opacity:0.2;"></i>
+                    </div>
                 `;
             }
         }
