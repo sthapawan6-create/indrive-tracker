@@ -23,15 +23,30 @@
         }
 
         @media print {
-            .no-print, .top-bar, .f-keys-bar, .gateway-container, .dashboard-sidebar, .btn, .top-bar button { display: none !important; }
-            .main-content { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
-            .app-wrapper { height: auto !important; display: block !important; }
-            .layout-body { display: block !important; overflow: visible !important; }
-            .print-header { display: block !important; }
-            table { border: 1px solid #000 !important; width: 100% !important; }
-            th, td { border: 1px solid #000 !important; color: #000 !important; }
-            h2 { color: #000 !important; border-bottom: 1px solid #000 !important; }
+            .no-print, .top-bar, .f-keys-bar, .gateway-container, .dashboard-sidebar, .btn, .top-bar button, .modal, #acc-search, #daybook-search, #goto-bar, #goto-suggestions { display: none !important; }
+            body { display: block !important; background: white !important; height: auto !important; overflow: visible !important; }
+            .app-wrapper { height: auto !important; display: block !important; position: static !important; }
+            .layout-body { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
+            .main-content {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                overflow: visible !important;
+            }
+            .print-header { display: block !important; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000 !important; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            th, td { border: 1px solid #000 !important; padding: 8px !important; color: #000 !important; font-size: 10pt !important; }
+            h2 { color: #000 !important; border-bottom: 1px solid #000 !important; text-align: center; }
+            .amt { text-align: right !important; }
         }
+
+        .print-header { display: none; }
+        .print-header h1 { margin: 0; font-size: 1.5rem; }
+        .print-header p { margin: 5px 0; font-size: 0.9rem; }
 
         * { box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; }
         body {
@@ -472,18 +487,20 @@
                         <span>to</span>
                         <input type="date" id="stmt-to" style="padding:4px;" onchange="renderLedgerStatement()">
                         <select id="stmt-acc-select" onchange="renderLedgerStatement()" style="padding:5px; min-width:200px;"></select>
-                        <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print (Alt+P)</button>
+                        <button class="btn" onclick="downloadCSV('tbl-stmt-main', 'LedgerStatement.csv')" style="background:#2e7d32; font-size:0.8rem;"><i class="fas fa-file-excel"></i> CSV</button>
+                        <button class="btn" onclick="printLedger()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-file-pdf"></i> Print / Save PDF</button>
                     </div>
                 </div>
 
                 <div id="print-area">
-                    <div class="print-header" style="display:none; text-align:center; margin-bottom:20px;">
-                        <h1 style="margin:0; color:var(--tally-teal);">PAWAN GOLD</h1>
-                        <p style="margin:5px 0; font-weight:bold;">Ledger Account Statement</p>
-                        <h3 id="stmt-acc-name" style="margin:10px 0; border-bottom:1px solid #000; display:inline-block; padding:0 20px;"></h3>
+                    <div class="print-header">
+                        <h1>PAWAN GOLD ERP</h1>
+                        <p style="font-weight:bold;">Ledger Account Statement</p>
+                        <h3 id="print-ledger-name" style="margin:10px 0; border-bottom:1px solid #000; display:inline-block; padding:0 20px;"></h3>
+                        <p id="print-period"></p>
                     </div>
 
-                    <table style="border: 2px solid #333;">
+                    <table id="tbl-stmt-main" style="border: 2px solid #333;">
                         <thead>
                             <tr style="background:#eee;">
                                 <th>Date</th>
@@ -1148,6 +1165,18 @@
             const select = document.getElementById('stmt-acc-select');
             select.innerHTML = `<option value="">-- Select Account --</option>` +
                 accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+        }
+
+        function printLedger() {
+            const accId = document.getElementById('stmt-acc-select').value;
+            const acc = accounts.find(a => a._id === accId);
+            if(acc) {
+                document.getElementById('print-ledger-name').innerText = "Account: " + acc.name + " (" + acc.type + ")";
+                const from = document.getElementById('stmt-from').value;
+                const to = document.getElementById('stmt-to').value;
+                document.getElementById('print-period').innerText = (from || "Start") + " to " + (to || new Date().toLocaleDateString());
+            }
+            window.print();
         }
 
         function renderLedgerStatement() {
