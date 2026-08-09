@@ -1187,7 +1187,8 @@
             const toDate = document.getElementById('stmt-to').value;
 
             const acc = accounts.find(a => a._id === accId);
-            document.getElementById('stmt-acc-name').innerText = acc.name.toUpperCase();
+            const titleEl = document.getElementById('stmt-acc-name') || document.getElementById('print-ledger-name');
+            if(titleEl) titleEl.innerText = acc.name.toUpperCase();
 
             let balance = acc.openingBalance || 0;
             const isDrMain = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
