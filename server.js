@@ -299,6 +299,81 @@ app.post('/api/bike', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
 });
 
+// ४. आर्थिक वर्ष समापन (Fiscal Year Closing)
+app.post('/api/fiscal-year-close', async (req, res) => {
+    try {
+        const { userId, date, equityAccountId } = req.body;
+        if (!equityAccountId) return res.status(400).json({ error: "Equity (Capital) खाता छानिएको छैन।" });
+
+        const accounts = await Account.find({ userId });
+        const revenueAccounts = accounts.filter(a => a.type === 'Revenue');
+        const expenseAccounts = accounts.filter(a => a.type === 'Expense');
+
+        let totalRevenue = 0;
+        let totalExpense = 0;
+        const entries = [];
+
+        // Revenue zero out
+        for (const acc of revenueAccounts) {
+            if (acc.balance !== 0) {
+                totalRevenue += acc.balance;
+                entries.push({ account: acc._id, debit: acc.balance, credit: 0 }); // Debit to zero out Revenue
+                acc.balance = 0;
+                await acc.save();
+            }
+        }
+
+        // Expense zero out
+        for (const acc of expenseAccounts) {
+            if (acc.balance !== 0) {
+                totalExpense += acc.balance;
+                entries.push({ account: acc._id, debit: 0, credit: acc.balance }); // Credit to zero out Expense
+                acc.balance = 0;
+                await acc.save();
+            }
+        }
+
+        const netProfit = totalRevenue - totalExpense;
+
+        if (entries.length === 0) return res.status(400).json({ error: "शून्य बनाउनुपर्ने कुनै हिसाब भेटिएन।" });
+
+        // Equity account update
+        const equityAcc = await Account.findById(equityAccountId);
+        if (!equityAcc) return res.status(404).json({ error: "Equity खाता भेटिएन।" });
+
+        equityAcc.balance += netProfit;
+        await equityAcc.save();
+
+        // Counter entry for Equity
+        entries.push({
+            account: equityAcc._id,
+            debit: netProfit < 0 ? Math.abs(netProfit) : 0,
+            credit: netProfit > 0 ? netProfit : 0
+        });
+
+        // Save Closing Transaction
+        const closingTx = new Transaction({
+            userId,
+            date,
+            description: `Fiscal Year Closing (${date}) - Net Profit: ${netProfit}`,
+            type: 'CLOSING',
+            entries
+        });
+        await closingTx.save();
+
+        // Update settings
+        let s = await Setting.findOne({ userId });
+        if (!s) s = new Setting({ userId });
+        s.lastClosedDate = date;
+        await s.save();
+
+        res.json({ message: "आर्थिक वर्ष सफलतापूर्वक समापन गरियो!", netProfit, transactionId: closingTx._id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "समापन प्रक्रिया असफल भयो।" });
+    }
+});
+
 // ४. डिलिट र रिक्याल्कुलेट (Delete & Recalculate)
 app.delete('/api/transactions/:id', async (req, res) => {
     try {
