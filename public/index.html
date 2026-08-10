@@ -364,12 +364,18 @@
                     <div style="background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
                         <h3 style="margin:0 0 20px; font-size:1rem; color:var(--tally-navy); display:flex; justify-content:space-between; align-items:center;">
                             Income vs Expense Trends
-                            <select style="font-size:0.7rem; padding:4px; border-radius:4px; border:1px solid #ddd;">
-                                <option>Last 6 Months</option>
-                                <option>Last Year</option>
+                            <select id="chart-range-select" onchange="renderCharts()" style="font-size:0.7rem; padding:4px; border-radius:4px; border:1px solid #ddd;">
+                                <option value="6">Last 6 Months</option>
+                                <option value="12">Last 12 Months</option>
                             </select>
                         </h3>
                         <canvas id="chart-income-expense" height="120"></canvas>
+
+                        <!-- Analysis Summary -->
+                        <div id="chart-analysis-summary" style="margin-top:15px; padding-top:15px; border-top:1px solid #eee; display:flex; gap:20px; font-size:0.85rem;">
+                            <div id="peak-income-msg" style="color:#2e7d32;"></div>
+                            <div id="peak-expense-msg" style="color:#d32f2f;"></div>
+                        </div>
                     </div>
 
                     <div style="background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
@@ -1058,26 +1064,28 @@
             const ctx2 = document.getElementById('chart-expense-pie').getContext('2d');
             const ctx3 = document.getElementById('chart-cashflow').getContext('2d');
 
+            const range = parseInt(document.getElementById('chart-range-select')?.value || "6");
+
             // Destroy existing charts to prevent memory leaks/overlap
             Object.values(charts).forEach(c => c.destroy());
 
-            // Prepare Labels (Last 6 Months)
-            const last6Months = [];
+            // Prepare Labels
+            const monthsLabels = [];
             const now = new Date();
-            for(let i=5; i>=0; i--) {
+            for(let i=range-1; i>=0; i--) {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                last6Months.push(d.toLocaleString('default', { month: 'short' }));
+                monthsLabels.push(d.toLocaleString('default', { month: 'short' }));
             }
 
             // Real Calculation from Transactions
-            const monthlyInc = new Array(6).fill(0);
-            const monthlyExp = new Array(6).fill(0);
+            const monthlyInc = new Array(range).fill(0);
+            const monthlyExp = new Array(range).fill(0);
 
             transactions.forEach(tx => {
                 const tDate = new Date(tx.date);
                 const monthDiff = (now.getMonth() - tDate.getMonth() + (12 * (now.getFullYear() - tDate.getFullYear())));
-                if(monthDiff >= 0 && monthDiff < 6) {
-                    const idx = 5 - monthDiff;
+                if(monthDiff >= 0 && monthDiff < range) {
+                    const idx = (range - 1) - monthDiff;
                     tx.entries.forEach(e => {
                         const accId = (e.account._id || e.account).toString();
                         const acc = accounts.find(a => a._id.toString() === accId);
@@ -1089,10 +1097,21 @@
                 }
             });
 
+            // Find Peaks
+            let maxInc = 0, maxIncMonth = "";
+            let maxExp = 0, maxExpMonth = "";
+            monthlyInc.forEach((val, i) => { if(val > maxInc) { maxInc = val; maxIncMonth = monthsLabels[i]; } });
+            monthlyExp.forEach((val, i) => { if(val > maxExp) { maxExp = val; maxExpMonth = monthsLabels[i]; } });
+
+            const peakIncEl = document.getElementById('peak-income-msg');
+            const peakExpEl = document.getElementById('peak-expense-msg');
+            if(peakIncEl) peakIncEl.innerHTML = maxInc > 0 ? `<i class="fas fa-chart-line"></i> Highest Income: <b>${maxIncMonth}</b> (Rs. ${maxInc.toLocaleString()})` : '';
+            if(peakExpEl) peakExpEl.innerHTML = maxExp > 0 ? `<i class="fas fa-arrow-down"></i> Highest Expense: <b>${maxExpMonth}</b> (Rs. ${maxExp.toLocaleString()})` : '';
+
             charts.bar = new Chart(ctx1, {
                 type: 'bar',
                 data: {
-                    labels: last6Months,
+                    labels: monthsLabels,
                     datasets: [{
                         label: 'Income',
                         data: monthlyInc,
@@ -1117,8 +1136,19 @@
 
             // Expense Pie
             const expByCat = {};
-            accounts.filter(a => a.type === 'Expense').forEach(a => {
-                if(a.balance > 0) expByCat[a.name] = a.balance;
+            // Filter expenses only for the selected range for the pie chart to be consistent
+            transactions.forEach(tx => {
+                const tDate = new Date(tx.date);
+                const monthDiff = (now.getMonth() - tDate.getMonth() + (12 * (now.getFullYear() - tDate.getFullYear())));
+                if(monthDiff >= 0 && monthDiff < range) {
+                    tx.entries.forEach(e => {
+                        const accId = (e.account._id || e.account).toString();
+                        const acc = accounts.find(a => a._id.toString() === accId);
+                        if(acc && acc.type === 'Expense') {
+                            expByCat[acc.name] = (expByCat[acc.name] || 0) + (e.debit || 0);
+                        }
+                    });
+                }
             });
 
             charts.pie = new Chart(ctx2, {
@@ -1127,7 +1157,7 @@
                     labels: Object.keys(expByCat),
                     datasets: [{
                         data: Object.values(expByCat),
-                        backgroundColor: ['#ffcd56', '#ff6384', '#36a2eb', '#4bc0c0', '#9966ff'],
+                        backgroundColor: ['#ffcd56', '#ff6384', '#36a2eb', '#4bc0c0', '#9966ff', '#4caf50', '#ff9800'],
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
@@ -1142,7 +1172,7 @@
             charts.line = new Chart(ctx3, {
                 type: 'line',
                 data: {
-                    labels: last6Months,
+                    labels: monthsLabels,
                     datasets: [{
                         label: 'Net Monthly Cash Flow',
                         data: monthlyInc.map((v, i) => v - monthlyExp[i]),
