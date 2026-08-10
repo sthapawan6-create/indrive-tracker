@@ -25,12 +25,11 @@
         @media print {
             .no-print, .top-bar, .f-keys-bar, .gateway-container, .dashboard-sidebar, .btn, .top-bar button, .modal, #acc-search, #daybook-search, #goto-bar, #goto-suggestions { display: none !important; }
             .main-content { display: none !important; }
-            .main-content:has(#print-area), #page-statement { display: block !important; }
+            .main-content.active { display: block !important; }
             body { display: block !important; background: white !important; height: auto !important; overflow: visible !important; }
             .app-wrapper { height: auto !important; display: block !important; position: static !important; }
             .layout-body { display: block !important; overflow: visible !important; height: auto !important; position: static !important; }
-            .main-content {
-                display: block !important;
+            .main-content.active {
                 position: static !important;
                 width: 100% !important;
                 margin: 0 !important;
