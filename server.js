@@ -68,6 +68,18 @@ const TransactionSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
+const ProductSchema = new mongoose.Schema({
+    userId: String,
+    name: { type: String, required: true },
+    category: String,
+    unit: { type: String, default: 'Pcs' },
+    salePrice: { type: Number, default: 0 },
+    purchasePrice: { type: Number, default: 0 },
+    openingStock: { type: Number, default: 0 },
+    currentStock: { type: Number, default: 0 }
+});
+const Product = mongoose.model('Product', ProductSchema);
+
 const SettingSchema = new mongoose.Schema({
     userId: String,
     lastClosedDate: { type: String, default: "" },
@@ -211,18 +223,38 @@ app.delete('/api/accounts/:id', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
     try {
         const { userId } = req.query;
-        const txs = await Transaction.find({ userId }).populate('entries.account').sort({ createdAt: -1 });
+        const query = userId ? { userId } : {};
+        const txs = await Transaction.find(query).populate('entries.account').sort({ createdAt: -1 });
         res.json(txs);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
 });
 
+// ५. सामानहरू (Products / Items)
+app.get('/api/products', async (req, res) => {
+    try {
+        const products = await Product.find({ userId: req.query.userId }).sort({ name: 1 });
+        res.json(products);
+    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
+});
+
+app.post('/api/products', async (req, res) => {
+    try {
+        const product = new Product({ ...req.body });
+        product.currentStock = product.openingStock || 0;
+        await product.save();
+        res.json(product);
+    } catch (err) { res.status(500).json({ error: "बचत असफल" }); }
+});
+
 app.post('/api/transactions', async (req, res) => {
     try {
-        const { userId, date, description, entries, type } = req.body;
+        const { userId, date, description, entries, type, items } = req.body;
         if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+
         const tx = new Transaction({ userId, date, description, entries, type: type || 'JOURNAL' });
         await tx.save();
 
+        // Update Account Balances
         for (const entry of entries) {
             const acc = await Account.findById(entry.account);
             if (acc) {
@@ -231,6 +263,23 @@ app.post('/api/transactions', async (req, res) => {
                 await acc.save();
             }
         }
+
+        // --- NEW: Update Stock if Items are provided ---
+        if (items && items.length > 0) {
+            for (const item of items) {
+                const pId = item.productId || item.product; // Handle both formats
+                if (pId) {
+                    const prod = await Product.findById(pId);
+                    if (prod) {
+                        const qty = Number(item.qty || item.quantity);
+                        if (type === 'SALES' || type === 'PURCHASE_RETURN') prod.currentStock -= qty;
+                        if (type === 'PURCHASE' || type === 'SALES_RETURN') prod.currentStock += qty;
+                        await prod.save();
+                    }
+                }
+            }
+        }
+
         res.status(200).json(tx);
     } catch (err) { res.status(500).json({ error: "पोस्ट असफल" }); }
 });
