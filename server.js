@@ -161,7 +161,8 @@ app.post('/api/settings/close-day', async (req, res) => {
 app.get('/api/accounts', async (req, res) => {
     try {
         const { userId } = req.query;
-        const accounts = await Account.find({ userId }).sort({ name: 1 });
+        const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+        const accounts = await Account.find(query).sort({ name: 1 });
         res.json(accounts);
     } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
 });
@@ -223,7 +224,7 @@ app.delete('/api/accounts/:id', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
     try {
         const { userId } = req.query;
-        const query = userId ? { userId } : {};
+        const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
         const txs = await Transaction.find(query).populate('entries.account').sort({ createdAt: -1 });
         res.json(txs);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
@@ -232,7 +233,9 @@ app.get('/api/transactions', async (req, res) => {
 // ५. सामानहरू (Products / Items)
 app.get('/api/products', async (req, res) => {
     try {
-        const products = await Product.find({ userId: req.query.userId }).sort({ name: 1 });
+        const { userId } = req.query;
+        const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+        const products = await Product.find(query).sort({ name: 1 });
         res.json(products);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
 });
