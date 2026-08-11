@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAWAN GOLD - Tally Prime Edition</title>
+    <title>PAWAN ELECTRONICS - Tally Prime Edition</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -222,7 +222,8 @@
     <div class="app-wrapper">
         <div class="top-bar">
             <div style="display:flex; align-items:center; gap:20px;">
-                <div class="logo">PAWAN GOLD <span style="font-weight:normal; opacity:0.8; font-size:0.75rem;">| ERP SYSTEMS INC.</span></div>
+                <div class="logo">PAWAN ELECTRONICS <span style="font-weight:normal; opacity:0.8; font-size:0.75rem;">| ERP SYSTEMS INC.</span></div>
+
                 <div style="position:relative;">
                     <input type="text" id="goto-bar" placeholder="Go To (Alt+G)..." oninput="showGoToSuggestions()" onkeydown="handleGoToKey(event)" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:6px 12px; color:white; width:250px; outline:none; font-size:0.85rem;">
                     <div id="goto-suggestions" style="position:absolute; top:40px; left:0; width:100%; background:white; color:black; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:1000; display:none; max-height:300px; overflow-y:auto;">
@@ -241,7 +242,7 @@
             <!-- Gateway Page -->
             <div id="page-gateway" class="gateway-container">
                 <div class="gateway-box">
-                    <div class="gateway-header">PAWAN GOLD ERP</div>
+                    <div class="gateway-header">PAWAN ELECTRONICS ERP</div>
                     <div class="gateway-menu">
                         <div class="menu-group-label">Masters & Analytics</div>
                         <div class="menu-item" onclick="showPage('dashboard')"><i class="fas fa-chart-line" style="margin-right:10px; color:var(--accent-color)"></i><span><b>G</b>raphical Dashboard</span></div>
@@ -249,8 +250,8 @@
                         <div class="menu-item" onclick="showPage('accounts')"><i class="fas fa-list-ul" style="margin-right:10px; color:var(--primary-color)"></i><span><b>A</b>lter / List Accounts</span></div>
 
                         <div class="menu-group-label">Voucher Entry</div>
-                        <div class="menu-item" onclick="showPage('vouchers')"><i class="fas fa-file-invoice-dollar" style="margin-right:10px; color:#f59e0b"></i><span><b>V</b>ouchers (Entry)</span></div>
-                        <div class="menu-item" onclick="showPage('bike')"><i class="fas fa-motorcycle" style="margin-right:10px; color:#6366f1"></i><span>Bi<b>k</b>e Tracker</span></div>
+                        <div class="menu-item" onclick="showPage('billing')"><i class="fas fa-shopping-cart" style="margin-right:10px; color:#10b981"></i><span><b>S</b>ales / Billing (Invoice)</span></div>
+                        <div class="menu-item" onclick="showPage('vouchers')"><i class="fas fa-file-invoice-dollar" style="margin-right:10px; color:#f59e0b"></i><span><b>V</b>ouchers (General)</span></div>
                         <div class="menu-item" onclick="showPage('daybook')"><i class="fas fa-calendar-day" style="margin-right:10px; color:#64748b"></i><span><b>D</b>ay Book</span></div>
 
                         <div class="menu-group-label">Reports & Final Accounts</div>
@@ -327,7 +328,7 @@
             <div id="page-dashboard" class="main-content" style="background: #f4f7f6; padding: 20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                     <div>
-                        <h2 style="border:none; margin:0; color: var(--tally-navy); font-size: 1.8rem;">Pawan Gold Dashboard</h2>
+                        <h2 style="border:none; margin:0; color: var(--tally-navy); font-size: 1.8rem;">Pawan Electronics Dashboard</h2>
                         <p style="margin:0; color:#666; font-size:0.9rem;">Welcome back! Here's what's happening today.</p>
                     </div>
                     <div style="display:flex; gap:10px;">
@@ -501,7 +502,7 @@
 
                 <div id="print-area">
                     <div class="print-header">
-                        <h1>PAWAN GOLD ERP</h1>
+                        <h1>PAWAN ELECTRONICS ERP</h1>
                         <p style="font-weight:bold;">Ledger Account Statement</p>
                         <h3 id="print-ledger-name" style="margin:10px 0; border-bottom:1px solid #000; display:inline-block; padding:0 20px;"></h3>
                         <p id="print-period"></p>
@@ -520,6 +521,74 @@
                         </thead>
                         <tbody id="tbl-stmt-body"></tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Billing / Invoice Page -->
+            <div id="page-billing" class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                    <h2 style="border-bottom:none; margin:0;">Sales Invoice / Billing</h2>
+                    <div style="display:flex; gap:10px;">
+                        <input type="date" id="inv-date" style="padding:4px; border:1px solid var(--tally-border);">
+                        <button class="btn" onclick="saveInvoice()" style="background:#10b981;">Save & Print (Ctrl+S)</button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-bottom:15px;">
+                    <div class="box" style="padding:15px; border:1px solid #ddd; background:#f9f9f9;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                            <div>
+                                <label style="font-weight:bold; font-size:0.8rem;">Party A/c Name:</label>
+                                <select id="inv-party-acc" onchange="updatePartyInfo()" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc;"></select>
+                                <div id="party-bal" style="font-size:0.7rem; color:#666; margin-top:2px;">Bal: 0.00</div>
+                            </div>
+                            <div>
+                                <label style="font-weight:bold; font-size:0.8rem;">Sales Ledger:</label>
+                                <select id="inv-sales-acc" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc;"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box" style="padding:15px; border:1px solid #ddd; background:#f9f9f9;">
+                        <label style="font-weight:bold; font-size:0.8rem;">Narration:</label>
+                        <textarea id="inv-narration" style="width:100%; height:45px; margin-top:5px; border:1px solid #ccc; padding:5px; font-size:0.85rem;" placeholder="e.g. Being goods sold on credit"></textarea>
+                    </div>
+                </div>
+
+                <div class="v-table-container">
+                    <table class="v-table" id="tbl-inv-items">
+                        <thead>
+                            <tr style="background:#f2f5f7;">
+                                <th style="width:50%;">Particulars / Item Name</th>
+                                <th style="width:10%; text-align:center;">Qty</th>
+                                <th style="width:15%; text-align:right;">Rate</th>
+                                <th style="width:20%; text-align:right;">Amount</th>
+                                <th style="width:5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="inv-rows"></tbody>
+                    </table>
+                    <button class="btn" onclick="addInvRow()" style="width:100%; background:#f1f5f9; color:#334155; border:none; border-top:1px solid #ddd; border-radius:0;">+ Add New Item Line</button>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                    <div style="width:300px; background:#f8fafc; border:1px solid #cbd5e1; padding:15px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span>Sub Total:</span>
+                            <span id="inv-sub-total" style="font-weight:bold;">0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span>Discount (%):</span>
+                            <input type="number" id="inv-discount" value="0" oninput="calculateInvTotal()" style="width:60px; text-align:right; border:1px solid #ccc; padding:2px;">
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span>VAT (13%):</span>
+                            <input type="checkbox" id="inv-vat-check" onchange="calculateInvTotal()" style="width:20px; height:20px;">
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:var(--primary-color); border-top:2px solid #333; padding-top:10px;">
+                            <span>Total:</span>
+                            <span id="inv-grand-total">0.00</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -600,32 +669,6 @@
                 </table>
             </div>
 
-            <!-- Bike Log -->
-            <div id="page-bike" class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
-                    <h2 style="border-bottom:none; margin:0;">Bike Maintenance Register</h2>
-                    <button class="btn" onclick="openModal('bikeModal')" style="font-size: 0.8rem; padding: 5px 15px;">+ Add Entry (Alt+A)</button>
-                </div>
-
-                <div id="bike-summary" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:20px;">
-                    <!-- Summary cards injected here -->
-                </div>
-
-                <table style="border: 1px solid var(--tally-border);">
-                    <thead>
-                        <tr style="background: var(--tally-navy); color: white;">
-                            <th style="color:white;">Date</th>
-                            <th style="color:white;">Particulars (Type)</th>
-                            <th class="amt" style="color:white;">Odometer (km)</th>
-                            <th class="amt" style="color:white;">Amount (Rs.)</th>
-                            <th style="color:white;">Narration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbl-bike-body"></tbody>
-                    <tfoot id="tbl-bike-foot" style="background: #f2f5f7; font-weight: bold;"></tfoot>
-                </table>
-            </div>
-
             <!-- Settings -->
             <div id="page-settings" class="main-content">
                 <h2>System Settings</h2>
@@ -675,8 +718,8 @@
                 <div class="f-key" onclick="setVType('JOURNAL'); showPage('vouchers');"><span>F7</span> Journal</div>
                 <div class="f-key" onclick="showPage('reports-bs')"><span>B</span> Bal Sheet</div>
                 <div class="f-key" onclick="showPage('reports-pl')"><span>P</span> P&L A/c</div>
-                <div class="f-key" onclick="showPage('bike')"><span>K</span> Bike Log</div>
                 <div style="flex:1;"></div>
+                <div class="f-key" style="background:#f59e0b; color:white; border-color:#d97706;" onclick="openShortcutHelp()"><span>Alt+H</span> Shortcuts</div>
                 <div class="f-key" onclick="logout()"><span>Ctrl+Q</span> Quit</div>
             </div>
         </div>
@@ -684,12 +727,12 @@
         <!-- Bottom Status Bar -->
         <div class="status-bar">
             <div class="status-bar-item">
-                <span><b>Company:</b> PAWAN GOLD (2023-24)</span>
+                <span><b>Company:</b> PAWAN ELECTRONICS (2024-25)</span>
                 <span><b>User:</b> <span id="status-user">Admin</span></span>
             </div>
             <div class="status-bar-item">
                 <span id="status-clock"></span>
-                <span><b>Version:</b> 2.0.4-GOLD</span>
+                <span><b>Version:</b> 3.0.1-ELEX</span>
             </div>
         </div>
     </div>
@@ -741,40 +784,6 @@
         </div>
     </div>
 
-    <div id="bikeModal" class="modal">
-        <div class="modal-content" style="width: 550px;">
-            <h3 style="color:var(--tally-teal); border-bottom: 2px solid var(--tally-teal); padding-bottom: 10px; margin-top: 0;">Bike Maintenance Record</h3>
-            <div style="background: #f9f9f9; padding: 20px; border: 1px solid var(--tally-border); margin-bottom: 20px;">
-                <div style="display:grid; grid-template-columns: 120px 1fr; gap:15px; align-items:center;">
-                    <label>Date:</label>
-                    <input type="date" id="b-date" style="width:100%;">
-
-                    <label>Entry Type:</label>
-                    <select id="b-type" style="width:100%;">
-                        <option value="Fuel">Fuel (पेट्रोल)</option>
-                        <option value="Service">Service (सर्भिसिङ)</option>
-                        <option value="Repair">Repair (मर्मत)</option>
-                        <option value="Wash">Wash (धुलाई)</option>
-                        <option value="Tax">Tax (नवीकरण/कर)</option>
-                    </select>
-
-                    <label>Odometer:</label>
-                    <input type="number" id="b-odo" placeholder="Current km reading" style="width:100%;">
-
-                    <label>Amount (Rs.):</label>
-                    <input type="number" id="b-amt" placeholder="0.00" style="width:100%;">
-
-                    <label>Narration:</label>
-                    <input type="text" id="b-note" placeholder="Details of expense..." style="width:100%;">
-                </div>
-            </div>
-            <div style="display:flex; gap:15px; justify-content:flex-end;">
-                <button class="btn" style="background:#666;" onclick="closeModals()">Cancel (Esc)</button>
-                <button class="btn" onclick="saveBikeLog()" style="background: var(--tally-navy);">Accept (Ctrl+A)</button>
-            </div>
-        </div>
-    </div>
-
     <div id="fiscalYearModal" class="modal">
         <div class="modal-content" style="width: 500px;">
             <h3 style="color:var(--tally-teal); border-bottom: 2px solid var(--tally-teal); padding-bottom: 10px; margin-top: 0;">Fiscal Year Closing</h3>
@@ -797,6 +806,24 @@
                 <button class="btn" style="background:#666;" onclick="closeModals()">Cancel</button>
                 <button class="btn" onclick="closeFiscalYear()" style="background: var(--tally-navy);">Perform Closing</button>
             </div>
+        </div>
+    </div>
+
+    <div id="shortcutHelpModal" class="modal">
+        <div class="modal-content" style="width: 400px; border-radius:8px;">
+            <h3 style="margin-top:0; color:var(--tally-teal); border-bottom:1px solid #ddd; padding-bottom:10px;">Keyboard Shortcuts</h3>
+            <div style="font-size:0.85rem; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><b>Alt+G</b> : Go To</div>
+                <div><b>Alt+C</b> : Create A/c</div>
+                <div><b>Alt+S</b> : Sales/Billing</div>
+                <div><b>F4-F7</b> : Vouchers</div>
+                <div><b>Ctrl+S</b> : Save Voucher</div>
+                <div><b>Esc</b> : Back/Home</div>
+                <div><b>B / P</b> : BS / PL Report</div>
+                <div><b>D</b> : Day Book</div>
+                <div><b>Ctrl+Q</b> : Quit</div>
+            </div>
+            <button class="btn" onclick="closeModals()" style="width:100%; margin-top:20px;">Got it!</button>
         </div>
     </div>
 
@@ -830,7 +857,7 @@
         const auth = firebase.auth();
         const provider = new firebase.auth.GoogleAuthProvider();
 
-        const user = JSON.parse(localStorage.getItem('pawangold_user'));
+        const user = JSON.parse(localStorage.getItem('pawanelex_user'));
         if(!user) window.location.href = 'login.html';
         document.body.style.display = 'block';
 
@@ -865,9 +892,9 @@
 
             // Global Shortcuts
             if(e.ctrlKey && key === 'q') { e.preventDefault(); logout(); return; }
-            if(e.ctrlKey && key === 'a') {
-                if(document.getElementById('bikeModal').style.display === 'flex') { e.preventDefault(); saveBikeLog(); return; }
+            if(e.ctrlKey && key === 's') {
                 if(document.getElementById('page-vouchers').classList.contains('active')) { e.preventDefault(); postVoucher(); return; }
+                if(document.getElementById('page-billing').classList.contains('active')) { e.preventDefault(); saveInvoice(); return; }
             }
 
             if(document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT' || document.activeElement.classList.contains('v-byto')) {
@@ -876,23 +903,20 @@
             }
 
             if(key === 'escape') showPage('gateway');
+            if(key === 's' && e.altKey) { e.preventDefault(); showPage('billing'); return; }
             if(key === 'g') showPage('dashboard');
             if(key === 'd') showPage('daybook');
             if(key === 'v') showPage('vouchers');
             if(key === 'b') showPage('reports-bs');
             if(key === 'p' && e.altKey) { e.preventDefault(); if(document.getElementById('page-statement').classList.contains('active')) window.print(); else showPage('reports-pl'); return; }
             if(key === 'p') showPage('reports-pl');
-            if(key === 't') showPage('reports-tb');
             if(key === 'l') showPage('statement');
             if(key === 'c') openModal('accModal');
             if(key === 'a') showPage('accounts');
-            if(key === 'k') showPage('bike');
             if(key === 's') showPage('settings');
 
-            // Bike Page Specific
-            if(document.getElementById('page-bike').classList.contains('active') && e.altKey && key === 'a') {
-                e.preventDefault(); openModal('bikeModal');
-            }
+            // Alt+H Shortcut
+            if(e.altKey && key === 'h') { e.preventDefault(); openShortcutHelp(); }
         });
 
         function setVType(type) {
@@ -1016,10 +1040,11 @@
 
         async function syncAll() {
             try {
+                const query = `userId=${user.uid}`;
                 const [resA, resT, resS] = await Promise.all([
-                    fetch('/api/accounts?userId=' + user.uid),
-                    fetch('/api/transactions?userId=' + user.uid),
-                    fetch('/api/settings?userId=' + user.uid)
+                    fetch(`/api/accounts?${query}`),
+                    fetch(`/api/transactions?${query}`),
+                    fetch(`/api/settings?${query}`)
                 ]);
                 accounts = await resA.json();
                 transactions = await resT.json();
@@ -1036,12 +1061,121 @@
                 renderTrialBalance();
                 renderBalanceSheet();
                 renderPL();
-                renderBikeLogs();
 
                 if(document.getElementById('page-dashboard').classList.contains('active')) {
                     renderCharts();
                 }
             } catch(e) { console.error("Sync Error", e); }
+        }
+
+        // Billing / Invoicing Logic
+        function populateBillingSelects() {
+            const partySelect = document.getElementById('inv-party-acc');
+            const salesSelect = document.getElementById('inv-sales-acc');
+
+            const parties = accounts.filter(a => a.type === 'Receivable' || a.type === 'Asset');
+            const salesAccs = accounts.filter(a => a.type === 'Revenue');
+
+            partySelect.innerHTML = '<option value="">-- Select Party --</option>' +
+                parties.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+
+            salesSelect.innerHTML = salesAccs.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+            if(salesAccs.length > 0 && !salesSelect.value) salesSelect.selectedIndex = 0;
+        }
+
+        function updatePartyInfo() {
+            const partyId = document.getElementById('inv-party-acc').value;
+            const party = accounts.find(a => a._id === partyId);
+            if(party) {
+                document.getElementById('party-bal').innerText = "Bal: " + party.balance.toLocaleString();
+            } else {
+                document.getElementById('party-bal').innerText = "Bal: 0.00";
+            }
+        }
+
+        function resetInvoice() {
+            document.getElementById('inv-rows').innerHTML = '';
+            document.getElementById('inv-narration').value = 'Being goods sold';
+            document.getElementById('inv-discount').value = 0;
+            document.getElementById('inv-vat-check').checked = false;
+            addInvRow();
+            calculateInvTotal();
+        }
+
+        function addInvRow() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="inv-item-name" style="width:100%;" placeholder="Item name / Description"></td>
+                <td><input type="number" class="inv-qty" style="width:100%; text-align:center;" value="1" oninput="calculateInvTotal()"></td>
+                <td><input type="number" class="inv-rate" style="width:100%; text-align:right;" value="0" oninput="calculateInvTotal()"></td>
+                <td><input type="number" class="inv-amt" style="width:100%; text-align:right;" readonly value="0"></td>
+                <td><button class="v-row-del" onclick="this.parentElement.parentElement.remove(); calculateInvTotal();">&times;</button></td>
+            `;
+            document.getElementById('inv-rows').appendChild(tr);
+            tr.querySelector('.inv-item-name').focus();
+        }
+
+        function calculateInvTotal() {
+            let subTotal = 0;
+            document.querySelectorAll('#inv-rows tr').forEach(row => {
+                const qty = Number(row.querySelector('.inv-qty').value || 0);
+                const rate = Number(row.querySelector('.inv-rate').value || 0);
+                const amt = qty * rate;
+                row.querySelector('.inv-amt').value = amt.toFixed(2);
+                subTotal += amt;
+            });
+
+            document.getElementById('inv-sub-total').innerText = subTotal.toFixed(2);
+            const disc = Number(document.getElementById('inv-discount').value || 0);
+            const afterDisc = subTotal - (subTotal * disc / 100);
+
+            let vat = 0;
+            if(document.getElementById('inv-vat-check').checked) {
+                vat = afterDisc * 0.13;
+            }
+
+            const grandTotal = afterDisc + vat;
+            document.getElementById('inv-grand-total').innerText = grandTotal.toFixed(2);
+        }
+
+        async function saveInvoice() {
+            const partyId = document.getElementById('inv-party-acc').value;
+            const salesId = document.getElementById('inv-sales-acc').value;
+            const date = document.getElementById('inv-date').value;
+            const total = Number(document.getElementById('inv-grand-total').innerText);
+            const narration = document.getElementById('inv-narration').value;
+
+            if(!partyId || !salesId || total <= 0) return alert("Please select Party, Sales Account and add items.");
+
+            // Create Journal Voucher equivalent for the Invoice
+            // Debit: Party Account
+            // Credit: Sales Account
+            const entries = [
+                { account: partyId, debit: total, credit: 0 },
+                { account: salesId, debit: 0, credit: total }
+            ];
+
+            const data = {
+                userId: user.uid,
+                date,
+                description: narration + " | Invoice Total: " + total,
+                entries,
+                type: 'SALES'
+            };
+
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if(res.ok) {
+                alert("Invoice Saved Successfully!");
+                syncAll();
+                showPage('gateway');
+            } else {
+                alert("Error saving invoice.");
+            }
         }
 
         function showPage(pageId) {
@@ -1051,6 +1185,13 @@
                 const page = document.getElementById('page-' + pageId);
                 if(page) page.classList.add('active');
             }
+
+            if(pageId === 'billing') {
+                document.getElementById('inv-date').valueAsDate = new Date();
+                populateBillingSelects();
+                resetInvoice();
+            }
+
             if(pageId === 'vouchers') resetVoucher();
             if(pageId === 'daybook') renderDayBook();
             if(pageId === 'accounts') renderAccountsList();
@@ -1524,16 +1665,30 @@
                 profitEl.className = netProfit >= 0 ? 'val text-green' : 'val text-red';
             }
 
-            // Live Feed Update
+            // Live Feed Update (Improved)
             const recentFeed = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
             const feedEl = document.getElementById('live-feed');
             if(feedEl) {
-                feedEl.innerHTML = recentFeed.map(tx => `
-                    <div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between;">
-                        <span style="font-size:0.8rem;">${tx.description || 'Entry'}</span>
-                        <span style="font-weight:bold; color:var(--tally-teal);">${tx.entries.reduce((s,e)=>s+(e.debit||0),0).toLocaleString()}</span>
-                    </div>
-                `).join('');
+                feedEl.innerHTML = recentFeed.map(tx => {
+                    const amt = tx.entries.reduce((s,e)=>s+(e.debit||0),0);
+                    let color = "#333";
+                    let icon = "fa-exchange-alt";
+                    if(tx.type === 'PAYMENT') { color = "#ef4444"; icon = "fa-arrow-up"; }
+                    if(tx.type === 'RECEIPT') { color = "#10b981"; icon = "fa-arrow-down"; }
+
+                    return `
+                        <div style="border-bottom:1px solid #f1f5f9; padding:8px 0; display:flex; gap:10px; align-items:center;">
+                            <div style="background:${color}15; color:${color}; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.6rem;">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:0.75rem; font-weight:bold;">${tx.description || tx.type}</div>
+                                <div style="font-size:0.6rem; color:#94a3b8;">${new Date(tx.date).toLocaleDateString()}</div>
+                            </div>
+                            <span style="font-weight:bold; font-size:0.75rem; color:${color};">${amt.toLocaleString()}</span>
+                        </div>
+                    `;
+                }).join('');
             }
         }
 
@@ -1807,8 +1962,7 @@
                 if(e.key === 'Enter') { e.preventDefault(); accSel.focus(); }
             });
 
-            accSel.addEventListener('keydown', (e) => {
-                if(e.key === 'Enter' && accSel.value) {
+            accSel.addEventListener('keydown', (e) => {                if(e.key === 'Enter' && accSel.value) {
                     e.preventDefault();
                     if(byto.innerText === 'By') drIn.focus(); else crIn.focus();
                 }
@@ -1921,7 +2075,13 @@
             if (errorMsg) { alert(errorMsg); return; }
             if(entries.length < 2) return alert("At least two entries required!");
 
-            const data = { userId: user.uid, date: document.getElementById('v-date').value, description: document.getElementById('v-desc').value, entries, type: currentVType };
+            const data = {
+                userId: user.uid,
+                date: document.getElementById('v-date').value,
+                description: document.getElementById('v-desc').value,
+                entries,
+                type: currentVType
+            };
 
             const url = editId ? '/api/transactions/' + editId : '/api/transactions';
             const method = editId ? 'PUT' : 'POST';
@@ -1933,7 +2093,6 @@
         // Logic Functions
         function openModal(id, editId = null) {
             document.getElementById(id).style.display = 'flex';
-            if(id === 'bikeModal') document.getElementById('b-date').valueAsDate = new Date();
             if(id === 'accModal') {
                 document.getElementById('quick-acc-btns').style.display = editId ? 'none' : 'flex';
                 if(editId) {
@@ -1971,6 +2130,7 @@
 
         async function saveAccount() {
             const editId = document.getElementById('edit-acc-id').value;
+
             const data = {
                 userId: user.uid,
                 name: document.getElementById('new-aname').value,
@@ -2072,14 +2232,13 @@
             const data = {
                 accounts,
                 transactions,
-                bikeLogs: typeof bikeLogs !== 'undefined' ? bikeLogs : [],
                 exportDate: new Date().toISOString()
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `PAWAN_GOLD_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `PAWAN_ELEX_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         }
 
@@ -2107,8 +2266,6 @@
             { name: 'Chart of Accounts', page: 'accounts' },
             { name: 'Balance Sheet', page: 'reports-bs' },
             { name: 'Profit & Loss', page: 'reports-pl' },
-            { name: 'Cash/Bank Book', page: 'reports-stmt' },
-            { name: 'Bike Log', page: 'bike' },
             { name: 'Voucher Entry', page: 'vouchers' },
             { name: 'Settings', page: 'settings' }
         ];
@@ -2152,75 +2309,10 @@
             }
         });
 
-        async function saveBikeLog() {
-            const data = { userId: user.uid, date: document.getElementById('b-date').value, type: document.getElementById('b-type').value,
-                           amount: Number(document.getElementById('b-amt').value), odometer: Number(document.getElementById('b-odo').value), description: document.getElementById('b-note').value };
-            await fetch('/api/bike', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            closeModals(); syncAll();
-        }
+        function openShortcutHelp() { document.getElementById('shortcutHelpModal').style.display = 'flex'; }
 
-        async function renderBikeLogs() {
-            const res = await fetch('/api/bike?userId=' + user.uid);
-            const logs = await res.json();
-
-            let totalAmt = 0;
-            let lastOdo = 0;
-            let fuelTotal = 0;
-
-            const rows = logs.map(l => {
-                const amt = Number(l.amount || 0);
-                totalAmt += amt;
-                if (l.type === 'Fuel') fuelTotal += amt;
-                if (l.odometer > lastOdo) lastOdo = l.odometer;
-
-                return `
-                    <tr>
-                        <td>${new Date(l.date).toLocaleDateString()}</td>
-                        <td>${l.type}</td>
-                        <td class="amt">${l.odometer ? l.odometer.toLocaleString() : '-'}</td>
-                        <td class="amt">${amt.toLocaleString()}</td>
-                        <td style="font-size:0.8rem; color:#666;">${l.description || ''}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            document.getElementById('tbl-bike-body').innerHTML = rows;
-            document.getElementById('tbl-bike-foot').innerHTML = `
-                <tr>
-                    <td colspan="3" style="text-align:right;">Total Maintenance Cost:</td>
-                    <td class="amt">Rs. ${totalAmt.toLocaleString()}</td>
-                    <td></td>
-                </tr>
-            `;
-
-            const summaryDiv = document.getElementById('bike-summary');
-            if (summaryDiv) {
-                summaryDiv.innerHTML = `
-                    <div class="info-card" style="background: linear-gradient(135deg, #0891b2, #06b6d4); color: white;">
-                        <h4 style="color:rgba(255,255,255,0.8)">Total Fuel Cost</h4>
-                        <div class="val" style="color:white;">Rs. ${fuelTotal.toLocaleString()}</div>
-                        <i class="fas fa-gas-pump" style="position:absolute; right:15px; bottom:15px; font-size:2rem; opacity:0.2;"></i>
-                    </div>
-                    <div class="info-card" style="border-bottom: 4px solid var(--tally-teal);">
-                        <h4>Current Odo</h4>
-                        <div class="val" style="color:var(--tally-teal);">${lastOdo.toLocaleString()} km</div>
-                        <i class="fas fa-tachometer-alt" style="position:absolute; right:15px; top:15px; opacity:0.1;"></i>
-                    </div>
-                    <div class="info-card" style="border-bottom: 4px solid var(--danger-color);">
-                        <h4>Total Maint. Expense</h4>
-                        <div class="val" style="color:var(--danger-color);">Rs. ${totalAmt.toLocaleString()}</div>
-                        <i class="fas fa-tools" style="position:absolute; right:15px; top:15px; opacity:0.1;"></i>
-                    </div>
-                    <div class="info-card" style="background: var(--tally-navy); color: white;">
-                        <h4 style="color:rgba(255,255,255,0.8)">Log Entries</h4>
-                        <div class="val" style="color:white;">${logs.length}</div>
-                        <i class="fas fa-clipboard-list" style="position:absolute; right:15px; bottom:15px; font-size:2rem; opacity:0.2;"></i>
-                    </div>
-                `;
-            }
-        }
-
-        function logout() { localStorage.removeItem('pawangold_user'); window.location.href = 'login.html'; }
+        window.addEventListener('keydown', (e) => { if(e.altKey && e.key.toLowerCase()==='h') { e.preventDefault(); openShortcutHelp(); } });
+        function logout() { localStorage.removeItem('pawanelex_user'); window.location.href = 'login.html'; }
     </script>
 </body>
 </html>

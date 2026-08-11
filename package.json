@@ -1,7 +1,7 @@
 {
-  "name": "erp-gold-accounting",
-  "version": "1.1.0",
-  "description": "PAWAN GOLD - Cloud Accounting System with Google Authentication",
+  "name": "erp-electronics-accounting",
+  "version": "3.0.1-ELEX",
+  "description": "PAWAN ELECTRONICS - Cloud ERP for Sales & Repair Management",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

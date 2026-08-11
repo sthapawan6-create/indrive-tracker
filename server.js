@@ -24,7 +24,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const connectDB = async () => {
     try {
         await mongoose.connect(MONGO_URI);
-        console.log("✅ PAWAN GOLD डेटाबेस जडान सफल!");
+        console.log("✅ PAWAN ELECTRONICS डेटाबेस जडान सफल!");
     } catch (err) {
         console.error("❌ जडान त्रुटि:", err.message);
         setTimeout(connectDB, 5000);
@@ -84,16 +84,6 @@ const GoalSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const Goal = mongoose.model('Goal', GoalSchema);
-
-const BikeLogSchema = new mongoose.Schema({
-    userId: String,
-    type: { type: String, enum: ['Fuel', 'Service', 'Repair', 'Tax', 'Wash', 'Servicing'] },
-    amount: Number,
-    odometer: Number,
-    description: String,
-    date: { type: Date, default: Date.now }
-});
-const BikeLog = mongoose.model('BikeLog', BikeLogSchema);
 
 const StockSchema = new mongoose.Schema({
     userId: String,
@@ -158,7 +148,7 @@ app.post('/api/settings/close-day', async (req, res) => {
 // १. खाताहरू (Accounts)
 app.get('/api/accounts', async (req, res) => {
     try {
-        const userId = req.query.userId;
+        const { userId } = req.query;
         const accounts = await Account.find({ userId }).sort({ name: 1 });
         res.json(accounts);
     } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
@@ -220,7 +210,8 @@ app.delete('/api/accounts/:id', async (req, res) => {
 // २. कारोबार (Transactions)
 app.get('/api/transactions', async (req, res) => {
     try {
-        const txs = await Transaction.find({ userId: req.query.userId }).populate('entries.account').sort({ createdAt: -1 });
+        const { userId } = req.query;
+        const txs = await Transaction.find({ userId }).populate('entries.account').sort({ createdAt: -1 });
         res.json(txs);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
 });
@@ -281,22 +272,6 @@ app.put('/api/transactions/:id', async (req, res) => {
         }
         res.json(oldTx);
     } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
-});
-
-// ३. बाइक लग (Bike Log)
-app.get('/api/bike', async (req, res) => {
-    try {
-        const logs = await BikeLog.find({ userId: req.query.userId }).sort({ date: -1 });
-        res.json(logs);
-    } catch (err) { res.status(500).json({ error: "Bike log load failed" }); }
-});
-
-app.post('/api/bike', async (req, res) => {
-    try {
-        const log = new BikeLog({ ...req.body });
-        await log.save();
-        res.json(log);
-    } catch (err) { res.status(500).json({ error: "Bike log save failed" }); }
 });
 
 // ४. आर्थिक वर्ष समापन (Fiscal Year Closing)
@@ -439,7 +414,7 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n=========================================`);
-    console.log(`🚀 PAWAN GOLD Server is LIVE!`);
+    console.log(`🚀 PAWAN ELECTRONICS Server is LIVE!`);
     console.log(`URL: http://localhost:${PORT}`);
     console.log(`=========================================\n`);
 });

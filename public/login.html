@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAWAN GOLD - Accounting Login</title>
+    <title>PAWAN ELECTRONICS - Accounting Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Firebase SDK (Compat Version for simple HTML) -->
@@ -133,8 +133,8 @@
 <body>
 
     <div class="login-card">
-        <div class="logo">PAWAN GOLD</div>
-        <div class="subtitle">ERP SYSTEMS INC.</div>
+        <div class="logo">PAWAN ELECTRONICS</div>
+        <div class="subtitle">ERP SYSTEMS INC. (V3.0.1-ELEX)</div>
 
         <div id="errorMessage" class="error"></div>
 
@@ -185,7 +185,7 @@
                         photoURL: result.user.photoURL,
                         authSource: 'google'
                     };
-                    localStorage.setItem('pawangold_user', JSON.stringify(user));
+                    localStorage.setItem('pawanelex_user', JSON.stringify(user));
                     window.location.href = './';
                     return;
                 } catch (fbError) {
@@ -201,7 +201,7 @@
                     photoURL: 'https://ui-avatars.com/api/?name=' + typedEmail + '&background=005c69&color=fff',
                     authSource: 'recovery'
                 };
-                localStorage.setItem('pawangold_user', JSON.stringify(user));
+                localStorage.setItem('pawanelex_user', JSON.stringify(user));
                 window.location.href = './';
             } catch (error) {
                 console.error(error);
@@ -219,7 +219,7 @@
                     uid: email.replace(/[^a-zA-Z0-9]/g, '_'),
                     displayName: 'Business User'
                 };
-                localStorage.setItem('pawangold_user', JSON.stringify(user));
+                localStorage.setItem('pawanelex_user', JSON.stringify(user));
                 window.location.href = './';
             } else {
                 document.getElementById('errorMessage').innerText = "Invalid credentials.";
@@ -227,7 +227,7 @@
         }
 
         // Auto-redirect if already logged in
-        if (localStorage.getItem('pawangold_user')) {
+        if (localStorage.getItem('pawanelex_user')) {
             window.location.href = './';
         }
     </script>
