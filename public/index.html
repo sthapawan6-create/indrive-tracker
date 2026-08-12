@@ -95,6 +95,7 @@
             <div class="menu-item" onclick="showPage('daybook')"><i class="fas fa-calendar-day" style="margin-right:10px; color:#64748b"></i><span><b>D</b>ay Book</span></div>
 
             <div class="menu-title">Reports</div>
+            <div class="menu-item" onclick="showPage('statement')"><i class="fas fa-file-alt" style="margin-right:10px; color:#fbbf24"></i><span>Acc. <b>L</b>edger Statement</span></div>
             <div class="menu-item" onclick="showPage('sales-book')"><i class="fas fa-book" style="margin-right:10px; color:#10b981"></i><span>Sales Boo<b>k</b> (बिक्री खाता)</span></div>
             <div class="menu-item" onclick="showPage('purchase-book')"><i class="fas fa-book-open" style="margin-right:10px; color:#3b82f6"></i><span>Purc<b>h</b>ase Book (खरिद खाता)</span></div>
             <div class="menu-item" onclick="showPage('service-book')"><i class="fas fa-address-book" style="margin-right:10px; color:#f43f5e"></i><span>Service Book (ज्याला बुक)</span></div>
@@ -133,9 +134,11 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:25px;">
                 <div>
                     <h1 style="margin:0; font-size:1.8rem; color:var(--tally-navy);">Dashboard</h1>
+                    <div id="current-user-display" style="color:var(--tally-teal); font-weight:bold; font-size:0.9rem;">User: ...</div>
                     <div id="current-date-display" style="color:#64748b; font-weight:500;">Today: ...</div>
                 </div>
-                <div style="text-align:right;">
+                <div style="text-align:right; display:flex; gap:10px; align-items:center;">
+                    <button class="btn" onclick="logout()" style="background:#64748b; padding:8px 15px; font-size:0.8rem;"><i class="fas fa-sign-out-alt"></i> Logout</button>
                     <button class="btn" onclick="showPage('billing')" style="background:#10b981; padding:10px 25px;"><i class="fas fa-plus"></i> New Sale (Alt+S)</button>
                 </div>
             </div>
@@ -467,6 +470,35 @@
             </table>
         </div>
 
+        <!-- Account Statement / Ledger Page -->
+        <div id="page-statement" class="main-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <h2 style="border-bottom:none; margin:0;">Account Statement</h2>
+                    <select id="stmt-acc-select" onchange="renderAccountStatement()" style="padding:5px; border:1px solid var(--tally-border); width:250px;">
+                        <option value="">-- Select Account --</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> Print Statement</button>
+                </div>
+            </div>
+            <div id="stmt-header" style="margin-bottom:15px; font-weight:bold; color:var(--tally-navy);"></div>
+            <table>
+                <thead>
+                    <tr style="background: var(--tally-navy); color: white;">
+                        <th style="color:white;">Date</th>
+                        <th style="color:white;">Particulars</th>
+                        <th style="color:white;">Vch Type</th>
+                        <th class="amt" style="color:white;">Debit (Dr)</th>
+                        <th class="amt" style="color:white;">Credit (Cr)</th>
+                        <th class="amt" style="color:white;">Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="tbl-statement-body"></tbody>
+            </table>
+        </div>
+
         <!-- Sales Book Page -->
         <div id="page-sales-book" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #10b981; margin-bottom: 15px; padding-bottom:5px;">
@@ -752,6 +784,8 @@
             const savedUser = localStorage.getItem('pawanelex_user');
             if (savedUser) {
                 user = JSON.parse(savedUser);
+                const userDisp = document.getElementById('current-user-display');
+                if(userDisp) userDisp.innerText = 'User: ' + (user.displayName || user.email);
             } else {
                 window.location.href = 'login.html';
                 return;
@@ -761,6 +795,11 @@
 
             await syncAll();
             showPage('gateway');
+        }
+
+        function logout() {
+            localStorage.removeItem('pawanelex_user');
+            window.location.href = 'login.html';
         }
 
         async function syncAll() {
@@ -796,6 +835,7 @@
             }
             if(pageId === 'service-book') renderServiceBook();
             if(pageId === 'sales-book') renderSalesBook();
+            if(pageId === 'statement') populateStatementAccountSelect();
             if(pageId === 'purchase-book') renderPurchaseBook();
             if(pageId === 'stock-summary') renderStockSummary();
             if(pageId === 'products') renderProductsList();
@@ -941,6 +981,85 @@
                     }
                 }
             });
+        }
+
+        // ACCOUNT STATEMENT / LEDGER
+        function populateStatementAccountSelect() {
+            const select = document.getElementById('stmt-acc-select');
+            const currentVal = select.value;
+            // Sorting accounts alphabetically for easier finding
+            const sortedAccounts = [...accounts].sort((a,b) => a.name.localeCompare(b.name));
+
+            select.innerHTML = '<option value="">-- Select Account --</option>' +
+                sortedAccounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+
+            if (currentVal) select.value = currentVal;
+            renderAccountStatement();
+        }
+
+        function renderAccountStatement() {
+            const accId = document.getElementById('stmt-acc-select').value;
+            const body = document.getElementById('tbl-statement-body');
+            const header = document.getElementById('stmt-header');
+
+            if (!accId) {
+                body.innerHTML = '<tr><td colspan="6" style="text-align:center;">Please select an account to view statement.</td></tr>';
+                header.innerText = '';
+                return;
+            }
+
+            const acc = accounts.find(a => a._id === accId);
+            header.innerText = `Ledger Statement for: ${acc.name} (${acc.type})`;
+
+            // Get all transactions for this account
+            const ledgerEntries = [];
+
+            // Add Opening Balance
+            let runningBal = acc.openingBalance || 0;
+            ledgerEntries.push({
+                date: '---',
+                description: 'Opening Balance',
+                type: 'Opening',
+                debit: runningBal > 0 ? runningBal : 0,
+                credit: runningBal < 0 ? Math.abs(runningBal) : 0,
+                balance: runningBal
+            });
+
+            // Filter transactions that involve this account
+            const filteredTx = transactions.filter(tx =>
+                tx.entries.some(e => (e.account._id || e.account) === accId)
+            ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            filteredTx.forEach(tx => {
+                const entry = tx.entries.find(e => (e.account._id || e.account) === accId);
+                runningBal += (entry.debit - entry.credit);
+
+                ledgerEntries.push({
+                    date: tx.date,
+                    description: tx.description,
+                    type: tx.type,
+                    debit: entry.debit,
+                    credit: entry.credit,
+                    balance: runningBal
+                });
+            });
+
+            body.innerHTML = ledgerEntries.map(le => `
+                <tr>
+                    <td>${le.date}</td>
+                    <td>${le.description}</td>
+                    <td>${le.type}</td>
+                    <td class="amt">${le.debit > 0 ? le.debit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                    <td class="amt">${le.credit > 0 ? le.credit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                    <td class="amt" style="font-weight:bold; color: ${le.balance >= 0 ? 'green' : 'red'};">
+                        ${Math.abs(le.balance).toLocaleString(undefined, {minimumFractionDigits: 2})} ${le.balance >= 0 ? 'Dr' : 'Cr'}
+                    </td>
+                </tr>
+            `).join('');
+
+            if (ledgerEntries.length === 1 && filteredTx.length === 0) {
+                body.innerHTML += '<tr><td colspan="6" style="text-align:center; padding: 20px;">No transactions found for this period.</td></tr>';
+            }
         }
 
         // SALES INVOICE LOGIC
@@ -1404,9 +1523,21 @@
                     <td>${a.name}</td>
                     <td>${a.type}</td>
                     <td class="amt">${getAccountBalance(a._id).toLocaleString()}</td>
-                    <td style="text-align:center;"><button class="btn" style="padding:2px 10px; font-size:0.7rem; background:#64748b;">Edit</button></td>
+                    <td style="text-align:center; display:flex; gap:5px; justify-content:center;">
+                        <button class="btn" onclick="viewStatement('${a._id}')" style="padding:2px 10px; font-size:0.7rem; background:var(--tally-teal);">Statement</button>
+                        <button class="btn" style="padding:2px 10px; font-size:0.7rem; background:#64748b;">Edit</button>
+                    </td>
                 </tr>
             `).join('');
+        }
+
+        function viewStatement(accId) {
+            showPage('statement');
+            const select = document.getElementById('stmt-acc-select');
+            // Ensure select is populated if navigating from elsewhere
+            if(select.options.length <= 1) populateStatementAccountSelect();
+            select.value = accId;
+            renderAccountStatement();
         }
 
         async function saveAccount() {
