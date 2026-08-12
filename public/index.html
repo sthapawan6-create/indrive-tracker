@@ -81,6 +81,8 @@
         </div>
 
         <div class="menu-section">
+            <div class="menu-item" onclick="showPage('gateway')"><i class="fas fa-tachometer-alt" style="margin-right:10px; color:#f8fafc"></i><span><b>D</b>ashboard Home</span></div>
+
             <div class="menu-title">Main Masters</div>
             <div class="menu-item" onclick="showPage('accounts')"><i class="fas fa-users" style="margin-right:10px; color:#38bdf8"></i><span><b>A</b>ccounts (Ledgers)</span></div>
             <div class="menu-item" onclick="showPage('products')"><i class="fas fa-boxes" style="margin-right:10px; color:#8b5cf6"></i><span><b>I</b>tems (Inventory)</span></div>
@@ -169,6 +171,7 @@
                         <select id="chart-range-select" onchange="renderCharts()" aria-label="Range" style="font-size:0.7rem; padding:4px; border-radius:4px; border:1px solid #ddd;">
                             <option value="7">Last 7 Days</option>
                             <option value="30" selected>Last 30 Days</option>
+                            <option value="monthly">Monthly (This Year)</option>
                         </select>
                     </div>
                     <div style="height: 300px; position: relative;">
@@ -914,35 +917,63 @@
 
         function renderCharts() {
             const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
-            const range = parseInt(document.getElementById('chart-range-select').value) || 30;
+            const range = document.getElementById('chart-range-select').value;
 
-            const labels = [];
-            const incomeData = [];
-            const expenseData = [];
+            let labels = [];
+            let incomeData = [];
+            let expenseData = [];
 
-            for (let i = range - 1; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
-                labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+            if (range === 'monthly') {
+                // Logic for Monthly view of current year
+                const currentYear = new Date().getFullYear();
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-                let dailyIncome = 0;
-                let dailyExpense = 0;
+                labels = monthNames;
+                incomeData = new Array(12).fill(0);
+                expenseData = new Array(12).fill(0);
 
-                transactions.filter(tx => tx.date === dateStr).forEach(tx => {
-                    if (tx.type === 'SALES' || tx.type === 'SERVICE') {
-                        dailyIncome += tx.entries.find(e => e.credit > 0)?.credit || 0;
-                    } else if (tx.type === 'SALES_RETURN') {
-                        dailyIncome -= tx.entries.find(e => e.debit > 0)?.debit || 0;
-                    } else if (tx.type === 'PURCHASE' || tx.type === 'EXPENSE') {
-                        dailyExpense += tx.entries.find(e => e.debit > 0)?.debit || 0;
-                    } else if (tx.type === 'PURCHASE_RETURN') {
-                        dailyExpense -= tx.entries.find(e => e.credit > 0)?.credit || 0;
+                transactions.forEach(tx => {
+                    const txDate = new Date(tx.date);
+                    if (txDate.getFullYear() === currentYear) {
+                        const monthIndex = txDate.getMonth();
+                        if (tx.type === 'SALES' || tx.type === 'SERVICE') {
+                            incomeData[monthIndex] += tx.entries.find(e => e.credit > 0)?.credit || 0;
+                        } else if (tx.type === 'SALES_RETURN') {
+                            incomeData[monthIndex] -= tx.entries.find(e => e.debit > 0)?.debit || 0;
+                        } else if (tx.type === 'PURCHASE' || tx.type === 'EXPENSE') {
+                            expenseData[monthIndex] += tx.entries.find(e => e.debit > 0)?.debit || 0;
+                        } else if (tx.type === 'PURCHASE_RETURN') {
+                            expenseData[monthIndex] -= tx.entries.find(e => e.credit > 0)?.credit || 0;
+                        }
                     }
                 });
+            } else {
+                // Existing daily logic
+                const days = parseInt(range);
+                for (let i = days - 1; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
 
-                incomeData.push(dailyIncome);
-                expenseData.push(dailyExpense);
+                    let dailyIncome = 0;
+                    let dailyExpense = 0;
+
+                    transactions.filter(tx => tx.date === dateStr).forEach(tx => {
+                        if (tx.type === 'SALES' || tx.type === 'SERVICE') {
+                            dailyIncome += tx.entries.find(e => e.credit > 0)?.credit || 0;
+                        } else if (tx.type === 'SALES_RETURN') {
+                            dailyIncome -= tx.entries.find(e => e.debit > 0)?.debit || 0;
+                        } else if (tx.type === 'PURCHASE' || tx.type === 'EXPENSE') {
+                            dailyExpense += tx.entries.find(e => e.debit > 0)?.debit || 0;
+                        } else if (tx.type === 'PURCHASE_RETURN') {
+                            dailyExpense -= tx.entries.find(e => e.credit > 0)?.credit || 0;
+                        }
+                    });
+
+                    incomeData.push(dailyIncome);
+                    expenseData.push(dailyExpense);
+                }
             }
 
             if (dashChart) dashChart.destroy();
