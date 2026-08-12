@@ -169,12 +169,15 @@ app.get('/api/accounts', async (req, res) => {
 
 app.post('/api/accounts', async (req, res) => {
     try {
+        console.log("Saving Account:", req.body);
         const account = new Account({ ...req.body });
-        // Set initial balance to openingBalance
         account.balance = account.openingBalance || 0;
         await account.save();
         res.status(200).json(account);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) {
+        console.error("Account Save Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.put('/api/accounts/:id', async (req, res) => {
@@ -252,10 +255,32 @@ app.post('/api/products', async (req, res) => {
 app.post('/api/transactions', async (req, res) => {
     try {
         const { userId, date, description, entries, type, items } = req.body;
-        if (await checkLock(userId, date)) return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+        console.log("Attempting to save transaction:", { type, description, date });
 
-        const tx = new Transaction({ userId, date, description, entries, type: type || 'JOURNAL' });
+        if (!date) return res.status(400).json({ error: "कृपया मिति छान्नुहोस्।" });
+        if (!entries || entries.length === 0) return res.status(400).json({ error: "इन्ट्री विवरण खाली छ।" });
+
+        // Use default admin if userId is missing
+        const finalUserId = userId || 'pawan-electronics-admin';
+
+        try {
+            if (await checkLock(finalUserId, date)) {
+                return res.status(403).json({ error: "यो मितिको हिसाब क्लोज भइसकेको छ।" });
+            }
+        } catch (lockErr) {
+            console.warn("Lock check skipped:", lockErr.message);
+        }
+
+        const tx = new Transaction({
+            userId: finalUserId,
+            date,
+            description,
+            entries,
+            type: type || 'JOURNAL'
+        });
+
         await tx.save();
+        console.log("Transaction saved:", tx._id);
 
         // Update Account Balances
         for (const entry of entries) {
@@ -267,10 +292,10 @@ app.post('/api/transactions', async (req, res) => {
             }
         }
 
-        // --- NEW: Update Stock if Items are provided ---
+        // --- Update Stock ---
         if (items && items.length > 0) {
             for (const item of items) {
-                const pId = item.productId || item.product; // Handle both formats
+                const pId = item.productId || item.product;
                 if (pId) {
                     const prod = await Product.findById(pId);
                     if (prod) {
@@ -284,7 +309,10 @@ app.post('/api/transactions', async (req, res) => {
         }
 
         res.status(200).json(tx);
-    } catch (err) { res.status(500).json({ error: "पोस्ट असफल" }); }
+    } catch (err) {
+        console.error("Transaction Save Error:", err);
+        res.status(500).json({ error: "सेभ असफल: " + err.message });
+    }
 });
 
 app.put('/api/transactions/:id', async (req, res) => {

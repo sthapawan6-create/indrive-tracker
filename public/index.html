@@ -518,7 +518,13 @@
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
                 <div style="display:flex; gap:15px; align-items:center;">
                     <h2 style="border-bottom:none; margin:0;">Day Book</h2>
-                    <input type="text" id="daybook-search" aria-label="Search" placeholder="Search (Date, Account, Type...)" oninput="renderDayBook()" style="padding:4px 10px; border:1px solid var(--tally-border); width:250px; font-size:0.8rem;">
+                    <div style="display:flex; gap:5px; align-items:center; font-size:0.8rem;">
+                        <span>From:</span>
+                        <input type="date" id="daybook-from" onchange="renderDayBook()" style="padding:2px; border:1px solid #ccc;">
+                        <span>To:</span>
+                        <input type="date" id="daybook-to" onchange="renderDayBook()" style="padding:2px; border:1px solid #ccc;">
+                    </div>
+                    <input type="text" id="daybook-search" aria-label="Search" placeholder="Search (Account, Type...)" oninput="renderDayBook()" style="padding:4px 10px; border:1px solid var(--tally-border); width:200px; font-size:0.8rem;">
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn" onclick="downloadCSV('tbl-daybook-main', 'DayBook.csv')" style="font-size: 0.8rem; padding: 5px 15px; background:#2e7d32;"><i class="fas fa-file-excel"></i> Export</button>
@@ -743,6 +749,11 @@
         // INITIALIZATION
         async function init() {
             document.getElementById('current-date-display').innerText = 'Today: ' + new Date().toLocaleDateString('en-GB', { dateStyle: 'full' });
+
+            // Set default Day Book filter to August 6, 2024
+            const fromInput = document.getElementById('daybook-from');
+            if (fromInput) fromInput.value = '2024-08-06';
+
             await syncAll();
             showPage('gateway');
         }
@@ -754,7 +765,11 @@
                 fetch('/api/products')
             ]);
             accounts = await accRes.json();
-            transactions = await txRes.json();
+            const allTx = await txRes.json();
+
+            // अगस्ट ६, २०२४ देखिको मात्र हिसाब राख्ने (Filter transactions from Aug 6 onwards)
+            transactions = allTx.filter(tx => tx.date >= '2024-08-06');
+
             products = await prodRes.json();
             renderDashboardData();
         }
@@ -1018,6 +1033,9 @@
                 alert("Sales Invoice Saved!");
                 syncAll();
                 showPage('gateway');
+            } else {
+                const err = await res.json();
+                alert("Save Failed: " + (err.error || "Unknown Error"));
             }
         }
 
@@ -1099,6 +1117,9 @@
                 alert("Purchase Recorded!");
                 syncAll();
                 showPage('gateway');
+            } else {
+                const err = await res.json();
+                alert("Save Failed: " + (err.error || "Unknown Error"));
             }
         }
 
@@ -1239,7 +1260,16 @@
 
         function renderDayBook() {
             const search = document.getElementById('daybook-search').value.toLowerCase();
-            const filtered = transactions.filter(tx => tx.description.toLowerCase().includes(search) || tx.type.toLowerCase().includes(search) || tx.date.includes(search));
+            const fromDate = document.getElementById('daybook-from').value;
+            const toDate = document.getElementById('daybook-to').value;
+
+            let filtered = transactions.filter(tx => {
+                const matchesSearch = tx.description.toLowerCase().includes(search) || tx.type.toLowerCase().includes(search);
+                const matchesFrom = fromDate ? (tx.date >= fromDate) : true;
+                const matchesTo = toDate ? (tx.date <= toDate) : true;
+                return matchesSearch && matchesFrom && matchesTo;
+            });
+
             document.getElementById('tbl-daybook-body').innerHTML = filtered.map(tx => {
                 const amt = tx.entries.reduce((acc, e) => acc + e.debit, 0) || tx.entries[0]?.credit || 0;
                 return `<tr><td>${tx.date}</td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTx('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
@@ -1326,6 +1356,9 @@
                 alert("Journal Voucher Saved!");
                 syncAll();
                 showPage('gateway');
+            } else {
+                const err = await res.json();
+                alert("Save Failed: " + (err.error || "Unknown Error"));
             }
         }
 
