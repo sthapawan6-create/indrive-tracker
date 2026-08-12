@@ -779,14 +779,29 @@
         <div class="modal-content" style="border-color:#8b5cf6;">
             <h3 style="margin-top:0; color:#8b5cf6;">Add New Product</h3>
             <div style="display:grid; gap:10px;">
-                <input type="text" id="p-name" aria-label="Name" placeholder="Item Name (e.g. LED Bulb 9W)" style="padding:8px; border:1px solid #ccc;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <input type="text" id="p-unit" aria-label="Unit" placeholder="Unit (Pcs/Kg)" value="Pcs" style="padding:8px; border:1px solid #ccc;">
-                    <input type="number" id="p-opening" aria-label="Opening" placeholder="Opening Stock" value="0" style="padding:8px; border:1px solid #ccc;">
+                <div>
+                    <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Item Name (सामानको नाम)</label>
+                    <input type="text" id="p-name" aria-label="Name" placeholder="Item Name (e.g. LED Bulb 9W)" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <input type="number" id="p-pur-price" aria-label="Purchase Price" placeholder="Purchase Price" value="0" style="padding:8px; border:1px solid #ccc;">
-                    <input type="number" id="p-sale-price" aria-label="Sale Price" placeholder="Sale Price" value="0" style="padding:8px; border:1px solid #ccc;">
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Unit (एकाइ - Pcs/Kg)</label>
+                        <input type="text" id="p-unit" aria-label="Unit" placeholder="Unit" value="Pcs" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Opening Stock (सुरुको मौज्दात)</label>
+                        <input type="number" id="p-opening" aria-label="Opening" placeholder="0" value="0" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Purchase Price (खरिद मूल्य)</label>
+                        <input type="number" id="p-pur-price" aria-label="Purchase Price" placeholder="0" value="0" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Sale Price (बिक्री मूल्य)</label>
+                        <input type="number" id="p-sale-price" aria-label="Sale Price" placeholder="0" value="0" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                    </div>
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px;">
                     <button onclick="closeModals()" style="padding:8px 20px; border:none; background:#ddd; cursor:pointer;">Cancel</button>
