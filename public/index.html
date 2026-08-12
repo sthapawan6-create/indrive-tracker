@@ -929,32 +929,30 @@
             let incomeData = [];
             let expenseData = [];
 
-            if (range === 'monthly') {
-                // Logic for Monthly view of current year
-                const currentYear = new Date().getFullYear();
-                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const getEntryAcc = (e) => {
+                const id = (typeof e.account === 'object') ? e.account._id : e.account;
+                return accounts.find(a => a._id === id);
+            };
 
-                labels = monthNames;
+            if (range === 'monthly') {
+                const currentYear = new Date().getFullYear();
+                labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 incomeData = new Array(12).fill(0);
                 expenseData = new Array(12).fill(0);
 
                 transactions.forEach(tx => {
                     const txDate = new Date(tx.date);
                     if (txDate.getFullYear() === currentYear) {
-                        const monthIndex = txDate.getMonth();
-                        if (tx.type === 'SALES' || tx.type === 'SERVICE') {
-                            incomeData[monthIndex] += tx.entries.find(e => e.credit > 0)?.credit || 0;
-                        } else if (tx.type === 'SALES_RETURN') {
-                            incomeData[monthIndex] -= tx.entries.find(e => e.debit > 0)?.debit || 0;
-                        } else if (tx.type === 'PURCHASE' || tx.type === 'EXPENSE') {
-                            expenseData[monthIndex] += tx.entries.find(e => e.debit > 0)?.debit || 0;
-                        } else if (tx.type === 'PURCHASE_RETURN') {
-                            expenseData[monthIndex] -= tx.entries.find(e => e.credit > 0)?.credit || 0;
-                        }
+                        const m = txDate.getMonth();
+                        tx.entries.forEach(e => {
+                            const acc = getEntryAcc(e);
+                            if (!acc) return;
+                            if (acc.type === 'Revenue') incomeData[m] += (Number(e.credit || 0) - Number(e.debit || 0));
+                            if (acc.type === 'Expense') expenseData[m] += (Number(e.debit || 0) - Number(e.credit || 0));
+                        });
                     }
                 });
             } else {
-                // Existing daily logic
                 const days = parseInt(range);
                 for (let i = days - 1; i >= 0; i--) {
                     const d = new Date();
@@ -962,23 +960,20 @@
                     const dateStr = d.toISOString().split('T')[0];
                     labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
 
-                    let dailyIncome = 0;
-                    let dailyExpense = 0;
+                    let dailyInc = 0;
+                    let dailyExp = 0;
 
                     transactions.filter(tx => tx.date === dateStr).forEach(tx => {
-                        if (tx.type === 'SALES' || tx.type === 'SERVICE') {
-                            dailyIncome += tx.entries.find(e => e.credit > 0)?.credit || 0;
-                        } else if (tx.type === 'SALES_RETURN') {
-                            dailyIncome -= tx.entries.find(e => e.debit > 0)?.debit || 0;
-                        } else if (tx.type === 'PURCHASE' || tx.type === 'EXPENSE') {
-                            dailyExpense += tx.entries.find(e => e.debit > 0)?.debit || 0;
-                        } else if (tx.type === 'PURCHASE_RETURN') {
-                            dailyExpense -= tx.entries.find(e => e.credit > 0)?.credit || 0;
-                        }
+                        tx.entries.forEach(e => {
+                            const acc = getEntryAcc(e);
+                            if (!acc) return;
+                            if (acc.type === 'Revenue') dailyInc += (Number(e.credit || 0) - Number(e.debit || 0));
+                            if (acc.type === 'Expense') dailyExp += (Number(e.debit || 0) - Number(e.credit || 0));
+                        });
                     });
 
-                    incomeData.push(dailyIncome);
-                    expenseData.push(dailyExpense);
+                    incomeData.push(dailyInc);
+                    expenseData.push(dailyExp);
                 }
             }
 
