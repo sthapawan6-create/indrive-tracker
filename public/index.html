@@ -914,9 +914,11 @@
         }
 
         function renderDashboardRecent() {
-            const recent = transactions.slice(-8).reverse();
+            // Sort by date (descending) and then take top 8
+            const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt) - new Date(a.createdAt));
+            const recent = sorted.slice(0, 8);
             document.getElementById('dash-recent-tx').innerHTML = recent.map(tx => {
-                const amt = tx.entries[0].debit || tx.entries[0].credit;
+                const amt = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
                 return `<tr><td>${tx.date}</td><td>${tx.description.substring(0,30)}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td></tr>`;
             }).join('');
         }
