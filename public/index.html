@@ -114,10 +114,16 @@
     </div>
 
     <div class="top-bar no-print">
-        <div class="search-container">
-            <i class="fas fa-search" style="position:absolute; left:12px; top:10px; font-size:0.8rem; color:#94a3b8;"></i>
-            <input type="text" id="goto-bar" placeholder="Go To (Alt+G)..." oninput="showGoToSuggestions()" onkeydown="handleGoToKey(event)" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:6px 12px 6px 35px; color:white; width:250px; outline:none; font-size:0.85rem;">
-            <div id="goto-suggestions"></div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div onclick="showPage('gateway')" style="cursor:pointer; color:white; font-size:1.1rem; display:flex; align-items:center; gap:5px;" title="Go to Dashboard">
+                <i class="fas fa-home"></i>
+                <span style="font-size:0.8rem; font-weight:normal; opacity:0.8;">Home</span>
+            </div>
+            <div class="search-container">
+                <i class="fas fa-search" style="position:absolute; left:12px; top:10px; font-size:0.8rem; color:#94a3b8;"></i>
+                <input type="text" id="goto-bar" placeholder="Go To (Alt+G)..." oninput="showGoToSuggestions()" onkeydown="handleGoToKey(event)" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:4px; padding:6px 12px 6px 35px; color:white; width:200px; outline:none; font-size:0.85rem;">
+                <div id="goto-suggestions"></div>
+            </div>
         </div>
         <div style="display:flex; align-items:center; gap:20px;">
             <div id="sync-status" style="font-size:0.75rem; color:#94a3b8;"><i class="fas fa-check-circle"></i> Connected</div>
@@ -1442,16 +1448,30 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <select class="vch-acc-select" style="width:100%; padding:5px; border:1px solid #ccc;">
+                    <select class="vch-acc-select" onchange="updateVchRowBalance(this)" style="width:100%; padding:5px; border:1px solid #ccc;">
                         <option value="">-- Select Account --</option>
                         ${accounts.map(a => `<option value="${a._id}">${a.name} (${a.type})</option>`).join('')}
                     </select>
+                    <div class="vch-bal-display" style="font-size:0.75rem; color:#64748b; margin-top:2px; padding-left:5px;">Balance: 0.00</div>
                 </td>
                 <td><input type="number" class="vch-dr" value="0" oninput="calculateVoucherTotal()" style="text-align:right; width:100%; border:none; padding:5px;"></td>
                 <td><input type="number" class="vch-cr" value="0" oninput="calculateVoucherTotal()" style="text-align:right; width:100%; border:none; padding:5px;"></td>
                 <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateVoucherTotal();" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td>
             `;
             document.getElementById('vch-rows').appendChild(tr);
+        }
+
+        function updateVchRowBalance(selectEl) {
+            const accId = selectEl.value;
+            const balDisplay = selectEl.nextElementSibling;
+            if (accId) {
+                const bal = getAccountBalance(accId);
+                balDisplay.innerText = `Current Bal: ${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}`;
+                balDisplay.style.color = bal >= 0 ? '#10b981' : '#f43f5e';
+            } else {
+                balDisplay.innerText = 'Balance: 0.00';
+                balDisplay.style.color = '#64748b';
+            }
         }
 
         function calculateVoucherTotal() {
@@ -1481,14 +1501,27 @@
             }
 
             const entries = [];
-            document.querySelectorAll('#vch-rows tr').forEach(tr => {
+            const rows = document.querySelectorAll('#vch-rows tr');
+
+            for (let tr of rows) {
                 const accId = tr.querySelector('.vch-acc-select').value;
                 const debit = Number(tr.querySelector('.vch-dr').value || 0);
                 const credit = Number(tr.querySelector('.vch-cr').value || 0);
+
                 if (accId && (debit > 0 || credit > 0)) {
+                    // Check for insufficient balance if crediting an Asset/Bank/Cash account
+                    if (credit > 0) {
+                        const acc = accounts.find(a => a._id === accId);
+                        const currentBal = getAccountBalance(accId);
+                        if (acc.type === 'Asset' || acc.type === 'Receivable') {
+                            if (currentBal < credit) {
+                                return alert(`Insufficient Balance in ${acc.name}! \nAvailable: ${currentBal.toFixed(2)} \nTrying to spend: ${credit.toFixed(2)}`);
+                            }
+                        }
+                    }
                     entries.push({ account: accId, debit, credit });
                 }
-            });
+            }
 
             const data = {
                 userId: user.uid,
