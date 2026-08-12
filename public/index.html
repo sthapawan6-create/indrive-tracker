@@ -668,20 +668,61 @@
         <!-- Reports: Balance Sheet -->
         <div id="page-reports-bs" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
-                <h2 style="border-bottom:none; margin:0;">Balance Sheet</h2>
+                <h2 style="border-bottom:none; margin:0;">Balance Sheet (वासलात)</h2>
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="date" id="bs-date" aria-label="Date" style="padding:4px;" onchange="renderBalanceSheet()">
-                    <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;">Print</button>
+                    <button class="btn" onclick="renderBalanceSheet()" style="background:var(--tally-teal);">Refresh</button>
+                    <button class="btn" onclick="window.print()" style="background:#64748b;">Print</button>
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0; border:1px solid var(--tally-border);">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0; border:2px solid var(--tally-navy); background:white;">
                 <div style="border-right:1px solid var(--tally-border);">
-                    <table id="tbl-assets" class="v-table"></table>
+                    <table class="v-table">
+                        <thead style="background:var(--tally-navy); color:white;">
+                            <tr><th style="color:white;">Liabilities (दायित्व)</th><th class="amt" style="color:white;">Amount</th></tr>
+                        </thead>
+                        <tbody id="tbl-liab"></tbody>
+                        <tfoot style="background:#f8fafc; font-weight:bold; border-top:2px solid var(--tally-navy);">
+                            <tr><td>Total Liabilities</td><td class="amt" id="bs-total-liab">0.00</td></tr>
+                        </tfoot>
+                    </table>
                 </div>
                 <div>
-                    <table id="tbl-liab" class="v-table"></table>
+                    <table class="v-table">
+                        <thead style="background:var(--tally-navy); color:white;">
+                            <tr><th style="color:white;">Assets (सम्पत्ति)</th><th class="amt" style="color:white;">Amount</th></tr>
+                        </thead>
+                        <tbody id="tbl-assets"></tbody>
+                        <tfoot style="background:#f8fafc; font-weight:bold; border-top:2px solid var(--tally-navy);">
+                            <tr><td>Total Assets</td><td class="amt" id="bs-total-assets">0.00</td></tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
+        </div>
+
+        <!-- Reports: Trial Balance -->
+        <div id="page-reports-tb" class="main-content">
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #0369a1; margin-bottom: 15px; padding-bottom:5px;">
+                <h2 style="border-bottom:none; margin:0; color:#0369a1;">Trial Balance (अन्तिम सन्तुलन परीक्षण)</h2>
+                <button class="btn" onclick="window.print()" style="background:#64748b;">Print</button>
+            </div>
+            <table>
+                <thead>
+                    <tr style="background:#0369a1; color:white;">
+                        <th style="color:white;">Particulars (Account Name)</th>
+                        <th class="amt" style="color:white;">Debit (Dr)</th>
+                        <th class="amt" style="color:white;">Credit (Cr)</th>
+                    </tr>
+                </thead>
+                <tbody id="tbl-tb-body"></tbody>
+                <tfoot style="background:#f0f9ff; font-weight:bold; border-top:2px solid #0369a1;">
+                    <tr>
+                        <td>Grand Total</td>
+                        <td class="amt" id="tb-total-dr">0.00</td>
+                        <td class="amt" id="tb-total-cr">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         <!-- Reports: Profit & Loss -->
@@ -886,6 +927,7 @@
             }
             if(pageId === 'reports-bs') renderBalanceSheet();
             if(pageId === 'reports-pl') renderPLAccount();
+            if(pageId === 'reports-tb') renderTrialBalance();
             if(pageId === 'sales-return') resetReturnPage('sr');
             if(pageId === 'purchase-return') resetReturnPage('pr');
         }
@@ -1647,12 +1689,79 @@
         }
 
         function renderBalanceSheet() {
-            // Placeholder logic for BS
-            const assets = accounts.filter(a => a.type === 'Asset' || a.type === 'Receivable');
-            const liabs = accounts.filter(a => a.type === 'Liability' || a.type === 'Payable' || a.type === 'Equity');
+            let totalAssets = 0, totalLiab = 0;
 
-            document.getElementById('tbl-assets').innerHTML = `<tr><th colspan="2">ASSETS</th></tr>` + assets.map(a => `<tr><td>${a.name}</td><td class="amt">${getAccountBalance(a._id).toLocaleString()}</td></tr>`).join('');
-            document.getElementById('tbl-liab').innerHTML = `<tr><th colspan="2">LIABILITIES</th></tr>` + liabs.map(a => `<tr><td>${a.name}</td><td class="amt">${Math.abs(getAccountBalance(a._id)).toLocaleString()}</td></tr>`).join('');
+            // Calculate Profit/Loss first
+            const netProfit = calculateNetProfit();
+
+            // Calculate Stock Value
+            let closingStockValue = 0;
+            products.forEach(p => {
+                closingStockValue += (p.currentStock * p.purchasePrice);
+            });
+
+            const assetAccs = accounts.filter(a => a.type === 'Asset' || a.type === 'Receivable');
+            const liabAccs = accounts.filter(a => a.type === 'Liability' || a.type === 'Payable' || a.type === 'Equity');
+
+            // Render Assets
+            let assetHtml = assetAccs.map(a => {
+                const bal = getAccountBalance(a._id);
+                if(bal === 0) return '';
+                totalAssets += bal;
+                return `<tr><td>${a.name}</td><td class="amt">${bal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+            }).join('');
+
+            // Add Closing Stock to Assets
+            assetHtml += `<tr style="font-weight:600; color:var(--tally-teal);"><td>Closing Stock (मौज्दात सामान)</td><td class="amt">${closingStockValue.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+            totalAssets += closingStockValue;
+
+            document.getElementById('tbl-assets').innerHTML = assetHtml;
+
+            // Render Liabilities
+            let liabHtml = liabAccs.map(a => {
+                const bal = Math.abs(getAccountBalance(a._id));
+                if(bal === 0) return '';
+                totalLiab += bal;
+                return `<tr><td>${a.name}</td><td class="amt">${bal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+            }).join('');
+
+            // Add Net Profit to Liabilities (Equity side)
+            if(netProfit >= 0) {
+                liabHtml += `<tr style="font-weight:600; color:green;"><td>Profit & Loss A/c (Net Profit)</td><td class="amt">${netProfit.toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
+                totalLiab += netProfit;
+            } else {
+                // If loss, it reduces equity or shown on asset side, here we'll subtract from liab for simplicity
+                liabHtml += `<tr style="font-weight:600; color:red;"><td>Profit & Loss A/c (Net Loss)</td><td class="amt">(${Math.abs(netProfit).toLocaleString(undefined, {minimumFractionDigits: 2})})</td></tr>`;
+                totalLiab += netProfit;
+            }
+
+            document.getElementById('tbl-liab').innerHTML = liabHtml;
+            document.getElementById('bs-total-assets').innerText = totalAssets.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('bs-total-liab').innerText = totalLiab.toLocaleString(undefined, {minimumFractionDigits: 2});
+        }
+
+        function renderTrialBalance() {
+            let totalDr = 0, totalCr = 0;
+            const html = accounts.map(a => {
+                const bal = getAccountBalance(a._id);
+                if(bal === 0) return '';
+
+                let dr = 0, cr = 0;
+                if(bal > 0) { dr = bal; totalDr += dr; }
+                else { cr = Math.abs(bal); totalCr += cr; }
+
+                return `
+                    <tr>
+                        <td>${a.name}</td>
+                        <td class="amt">${dr > 0 ? dr.toLocaleString(undefined, {minimumFractionDigits: 2}) : ''}</td>
+                        <td class="amt">${cr > 0 ? cr.toLocaleString(undefined, {minimumFractionDigits: 2}) : ''}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('tbl-tb-body').innerHTML = html;
+            document.getElementById('tb-total-dr').innerText = totalDr.toLocaleString(undefined, {minimumFractionDigits: 2});
+            document.getElementById('tb-total-cr').innerText = totalCr.toLocaleString(undefined, {minimumFractionDigits: 2});
         }
 
         function renderPLAccount() {
