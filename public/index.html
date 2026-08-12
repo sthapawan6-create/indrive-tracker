@@ -65,10 +65,36 @@
         .suggestion-item:hover { background: #f1f5f9; }
 
         @media print {
-            .sidebar, .top-bar, .no-print, .btn { display: none !important; }
-            .main-content { margin-left: 0; padding: 0; display: block !important; }
-            table { font-size: 10pt; }
-            .page-break { page-break-before: always; }
+            .sidebar, .top-bar, .no-print, .btn, .menu-section, .logo, #sync-status, .search-container { display: none !important; }
+            .main-content {
+                margin: 0 !important;
+                padding: 0 !important;
+                display: none !important;
+                width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .main-content.active {
+                display: block !important;
+            }
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 10pt !important;
+            }
+            th, td {
+                border: 1px solid #000 !important;
+            }
+            .info-card, .box {
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+            }
+            canvas { max-width: 100% !important; height: auto !important; }
         }
     </style>
 </head>
