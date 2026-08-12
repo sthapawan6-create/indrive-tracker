@@ -623,6 +623,22 @@
                 </div>
             </div>
             <div id="vch-diff-msg" style="text-align:right; color:red; font-size:0.8rem; margin-top:5px; font-weight:bold;"></div>
+
+            <!-- Recent Journal Vouchers List -->
+            <div style="margin-top: 30px; border-top: 2px solid #f59e0b; padding-top: 20px;">
+                <h3 style="color:#f59e0b; margin-bottom:10px;">Recent Journal Vouchers</h3>
+                <table>
+                    <thead>
+                        <tr style="background:#fff3e0;">
+                            <th>Date</th>
+                            <th>Particulars</th>
+                            <th class="amt">Amount</th>
+                            <th style="text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vch-recent-list"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Stock Summary Page -->
@@ -849,7 +865,10 @@
             if(pageId === 'stock-summary') renderStockSummary();
             if(pageId === 'products') renderProductsList();
             if(pageId === 'daybook') renderDayBook();
-            if(pageId === 'vouchers') resetVoucher();
+            if(pageId === 'vouchers') {
+                if(!editingVoucherId) resetVoucher();
+                renderVoucherRecentList();
+            }
             if(pageId === 'reports-bs') renderBalanceSheet();
             if(pageId === 'reports-pl') renderPLAccount();
             if(pageId === 'sales-return') resetReturnPage('sr');
@@ -862,6 +881,7 @@
             renderDashboardRecent();
             updateLowStockAlerts();
             renderCharts();
+            renderVoucherRecentList();
 
             let cash = 0, rec = 0, pay = 0, profit = 0;
             accounts.forEach(a => {
@@ -1489,6 +1509,8 @@
             }
         }
 
+        let editingVoucherId = null;
+
         async function saveVoucher() {
             const dr = Number(document.getElementById('vch-total-dr').innerText);
             const cr = Number(document.getElementById('vch-total-cr').innerText);
@@ -1506,16 +1528,6 @@
                 const credit = Number(tr.querySelector('.vch-cr').value || 0);
 
                 if (accId && (debit > 0 || credit > 0)) {
-                    // Check for insufficient balance if crediting an Asset/Bank/Cash account
-                    if (credit > 0) {
-                        const acc = accounts.find(a => a._id === accId);
-                        const currentBal = getAccountBalance(accId);
-                        if (acc.type === 'Asset' || acc.type === 'Receivable') {
-                            if (currentBal < credit) {
-                                return alert(`Insufficient Balance in ${acc.name}! \nAvailable: ${currentBal.toFixed(2)} \nTrying to spend: ${credit.toFixed(2)}`);
-                            }
-                        }
-                    }
                     entries.push({ account: accId, debit, credit });
                 }
             }
@@ -1528,19 +1540,94 @@
                 entries
             };
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingVoucherId ? `/api/transactions/${editingVoucherId}` : '/api/transactions';
+            const method = editingVoucherId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
 
             if(res.ok) {
-                alert("Journal Voucher Saved!");
+                alert(editingVoucherId ? "Voucher Updated!" : "Journal Voucher Saved!");
+                editingVoucherId = null;
+                resetVoucherForm();
                 syncAll();
-                showPage('gateway');
             } else {
                 const err = await res.json();
                 alert("Save Failed: " + (err.error || "Unknown Error"));
+            }
+        }
+
+        function resetVoucherForm() {
+            editingVoucherId = null;
+            document.getElementById('vch-narration').value = "";
+            document.getElementById('vch-rows').innerHTML = "";
+            addVoucherRow();
+            addVoucherRow();
+            calculateVoucherTotal();
+        }
+
+        function renderVoucherRecentList() {
+            const journalTxs = transactions.filter(t => t.type === 'JOURNAL').slice(0, 10);
+            document.getElementById('vch-recent-list').innerHTML = journalTxs.map(tx => {
+                const amt = tx.entries.reduce((sum, e) => sum + e.debit, 0);
+                return `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>${tx.description}</td>
+                        <td class="amt">${amt.toLocaleString()}</td>
+                        <td style="text-align:center;">
+                            <button class="btn" onclick="editVoucher('${tx._id}')" style="padding:2px 8px; background:#64748b; font-size:0.7rem;"><i class="fas fa-edit"></i></button>
+                            <button class="btn" onclick="deleteTransaction('${tx._id}')" style="padding:2px 8px; background:#f43f5e; font-size:0.7rem;"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function editVoucher(id) {
+            const tx = transactions.find(t => t._id === id);
+            if(!tx) return;
+
+            editingVoucherId = id;
+            document.getElementById('vch-date').value = tx.date;
+            document.getElementById('vch-narration').value = tx.description;
+
+            const tbody = document.getElementById('vch-rows');
+            tbody.innerHTML = "";
+
+            tx.entries.forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <select class="vch-acc-select" onchange="updateVchRowBalance(this)" style="width:100%; border:none; padding:5px; background:transparent;">
+                            <option value="">-- Select Account --</option>
+                            ${accounts.map(a => `<option value="${a._id}" ${a._id === (entry.account._id || entry.account) ? 'selected' : ''}>${a.name}</option>`).join('')}
+                        </select>
+                        <div class="vch-bal-display" style="font-size:0.75rem; color:#64748b; margin-top:2px; padding-left:5px;">Balance: Loading...</div>
+                    </td>
+                    <td><input type="number" class="vch-dr" value="${entry.debit}" oninput="calculateVoucherTotal()" style="text-align:right; width:100%; border:none; padding:5px;"></td>
+                    <td><input type="number" class="vch-cr" value="${entry.credit}" oninput="calculateVoucherTotal()" style="text-align:right; width:100%; border:none; padding:5px;"></td>
+                    <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateVoucherTotal();" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                updateVchRowBalance(tr.querySelector('.vch-acc-select'));
+            });
+            calculateVoucherTotal();
+            window.scrollTo(0,0);
+        }
+
+        async function deleteTransaction(id) {
+            if(!confirm("Are you sure you want to delete this transaction?")) return;
+            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+            if(res.ok) {
+                alert("Deleted Successfully!");
+                syncAll();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Delete failed");
             }
         }
 
