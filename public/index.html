@@ -748,28 +748,30 @@
 
         // INITIALIZATION
         async function init() {
-            document.getElementById('current-date-display').innerText = 'Today: ' + new Date().toLocaleDateString('en-GB', { dateStyle: 'full' });
+            // Check for logged in user
+            const savedUser = localStorage.getItem('pawanelex_user');
+            if (savedUser) {
+                user = JSON.parse(savedUser);
+            } else {
+                window.location.href = 'login.html';
+                return;
+            }
 
-            // Set default Day Book filter to August 6, 2024
-            const fromInput = document.getElementById('daybook-from');
-            if (fromInput) fromInput.value = '2024-08-06';
+            document.getElementById('current-date-display').innerText = 'Today: ' + new Date().toLocaleDateString('en-GB', { dateStyle: 'full' });
 
             await syncAll();
             showPage('gateway');
         }
 
         async function syncAll() {
+            const userId = user.uid;
             const [accRes, txRes, prodRes] = await Promise.all([
-                fetch('/api/accounts'),
-                fetch('/api/transactions'),
-                fetch('/api/products')
+                fetch(`/api/accounts?userId=${userId}`),
+                fetch(`/api/transactions?userId=${userId}`),
+                fetch(`/api/products?userId=${userId}`)
             ]);
             accounts = await accRes.json();
-            const allTx = await txRes.json();
-
-            // अगस्ट ६, २०२४ देखिको मात्र हिसाब राख्ने (Filter transactions from Aug 6 onwards)
-            transactions = allTx.filter(tx => tx.date >= '2024-08-06');
-
+            transactions = await txRes.json();
             products = await prodRes.json();
             renderDashboardData();
         }
