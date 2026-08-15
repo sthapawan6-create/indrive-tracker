@@ -1969,22 +1969,6 @@
             }, 500);
         }
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-
-            if(res.ok) {
-                alert("Sales Invoice Saved!");
-                syncAll();
-                showPage('gateway');
-            } else {
-                const err = await res.json();
-                alert("Save Failed: " + (err.error || "Unknown Error"));
-            }
-        }
-
         // PURCHASE LOGIC
         function updatePurchasePartyInfo() {
             const partyId = document.getElementById('pur-party-acc').value;
