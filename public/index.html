@@ -239,6 +239,30 @@
         .suggestion-item { padding: 10px 15px; cursor: pointer; color: #333; font-size: 0.9rem; }
         .suggestion-item:hover { background: #f1f5f9; }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
         @media print {
             .sidebar, .top-bar, .no-print, .btn, .menu-section, .logo, #sync-status, .search-container { display: none !important; }
             .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; background: white !important; }
@@ -1341,17 +1365,29 @@
         }
 
         async function syncAll() {
-            const userId = user.uid;
-            const [accRes, txRes, prodRes] = await Promise.all([
-                fetch(`/api/accounts?userId=${userId}`),
-                fetch(`/api/transactions?userId=${userId}`),
-                fetch(`/api/products?userId=${userId}`)
-            ]);
-            accounts = await accRes.json();
-            transactions = await txRes.json();
-            products = await prodRes.json();
+            try {
+                const userId = user.uid;
+                const [accRes, txRes, prodRes] = await Promise.all([
+                    fetch(`/api/accounts?userId=${userId}`),
+                    fetch(`/api/transactions?userId=${userId}`),
+                    fetch(`/api/products?userId=${userId}`)
+                ]);
+
+                if (accRes.ok) accounts = await accRes.json();
+                if (txRes.ok) transactions = await txRes.json();
+                if (prodRes.ok) products = await prodRes.json();
+            } catch (err) {
+                console.warn("Sync failed, using local/cached data if available:", err);
+                // Fallback to local data if needed or just continue with empty arrays
+            }
+
             renderDashboardData();
-            renderVATReport(); // Sync VAT details
+            // Safe call to VAT report (wrapped in try-catch to avoid breaking dashboard)
+            try {
+                renderVATReport();
+            } catch(e) {
+                console.error("VAT Report error:", e);
+            }
         }
 
         function showPage(pageId) {
@@ -2846,10 +2882,16 @@
             });
 
             const rowsHtml = filteredTx.map(t => {
+                // Fallback for older transactions where tax/taxable wasn't split
                 const tax = t.vatAmount || 0;
-                const taxable = t.taxableAmount || 0;
-                const grand = t.totalAmount || (tax + taxable);
-                const party = accounts.find(a => a._id === t.entries[0]?.account)?.name || 'Unknown';
+                const grand = t.totalAmount || (t.amount || 0);
+                const taxable = t.taxableAmount || (grand - tax);
+
+                let party = 'Unknown';
+                if (t.entries && t.entries.length > 0) {
+                    const acc = accounts.find(a => a._id === t.entries[0].account);
+                    if (acc) party = acc.name;
+                }
 
                 if(t.type === 'SALES') {
                     sTotal += grand; sTaxable += taxable; sVat += tax;
