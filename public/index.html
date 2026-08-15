@@ -268,20 +268,13 @@
             .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; background: white !important; }
             .main-content.active { display: block !important; }
             body { background: white !important; }
-
-            /* Print Specific Styles for VAT Bill */
             .vat-bill-print { display: block !important; padding: 20px; }
             table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px; }
             th, td { border: 1px solid #000 !important; padding: 5px; }
             .amt { text-align: right; }
+            .info-card, .box { border: 1px solid #ccc !important; box-shadow: none !important; }
         }
         .vat-bill-print { display: none; }
-            .info-card, .box {
-                border: 1px solid #ccc !important;
-                box-shadow: none !important;
-            }
-            canvas { max-width: 100% !important; height: auto !important; }
-        }
     </style>
 </head>
 <body>
@@ -1366,28 +1359,44 @@
 
         async function syncAll() {
             try {
-                const userId = user.uid;
-                const [accRes, txRes, prodRes] = await Promise.all([
-                    fetch(`/api/accounts?userId=${userId}`),
-                    fetch(`/api/transactions?userId=${userId}`),
-                    fetch(`/api/products?userId=${userId}`)
-                ]);
+                const userId = user.uid || 'pawan-electronics-admin';
 
-                if (accRes.ok) accounts = await accRes.json();
-                if (txRes.ok) transactions = await txRes.json();
-                if (prodRes.ok) products = await prodRes.json();
+                // 1. Recover data from ALL possible LocalStorage keys first
+                const localAcc = localStorage.getItem('pawan_accounts') || localStorage.getItem('accounts');
+                const localTx = localStorage.getItem('pawan_transactions') || localStorage.getItem('transactions');
+                const localProd = localStorage.getItem('pawan_items') || localStorage.getItem('products');
+
+                if (localAcc) accounts = JSON.parse(localAcc);
+                if (localTx) transactions = JSON.parse(localTx);
+                if (localProd) products = JSON.parse(localProd);
+
+                // 2. Try to update from API, but don't crash if it fails
+                try {
+                    const [accRes, txRes, prodRes] = await Promise.all([
+                        fetch(`/api/accounts?userId=${userId}`).catch(() => null),
+                        fetch(`/api/transactions?userId=${userId}`).catch(() => null),
+                        fetch(`/api/products?userId=${userId}`).catch(() => null)
+                    ]);
+
+                    if (accRes && accRes.ok) accounts = await accRes.json();
+                    if (txRes && txRes.ok) transactions = await txRes.json();
+                    if (prodRes && prodRes.ok) products = await prodRes.json();
+                } catch (e) { console.warn("Offline mode active"); }
+
+                // 3. Ensure arrays are never null to prevent crashes
+                accounts = Array.isArray(accounts) ? accounts : [];
+                transactions = Array.isArray(transactions) ? transactions : [];
+                products = Array.isArray(products) ? products : [];
+
             } catch (err) {
-                console.warn("Sync failed, using local/cached data if available:", err);
-                // Fallback to local data if needed or just continue with empty arrays
+                console.error("Critical Sync Error:", err);
             }
 
-            renderDashboardData();
-            // Safe call to VAT report (wrapped in try-catch to avoid breaking dashboard)
-            try {
-                renderVATReport();
-            } catch(e) {
-                console.error("VAT Report error:", e);
-            }
+            // Always render even if errors exist
+            setTimeout(() => {
+                try { renderDashboardData(); } catch(e) {}
+                try { renderVATReport(); } catch(e) {}
+            }, 100);
         }
 
         function showPage(pageId) {
@@ -2870,56 +2879,66 @@
 
         // ACCOUNT MASTER LOGIC
         function renderVATReport() {
-            const startDate = document.getElementById('vat-start-date').value;
-            const endDate = document.getElementById('vat-end-date').value;
+            try {
+                const startEl = document.getElementById('vat-start-date');
+                const endEl = document.getElementById('vat-end-date');
+                if (!startEl || !endEl) return;
 
-            let sTotal = 0, sTaxable = 0, sVat = 0;
-            let pTotal = 0, pTaxable = 0, pVat = 0;
+                const startDate = startEl.value;
+                const endDate = endEl.value;
 
-            const filteredTx = transactions.filter(t => {
-                const dateMatch = (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate);
-                return dateMatch && ['SALES', 'PURCHASE', 'SALES_RETURN', 'PURCHASE_RETURN'].includes(t.type);
-            });
+                let sTotal = 0, sTaxable = 0, sVat = 0;
+                let pTotal = 0, pTaxable = 0, pVat = 0;
 
-            const rowsHtml = filteredTx.map(t => {
-                // Fallback for older transactions where tax/taxable wasn't split
-                const tax = t.vatAmount || 0;
-                const grand = t.totalAmount || (t.amount || 0);
-                const taxable = t.taxableAmount || (grand - tax);
+                if (!Array.isArray(transactions)) return;
 
-                let party = 'Unknown';
-                if (t.entries && t.entries.length > 0) {
-                    const acc = accounts.find(a => a._id === t.entries[0].account);
-                    if (acc) party = acc.name;
+                const filteredTx = transactions.filter(t => {
+                    if (!t || !t.date || !t.type) return false;
+                    const dateMatch = (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate);
+                    return dateMatch && ['SALES', 'PURCHASE', 'SALES_RETURN', 'PURCHASE_RETURN'].includes(t.type);
+                });
+
+                const rowsHtml = filteredTx.map(t => {
+                    const tax = Number(t.vatAmount || 0);
+                    const grand = Number(t.totalAmount || t.amount || 0);
+                    const taxable = Number(t.taxableAmount || (grand - tax));
+
+                    let party = 'Unknown';
+                    try {
+                        if (t.entries && t.entries.length > 0 && t.entries[0].account) {
+                            const accId = t.entries[0].account;
+                            const acc = accounts.find(a => a._id === accId || a.id === accId);
+                            if (acc) party = acc.name;
+                        }
+                    } catch(e) {}
+
+                    if(t.type === 'SALES') { sTotal += grand; sTaxable += taxable; sVat += tax; }
+                    else if(t.type === 'PURCHASE') { pTotal += grand; pTaxable += taxable; pVat += tax; }
+                    else if(t.type === 'SALES_RETURN') { sTotal -= grand; sTaxable -= taxable; sVat -= tax; }
+                    else if(t.type === 'PURCHASE_RETURN') { pTotal -= grand; pTaxable -= taxable; pVat -= tax; }
+
+                    return `<tr><td>${t.date}</td><td>${t.billNo || '-'}</td><td>${party}</td><td>${t.type}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${tax.toFixed(2)}</td><td class="amt">${grand.toFixed(2)}</td></tr>`;
+                }).join('');
+
+                const tbody = document.getElementById('vat-report-rows');
+                if (tbody) tbody.innerHTML = rowsHtml;
+
+                const updateTxt = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val.toFixed(2); };
+                updateTxt('vat-sales-total', sTotal);
+                updateTxt('vat-sales-taxable', sTaxable);
+                updateTxt('vat-sales-amt', sVat);
+                updateTxt('vat-pur-total', pTotal);
+                updateTxt('vat-pur-taxable', pTaxable);
+                updateTxt('vat-pur-amt', pVat);
+
+                const netVat = sVat - pVat;
+                const netDisplay = document.getElementById('vat-net-payable');
+                if (netDisplay) {
+                    netDisplay.innerText = `Rs. ${Math.abs(netVat).toFixed(2)}`;
+                    netDisplay.style.color = netVat >= 0 ? '#f43f5e' : '#10b981';
                 }
-
-                if(t.type === 'SALES') {
-                    sTotal += grand; sTaxable += taxable; sVat += tax;
-                } else if(t.type === 'PURCHASE') {
-                    pTotal += grand; pTaxable += taxable; pVat += tax;
-                } else if(t.type === 'SALES_RETURN') {
-                    sTotal -= grand; sTaxable -= taxable; sVat -= tax;
-                } else if(t.type === 'PURCHASE_RETURN') {
-                    pTotal -= grand; pTaxable -= taxable; pVat -= tax;
-                }
-
-                return `
-                    <tr>
-                        <td>${t.date}</td>
-                        <td>${t.billNo || '-'}</td>
-                        <td>${party}</td>
-                        <td><span class="badge ${t.type.includes('SALES') ? 'badge-success' : 'badge-danger'}">${t.type}</span></td>
-                        <td class="amt">${taxable.toFixed(2)}</td>
-                        <td class="amt">${tax.toFixed(2)}</td>
-                        <td class="amt">${grand.toFixed(2)}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            document.getElementById('vat-report-rows').innerHTML = rowsHtml;
-            document.getElementById('vat-sales-total').innerText = sTotal.toFixed(2);
-            document.getElementById('vat-sales-taxable').innerText = sTaxable.toFixed(2);
-            document.getElementById('vat-sales-amt').innerText = sVat.toFixed(2);
+            } catch (e) { console.error("VAT Render Error Suppressed", e); }
+        }
 
             document.getElementById('vat-pur-total').innerText = pTotal.toFixed(2);
             document.getElementById('vat-pur-taxable').innerText = pTaxable.toFixed(2);
