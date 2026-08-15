@@ -71,7 +71,8 @@ const Transaction = mongoose.model('Transaction', TransactionSchema);
 const ProductSchema = new mongoose.Schema({
     userId: String,
     name: { type: String, required: true },
-    category: String,
+    category: { type: String, default: 'General' },
+    brand: { type: String, default: 'None' },
     unit: { type: String, default: 'Pcs' },
     salePrice: { type: Number, default: 0 },
     purchasePrice: { type: Number, default: 0 },
@@ -129,7 +130,55 @@ const ElectricItemSchema = new mongoose.Schema({
 });
 const ElectricItem = mongoose.model('ElectricItem', ElectricItemSchema);
 
+const ServiceTicketSchema = new mongoose.Schema({
+    userId: String,
+    customerName: String,
+    phone: String,
+    itemName: String,
+    problem: String,
+    estimatedCost: { type: Number, default: 0 },
+    status: { type: String, enum: ['Pending', 'Repairing', 'Ready', 'Delivered'], default: 'Pending' },
+    receivedDate: { type: String }, // Storing as YYYY-MM-DD string for consistency with transactions
+    deliveryDate: String,
+    notes: String
+}, { timestamps: true });
+const ServiceTicket = mongoose.model('ServiceTicket', ServiceTicketSchema);
+
 // --- APIs ---
+app.get('/api/service-tickets', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const query = userId ? { userId } : { userId: { $exists: false } };
+        const tickets = await ServiceTicket.find(query).sort({ createdAt: -1 });
+        res.json(tickets);
+    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
+});
+
+app.post('/api/service-tickets', async (req, res) => {
+    try {
+        const ticket = new ServiceTicket({ ...req.body });
+        await ticket.save();
+        res.json(ticket);
+    } catch (err) { res.status(500).json({ error: "बचत असफल" }); }
+});
+
+app.put('/api/service-tickets/:id', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const ticket = await ServiceTicket.findOneAndUpdate({ _id: req.params.id, userId }, req.body, { new: true });
+        if (!ticket) return res.status(404).json({ error: "टिकट भेटिएन" });
+        res.json(ticket);
+    } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
+});
+
+app.delete('/api/service-tickets/:id', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const ticket = await ServiceTicket.findOneAndDelete({ _id: req.params.id, userId });
+        if (!ticket) return res.status(404).json({ error: "टिकट भेटिएन" });
+        res.json({ message: "सफल" });
+    } catch (err) { res.status(500).json({ error: "मेटाउन सकिएन" }); }
+});
 
 const checkLock = async (userId, date) => {
     const s = await Setting.findOne({ userId });

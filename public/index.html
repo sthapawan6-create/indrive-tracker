@@ -369,7 +369,8 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                         <div>
                             <label style="font-weight:bold; font-size:0.8rem;">Supplier Name (Party):</label>
-                            <select id="pur-party-acc" aria-label="Party" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc;"></select>
+                            <select id="pur-party-acc" onchange="updatePurchasePartyInfo()" aria-label="Party" style="width:100%; padding:8px; margin-top:5px; border:1px solid #ccc;"></select>
+                            <div id="pur-party-bal" style="font-size:0.7rem; color:#666; margin-top:2px;">Bal: 0.00</div>
                         </div>
                         <div>
                             <label style="font-weight:bold; font-size:0.8rem;">Purchase Ledger:</label>
@@ -699,7 +700,10 @@
         <div id="page-stock-summary" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #8b5cf6; margin-bottom: 15px; padding-bottom:5px;">
                 <h2 style="border-bottom:none; margin:0; color:#8b5cf6;">Stock Summary (मौज्दात विवरण)</h2>
-                <div style="display:flex; gap:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="stock-cat-filter" onchange="renderStockSummary()" style="padding:5px; border-radius:4px; border:1px solid #ddd;">
+                        <option value="all">All Categories</option>
+                    </select>
                     <button class="btn" onclick="renderStockSummary()" style="background:#8b5cf6;">Refresh</button>
                     <button class="btn" onclick="window.print()" style="background:#64748b;">Print</button>
                 </div>
@@ -877,6 +881,18 @@
                 <div>
                     <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Item Name (सामानको नाम)</label>
                     <input type="text" id="p-name" aria-label="Name" placeholder="Item Name (e.g. LED Bulb 9W)" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Category (विधा)</label>
+                        <input type="text" id="p-cat" placeholder="e.g. TV, Fridge" list="cat-list" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                        <datalist id="cat-list"></datalist>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Brand (ब्रान्ड)</label>
+                        <input type="text" id="p-brand" placeholder="e.g. LG, Samsung" list="brand-list" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                        <datalist id="brand-list"></datalist>
+                    </div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                     <div>
@@ -1414,6 +1430,19 @@
         }
 
         // SALES INVOICE LOGIC
+        function updatePartyInfo() {
+            const partyId = document.getElementById('inv-party-acc').value;
+            const balDisplay = document.getElementById('party-bal');
+            if (partyId) {
+                const bal = getAccountBalance(partyId);
+                balDisplay.innerText = `Bal: ${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}`;
+                balDisplay.style.color = bal >= 0 ? '#10b981' : '#f43f5e';
+            } else {
+                balDisplay.innerText = 'Bal: 0.00';
+                balDisplay.style.color = '#666';
+            }
+        }
+
         function resetInvoice() {
             const parties = accounts.filter(a => a.type === 'Receivable' || (a.type === 'Asset' && a.name.toLowerCase().includes('cash')));
             const salesAccs = accounts.filter(a => a.type === 'Revenue');
@@ -1424,6 +1453,7 @@
             document.getElementById('inv-rows').innerHTML = '';
             addInvRow();
             calculateInvTotal();
+            updatePartyInfo();
         }
 
         function addInvRow() {
@@ -1512,6 +1542,19 @@
         }
 
         // PURCHASE LOGIC
+        function updatePurchasePartyInfo() {
+            const partyId = document.getElementById('pur-party-acc').value;
+            const balDisplay = document.getElementById('pur-party-bal');
+            if (balDisplay && partyId) {
+                const bal = getAccountBalance(partyId);
+                balDisplay.innerText = `Bal: ${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}`;
+                balDisplay.style.color = bal >= 0 ? '#10b981' : '#f43f5e';
+            } else if (balDisplay) {
+                balDisplay.innerText = 'Bal: 0.00';
+                balDisplay.style.color = '#666';
+            }
+        }
+
         function resetPurchase() {
             const suppliers = accounts.filter(a => a.type === 'Payable' || (a.type === 'Asset' && a.name.toLowerCase().includes('cash')));
             const purAccs = accounts.filter(a => a.type === 'Expense');
@@ -1521,6 +1564,7 @@
 
             document.getElementById('pur-rows').innerHTML = '';
             addPurRow();
+            updatePurchasePartyInfo();
         }
 
         function addPurRow() {
@@ -1722,11 +1766,22 @@
         }
 
         function renderStockSummary() {
-            document.getElementById('tbl-stock-body').innerHTML = products.map(p => {
+            const catFilter = document.getElementById('stock-cat-filter').value;
+
+            // Populate category filter if not already populated or if product count changed
+            const cats = [...new Set(products.map(p => p.category || 'General'))];
+            const filterEl = document.getElementById('stock-cat-filter');
+            const currentVal = filterEl.value;
+            filterEl.innerHTML = '<option value="all">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            filterEl.value = currentVal;
+
+            const filteredProducts = catFilter === 'all' ? products : products.filter(p => (p.category || 'General') === catFilter);
+
+            document.getElementById('tbl-stock-body').innerHTML = filteredProducts.map(p => {
                 const inward = transactions.filter(tx => tx.type === 'PURCHASE' || tx.type === 'SALES_RETURN').reduce((acc, tx) => acc + (tx.items || []).filter(i => (i.product === p._id || i.product?._id === p._id)).reduce((s, i) => s + (i.quantity || 0), 0), 0);
                 const outward = transactions.filter(tx => tx.type === 'SALES' || tx.type === 'PURCHASE_RETURN').reduce((acc, tx) => acc + (tx.items || []).filter(i => (i.product === p._id || i.product?._id === p._id)).reduce((s, i) => s + (i.quantity || 0), 0), 0);
                 const closing = p.openingStock + inward - outward;
-                return `<tr><td>${p.name}</td><td class="amt">${p.openingStock}</td><td class="amt">${inward}</td><td class="amt">${outward}</td><td class="amt" style="font-weight:bold; color:${closing < 5 ? 'red' : 'inherit'}">${closing} ${p.unit}</td><td class="amt">${(closing * (p.purchasePrice || 0)).toFixed(2)}</td></tr>`;
+                return `<tr><td>${p.name}<br><small style="color:#64748b;">${p.category || 'General'} | ${p.brand || 'None'}</small></td><td class="amt">${p.openingStock}</td><td class="amt">${inward}</td><td class="amt">${outward}</td><td class="amt" style="font-weight:bold; color:${closing < 5 ? 'red' : 'inherit'}">${closing} ${p.unit}</td><td class="amt">${(closing * (p.purchasePrice || 0)).toFixed(2)}</td></tr>`;
             }).join('');
         }
 
@@ -1835,12 +1890,17 @@
 
         function updateVchRowBalance(selectEl) {
             const accId = selectEl.value;
-            const balDisplay = selectEl.nextElementSibling;
-            if (accId) {
+            // Robust targeting for both searchable container and standard select
+            let balDisplay = selectEl.nextElementSibling;
+            if (!balDisplay || !balDisplay.classList.contains('vch-bal-display')) {
+                balDisplay = selectEl.parentElement.nextElementSibling;
+            }
+
+            if (accId && balDisplay && balDisplay.classList.contains('vch-bal-display')) {
                 const bal = getAccountBalance(accId);
                 balDisplay.innerText = `Current Bal: ${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}`;
                 balDisplay.style.color = bal >= 0 ? '#10b981' : '#f43f5e';
-            } else {
+            } else if (balDisplay && balDisplay.classList.contains('vch-bal-display')) {
                 balDisplay.innerText = 'Balance: 0.00';
                 balDisplay.style.color = '#64748b';
             }
@@ -2153,9 +2213,15 @@
 
         // PRODUCT MASTER LOGIC
         function renderProductsList() {
+            // Update datalists for Category and Brand
+            const cats = [...new Set(products.map(p => p.category || 'General'))];
+            const brands = [...new Set(products.map(p => p.brand || 'None'))];
+            document.getElementById('cat-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+            document.getElementById('brand-list').innerHTML = brands.map(b => `<option value="${b}">`).join('');
+
             document.getElementById('tbl-products-body').innerHTML = products.map(p => `
                 <tr>
-                    <td>${p.name}</td>
+                    <td>${p.name}<br><small style="color:#64748b;">${p.category || 'General'} | ${p.brand || 'None'}</small></td>
                     <td>${p.unit}</td>
                     <td class="amt">${p.purchasePrice}</td>
                     <td class="amt">${p.salePrice}</td>
@@ -2170,6 +2236,8 @@
             const data = {
                 userId: user.uid,
                 name,
+                category: document.getElementById('p-cat').value || 'General',
+                brand: document.getElementById('p-brand').value || 'None',
                 unit: document.getElementById('p-unit').value,
                 openingStock: Number(document.getElementById('p-opening').value),
                 purchasePrice: Number(document.getElementById('p-pur-price').value),
