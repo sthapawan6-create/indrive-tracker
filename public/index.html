@@ -72,30 +72,17 @@
 
         @media print {
             .sidebar, .top-bar, .no-print, .btn, .menu-section, .logo, #sync-status, .search-container { display: none !important; }
-            .main-content {
-                margin: 0 !important;
-                padding: 0 !important;
-                display: none !important;
-                width: 100% !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-            .main-content.active {
-                display: block !important;
-            }
-            body {
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                font-size: 10pt !important;
-            }
-            th, td {
-                border: 1px solid #000 !important;
-            }
+            .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; background: white !important; }
+            .main-content.active { display: block !important; }
+            body { background: white !important; }
+
+            /* Print Specific Styles for VAT Bill */
+            .vat-bill-print { display: block !important; padding: 20px; }
+            table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px; }
+            th, td { border: 1px solid #000 !important; padding: 5px; }
+            .amt { text-align: right; }
+        }
+        .vat-bill-print { display: none; }
             .info-card, .box {
                 border: 1px solid #ccc !important;
                 box-shadow: none !important;
@@ -134,6 +121,7 @@
             <div class="menu-item" onclick="showPage('purchase-book')"><i class="fas fa-book-open" style="margin-right:10px; color:#3b82f6"></i><span>Purc<b>h</b>ase Book (खरिद खाता)</span></div>
             <div class="menu-item" onclick="showPage('service-book')"><i class="fas fa-address-book" style="margin-right:10px; color:#f43f5e"></i><span>Service Book (ज्याला बुक)</span></div>
             <div class="menu-item" onclick="showPage('stock-summary')"><i class="fas fa-warehouse" style="margin-right:10px; color:#8b5cf6"></i><span>Stoc<b>k</b> Summary</span></div>
+            <div class="menu-item" onclick="showPage('settings')"><i class="fas fa-cog" style="margin-right:10px; color:#94a3b8"></i><span><b>S</b>ettings</span></div>
             <div class="menu-item" onclick="showPage('reports-tb')"><i class="fas fa-list-ul" style="margin-right:10px; color:#6366f1"></i><span>Trial <b>B</b>alance</span></div>
             <div class="menu-item" onclick="showPage('reports-pl')"><i class="fas fa-chart-line" style="margin-right:10px; color:#ec4899"></i><span>P & <b>L</b> A/c</span></div>
             <div class="menu-item" onclick="showPage('reports-bs')"><i class="fas fa-balance-scale" style="margin-right:10px; color:var(--primary-color)"></i><span><b>B</b>alance Sheet</span></div>
@@ -291,6 +279,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #10b981; margin-bottom: 15px; padding-bottom:5px;">
                 <h2 style="border-bottom:none; margin:0; color:#10b981;">Sales Invoice (बिक्री बिल)</h2>
                 <div style="display:flex; gap:10px;">
+                    <input type="text" id="inv-bill-no" placeholder="Invoice No." style="padding:4px; border:1px solid var(--tally-border); width:100px;">
                     <input type="date" id="inv-date" aria-label="Date" style="padding:4px; border:1px solid var(--tally-border);">
                     <button class="btn" onclick="saveInvoice()" style="background:#10b981;">Save Invoice (Ctrl+S)</button>
                 </div>
@@ -346,7 +335,17 @@
                         <span>VAT (13%):</span>
                         <input type="checkbox" id="inv-vat-check" onchange="calculateInvTotal()" aria-label="VAT" style="width:20px; height:20px;">
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:var(--primary-color); border-top:2px solid #333; padding-top:10px;">
+                    <div id="inv-tax-details" style="display:none; border-top:1px dashed #ccc; padding-top:10px; margin-top:10px; font-size:0.85rem; color:#64748b;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>Taxable Amount:</span>
+                            <span id="inv-taxable-amt">0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>VAT Amount:</span>
+                            <span id="inv-vat-amt">0.00</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:var(--primary-color); border-top:2px solid #333; padding-top:10px; margin-top:10px;">
                         <span>Total:</span>
                         <span id="inv-grand-total">0.00</span>
                     </div>
@@ -359,6 +358,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #3b82f6; margin-bottom: 15px; padding-bottom:5px;">
                 <h2 style="border-bottom:none; margin:0; color:#3b82f6;">Purchase Entry (खरिद प्रविष्टि)</h2>
                 <div style="display:flex; gap:10px;">
+                    <input type="text" id="pur-bill-no" placeholder="Supplier Bill No" style="padding:4px; border:1px solid var(--tally-border); width:130px;">
                     <input type="date" id="pur-date" aria-label="Date" style="padding:4px; border:1px solid var(--tally-border);">
                     <button class="btn" onclick="savePurchase('PURCHASE')" style="background:#3b82f6;">Save Purchase (Ctrl+S)</button>
                 </div>
@@ -404,13 +404,55 @@
                 <div style="width:300px; background:#f8fafc; border:1px solid #cbd5e1; padding:15px;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                         <span>Sub Total:</span>
+                        <span id="pur-sub-total" style="font-weight:bold;">0.00</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Discount (%):</span>
+                        <input type="number" id="pur-discount" value="0" oninput="calculatePurTotal()" aria-label="Discount" style="width:60px; text-align:right; border:1px solid #ccc; padding:2px;">
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>VAT (13%):</span>
+                        <input type="checkbox" id="pur-vat-check" onchange="calculatePurTotal()" aria-label="VAT" style="width:20px; height:20px;">
+                    </div>
+                    <div id="pur-tax-details" style="display:none; border-top:1px dashed #ccc; padding-top:10px; margin-top:10px; font-size:0.85rem; color:#64748b;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>Taxable Amount:</span>
+                            <span id="pur-taxable-amt">0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>VAT Amount:</span>
+                            <span id="pur-vat-amt">0.00</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:#3b82f6; border-top:2px solid #333; padding-top:10px; margin-top:10px;">
+                        <span>Total:</span>
+                        <span id="pur-grand-total">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                <div style="width:300px; background:#f8fafc; border:1px solid #cbd5e1; padding:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Sub Total:</span>
                         <span id="pur-sub-total-disp" style="font-weight:bold;">0.00</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                         <span>VAT (13%):</span>
                         <input type="checkbox" id="pur-vat-check" onchange="calculatePurTotal()" aria-label="VAT" style="width:20px; height:20px;">
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:#3b82f6; border-top:2px solid #333; padding-top:10px;">
+                    <div id="pur-tax-details" style="display:none; border-top:1px dashed #ccc; padding-top:10px; margin-top:10px; font-size:0.85rem; color:#64748b;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>Taxable Amount:</span>
+                            <span id="pur-taxable-amt">0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <span>VAT Amount:</span>
+                            <span id="pur-vat-amt">0.00</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:1.2rem; font-weight:800; color:#3b82f6; border-top:2px solid #333; padding-top:10px; margin-top:10px;">
                         <span>Total Amount:</span>
                         <span id="pur-grand-total">0.00</span>
                     </div>
@@ -641,6 +683,83 @@
             </table>
         </div>
 
+        <!-- Print View for VAT Bill -->
+        <div id="vat-bill-view" class="vat-bill-print">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
+                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
+                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
+                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <strong>Buyer Details:</strong><br>
+                    Name: <span id="print-party-name">________________</span><br>
+                    Address: <span id="print-party-address">________________</span><br>
+                    Buyer's PAN: <span id="print-party-pan">________________</span>
+                </div>
+                <div style="text-align: right;">
+                    Invoice No: <span id="print-bill-no">________________</span><br>
+                    Date (AD): <span id="print-date-ad">________________</span><br>
+                    Date (BS): <span id="print-date-bs">________________</span>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">S.N.</th>
+                        <th>Particulars</th>
+                        <th style="width: 80px;">Qty</th>
+                        <th style="width: 60px;">Unit</th>
+                        <th style="width: 100px;">Rate</th>
+                        <th style="width: 120px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body">
+                    <!-- Rows will be injected here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
+                        <td id="print-sub-total" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
+                        <td id="print-discount" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
+                        <td id="print-taxable-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
+                        <td id="print-vat-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
+                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="margin-top: 20px;">
+                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
+            </div>
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>Buyer's Signature</p>
+                </div>
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>For Pawan Electronics</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Vouchers (Journal) Page -->
         <div id="page-vouchers" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #f59e0b; margin-bottom: 15px; padding-bottom:5px;">
@@ -723,6 +842,83 @@
             </table>
         </div>
 
+        <!-- Print View for VAT Bill -->
+        <div id="vat-bill-view" class="vat-bill-print">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
+                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
+                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
+                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <strong>Buyer Details:</strong><br>
+                    Name: <span id="print-party-name">________________</span><br>
+                    Address: <span id="print-party-address">________________</span><br>
+                    Buyer's PAN: <span id="print-party-pan">________________</span>
+                </div>
+                <div style="text-align: right;">
+                    Invoice No: <span id="print-bill-no">________________</span><br>
+                    Date (AD): <span id="print-date-ad">________________</span><br>
+                    Date (BS): <span id="print-date-bs">________________</span>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">S.N.</th>
+                        <th>Particulars</th>
+                        <th style="width: 80px;">Qty</th>
+                        <th style="width: 60px;">Unit</th>
+                        <th style="width: 100px;">Rate</th>
+                        <th style="width: 120px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body">
+                    <!-- Rows will be injected here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
+                        <td id="print-sub-total" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
+                        <td id="print-discount" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
+                        <td id="print-taxable-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
+                        <td id="print-vat-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
+                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="margin-top: 20px;">
+                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
+            </div>
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>Buyer's Signature</p>
+                </div>
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>For Pawan Electronics</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Reports: Balance Sheet -->
         <div id="page-reports-bs" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
@@ -783,6 +979,83 @@
             </table>
         </div>
 
+        <!-- Print View for VAT Bill -->
+        <div id="vat-bill-view" class="vat-bill-print">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
+                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
+                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
+                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <strong>Buyer Details:</strong><br>
+                    Name: <span id="print-party-name">________________</span><br>
+                    Address: <span id="print-party-address">________________</span><br>
+                    Buyer's PAN: <span id="print-party-pan">________________</span>
+                </div>
+                <div style="text-align: right;">
+                    Invoice No: <span id="print-bill-no">________________</span><br>
+                    Date (AD): <span id="print-date-ad">________________</span><br>
+                    Date (BS): <span id="print-date-bs">________________</span>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">S.N.</th>
+                        <th>Particulars</th>
+                        <th style="width: 80px;">Qty</th>
+                        <th style="width: 60px;">Unit</th>
+                        <th style="width: 100px;">Rate</th>
+                        <th style="width: 120px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body">
+                    <!-- Rows will be injected here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
+                        <td id="print-sub-total" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
+                        <td id="print-discount" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
+                        <td id="print-taxable-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
+                        <td id="print-vat-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
+                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="margin-top: 20px;">
+                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
+            </div>
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>Buyer's Signature</p>
+                </div>
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>For Pawan Electronics</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Reports: Profit & Loss -->
         <div id="page-reports-pl" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #ec4899; margin-bottom: 15px; padding-bottom:5px;">
@@ -830,16 +1103,93 @@
             </table>
         </div>
 
+        <!-- Print View for VAT Bill -->
+        <div id="vat-bill-view" class="vat-bill-print">
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
+                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
+                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
+                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <strong>Buyer Details:</strong><br>
+                    Name: <span id="print-party-name">________________</span><br>
+                    Address: <span id="print-party-address">________________</span><br>
+                    Buyer's PAN: <span id="print-party-pan">________________</span>
+                </div>
+                <div style="text-align: right;">
+                    Invoice No: <span id="print-bill-no">________________</span><br>
+                    Date (AD): <span id="print-date-ad">________________</span><br>
+                    Date (BS): <span id="print-date-bs">________________</span>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">S.N.</th>
+                        <th>Particulars</th>
+                        <th style="width: 80px;">Qty</th>
+                        <th style="width: 60px;">Unit</th>
+                        <th style="width: 100px;">Rate</th>
+                        <th style="width: 120px;">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body">
+                    <!-- Rows will be injected here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
+                        <td id="print-sub-total" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
+                        <td id="print-discount" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
+                        <td id="print-taxable-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
+                        <td id="print-vat-amt" class="amt">0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
+                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="margin-top: 20px;">
+                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
+            </div>
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>Buyer's Signature</p>
+                </div>
+                <div style="text-align: center;">
+                    <p>___________________</p>
+                    <p>For Pawan Electronics</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Page -->
         <div id="page-settings" class="main-content">
             <h2>Settings & Tools</h2>
             <div class="box" style="padding:20px; max-width:600px;">
                 <h3>Company Profile</h3>
                 <div style="display:grid; gap:10px;">
-                    <div><label>Shop Name:</label><input type="text" value="Pawan Electronics" style="width:100%; padding:8px;"></div>
-                    <div><label>PAN / VAT No:</label><input type="text" value="601234567" style="width:100%; padding:8px;"></div>
-                    <div><label>Address:</label><input type="text" value="Main Road, Janakpur" style="width:100%; padding:8px;"></div>
-                    <div><label>Phone:</label><input type="text" value="98XXXXXXXX" style="width:100%; padding:8px;"></div>
+                    <div><label>Shop Name:</label><input type="text" id="cfg-shop-name" value="Pawan Electronics" style="width:100%; padding:8px;"></div>
+                    <div><label>PAN / VAT No:</label><input type="text" id="cfg-pan" value="601234567" style="width:100%; padding:8px;"></div>
+                    <div><label>Address:</label><input type="text" id="cfg-address" value="Main Road, Janakpur" style="width:100%; padding:8px;"></div>
+                    <div><label>Phone:</label><input type="text" id="cfg-phone" value="98XXXXXXXX" style="width:100%; padding:8px;"></div>
                 </div>
                 <hr style="margin:25px 0;">
                 <h3>Data Management</h3>
@@ -1007,6 +1357,8 @@
 
             // Refresh logic based on page
             if(pageId === 'accounts') renderAccountsList();
+            if(pageId === 'sales-book') renderSalesBook();
+            if(pageId === 'purchase-book') renderPurchaseBook();
             if(pageId === 'billing') {
                 document.getElementById('inv-date').valueAsDate = new Date();
                 resetInvoice();
@@ -1495,40 +1847,127 @@
             });
 
             const disc = Number(document.getElementById('inv-discount').value);
-            const subAfterDisc = sub - (sub * disc / 100);
-            const vat = document.getElementById('inv-vat-check').checked ? subAfterDisc * 0.13 : 0;
+            const taxable = sub - (sub * disc / 100);
+            const vatCheck = document.getElementById('inv-vat-check').checked;
+            const vat = vatCheck ? taxable * 0.13 : 0;
+            const total = taxable + vat;
 
             document.getElementById('inv-sub-total').innerText = sub.toFixed(2);
-            document.getElementById('inv-grand-total').innerText = (subAfterDisc + vat).toFixed(2);
+            document.getElementById('inv-taxable-amt').innerText = taxable.toFixed(2);
+            document.getElementById('inv-vat-amt').innerText = vat.toFixed(2);
+            document.getElementById('inv-grand-total').innerText = total.toFixed(2);
+
+            document.getElementById('inv-tax-details').style.display = vatCheck ? 'block' : 'none';
         }
 
         async function saveInvoice() {
             const partyId = document.getElementById('inv-party-acc').value;
+            const partyName = document.getElementById('inv-party-acc').options[document.getElementById('inv-party-acc').selectedIndex].text;
             const salesId = document.getElementById('inv-sales-acc').value;
             const date = document.getElementById('inv-date').value;
+            const billNo = document.getElementById('inv-bill-no')?.value || "";
             const total = Number(document.getElementById('inv-grand-total').innerText);
+            const taxable = Number(document.getElementById('inv-taxable-amt').innerText);
+            const vat = Number(document.getElementById('inv-vat-amt').innerText);
+            const disc = Number(document.getElementById('inv-discount').value);
             const items = [];
 
             document.querySelectorAll('#inv-rows tr').forEach(tr => {
                 const prodId = tr.querySelector('.inv-item-select').value;
+                const prodName = tr.querySelector('.inv-item-select').options[tr.querySelector('.inv-item-select').selectedIndex].text;
                 const qty = Number(tr.querySelector('.inv-qty').value);
                 const rate = Number(tr.querySelector('.inv-rate').value);
-                if(prodId) items.push({ product: prodId, quantity: qty, rate: rate });
+                if(prodId) items.push({ product: prodId, name: prodName, quantity: qty, rate: rate });
             });
 
-            if(!partyId || items.length === 0) return alert("Please select party and items.");
+            if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
 
             const data = {
                 userId: user.uid,
                 date,
                 type: 'SALES',
-                description: document.getElementById('inv-narration').value || "Sales Invoice",
+                billNo,
+                taxableAmount: taxable,
+                vatAmount: vat,
+                totalAmount: total,
+                description: document.getElementById('inv-narration').value || `Sales Invoice #${billNo}`,
                 entries: [
                     { account: partyId, debit: total, credit: 0 },
                     { account: salesId, debit: 0, credit: total }
                 ],
                 items: items
             };
+
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if(res.ok) {
+                if(confirm("Invoice Saved! Do you want to PRINT?")) {
+                    preparePrint(data, partyName, disc);
+                } else {
+                    syncAll();
+                    showPage('gateway');
+                }
+            }
+        }
+
+        function preparePrint(tx, partyName, discPercent) {
+            document.getElementById('print-party-name').innerText = partyName;
+            document.getElementById('print-bill-no').innerText = tx.billNo;
+            document.getElementById('print-date-ad').innerText = tx.date;
+            document.getElementById('print-date-bs').innerText = toBS(tx.date);
+
+            // Get from settings
+            const shopName = document.getElementById('cfg-shop-name').value;
+            const shopAddr = document.getElementById('cfg-address').value;
+            const shopPan = document.getElementById('cfg-pan').value;
+            const shopPhone = document.getElementById('cfg-phone').value;
+
+            const printView = document.getElementById('vat-bill-view');
+            printView.querySelector('h1').innerText = shopName;
+            printView.querySelector('p:nth-child(2)').innerText = shopAddr;
+            printView.querySelector('p:nth-child(3)').innerHTML = `<strong>PAN No: ${shopPan}</strong> | Tel: ${shopPhone}`;
+
+            const subTotal = tx.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+            const discAmt = subTotal * (discPercent / 100);
+
+            document.getElementById('print-items-body').innerHTML = tx.items.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.name}</td>
+                    <td class="amt">${item.quantity}</td>
+                    <td>Pcs</td>
+                    <td class="amt">${item.rate.toFixed(2)}</td>
+                    <td class="amt">${(item.quantity * item.rate).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('print-sub-total').innerText = subTotal.toFixed(2);
+            document.getElementById('print-discount').innerText = discAmt.toFixed(2);
+            document.getElementById('print-taxable-amt').innerText = tx.taxableAmount.toFixed(2);
+            document.getElementById('print-vat-amt').innerText = tx.vatAmount.toFixed(2);
+            document.getElementById('print-grand-total').innerText = tx.totalAmount.toFixed(2);
+
+            // Show only the print view and hide everything else
+            document.querySelectorAll('.main-content').forEach(p => p.style.display = 'none');
+            document.querySelector('.sidebar').style.display = 'none';
+            document.querySelector('.top-bar').style.display = 'none';
+            document.getElementById('vat-bill-view').style.display = 'block';
+
+            window.print();
+
+            // Restore UI after printing
+            setTimeout(() => {
+                document.getElementById('vat-bill-view').style.display = 'none';
+                document.querySelector('.sidebar').style.display = 'block';
+                document.querySelector('.top-bar').style.display = 'flex';
+                syncAll();
+                showPage('gateway');
+            }, 500);
+        }
 
             const res = await fetch('/api/transactions', {
                 method: 'POST',
@@ -1598,15 +2037,29 @@
                 tr.querySelector('.pur-row-total').innerText = rowTotal.toFixed(2);
                 sub += rowTotal;
             });
-            const vat = document.getElementById('pur-vat-check').checked ? sub * 0.13 : 0;
-            document.getElementById('pur-sub-total-disp').innerText = sub.toFixed(2);
-            document.getElementById('pur-grand-total').innerText = (sub + vat).toFixed(2);
+
+            const disc = Number(document.getElementById('pur-discount').value);
+            const taxable = sub - (sub * disc / 100);
+            const vatCheck = document.getElementById('pur-vat-check').checked;
+            const vat = vatCheck ? taxable * 0.13 : 0;
+            const total = taxable + vat;
+
+            document.getElementById('pur-sub-total').innerText = sub.toFixed(2);
+            document.getElementById('pur-taxable-amt').innerText = taxable.toFixed(2);
+            document.getElementById('pur-vat-amt').innerText = vat.toFixed(2);
+            document.getElementById('pur-grand-total').innerText = total.toFixed(2);
+
+            document.getElementById('pur-tax-details').style.display = vatCheck ? 'block' : 'none';
         }
 
         async function savePurchase() {
             const partyId = document.getElementById('pur-party-acc').value;
             const purLedgerId = document.getElementById('pur-ledger-acc').value;
+            const date = document.getElementById('pur-date').value;
+            const billNo = document.getElementById('pur-bill-no')?.value || "";
             const total = Number(document.getElementById('pur-grand-total').innerText);
+            const taxable = Number(document.getElementById('pur-taxable-amt').innerText);
+            const vat = Number(document.getElementById('pur-vat-amt').innerText);
             const items = [];
 
             document.querySelectorAll('#pur-rows tr').forEach(tr => {
@@ -1616,11 +2069,17 @@
                 if(prodId) items.push({ product: prodId, quantity: qty, rate: rate });
             });
 
+            if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
+
             const data = {
                 userId: user.uid,
-                date: document.getElementById('pur-date').value,
+                date,
                 type: 'PURCHASE',
-                description: document.getElementById('pur-narration').value || "Purchase Entry",
+                billNo,
+                taxableAmount: taxable,
+                vatAmount: vat,
+                totalAmount: total,
+                description: document.getElementById('pur-narration').value || `Purchase Bill #${billNo}`,
                 entries: [
                     { account: purLedgerId, debit: total, credit: 0 },
                     { account: partyId, debit: 0, credit: total }
@@ -1763,10 +2222,22 @@
         function renderSalesBook() {
             const sales = transactions.filter(tx => tx.type === 'SALES');
             document.getElementById('tbl-sales-book-body').innerHTML = sales.map(tx => {
-                const total = tx.entries.find(e => e.debit > 0)?.debit || 0;
+                const total = tx.totalAmount || tx.entries.find(e => e.debit > 0)?.debit || 0;
                 const party = tx.entries.find(e => e.debit > 0)?.account?.name || '-';
-                const taxable = total / 1.13;
-                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx._id.slice(-6).toUpperCase()}</td><td>${party}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${(total - taxable).toFixed(2)}</td><td class="amt">${total.toFixed(2)}</td></tr>`;
+                const taxable = tx.taxableAmount || (total / 1.13);
+                const vat = tx.vatAmount || (total - taxable);
+                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.billNo || tx._id.slice(-6).toUpperCase()}</td><td>${party}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${vat.toFixed(2)}</td><td class="amt">${total.toFixed(2)}</td></tr>`;
+            }).join('');
+        }
+
+        function renderPurchaseBook() {
+            const purchases = transactions.filter(tx => tx.type === 'PURCHASE');
+            document.getElementById('tbl-purchase-book-body').innerHTML = purchases.map(tx => {
+                const total = tx.totalAmount || tx.entries.find(e => e.credit > 0)?.credit || 0;
+                const party = tx.entries.find(e => e.credit > 0)?.account?.name || '-';
+                const taxable = tx.taxableAmount || (total / 1.13);
+                const vat = tx.vatAmount || (total - taxable);
+                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.billNo || tx._id.slice(-6).toUpperCase()}</td><td>${party}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${vat.toFixed(2)}</td><td class="amt">${total.toFixed(2)}</td></tr>`;
             }).join('');
         }
 

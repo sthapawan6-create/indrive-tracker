@@ -60,6 +60,10 @@ const TransactionSchema = new mongoose.Schema({
     date: String,
     description: String,
     type: { type: String, default: 'JOURNAL' },
+    billNo: String,
+    taxableAmount: { type: Number, default: 0 },
+    vatAmount: { type: Number, default: 0 },
+    totalAmount: { type: Number, default: 0 },
     entries: [{
         account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
         debit: { type: Number, default: 0 },
@@ -311,7 +315,7 @@ app.post('/api/products', async (req, res) => {
 
 app.post('/api/transactions', async (req, res) => {
     try {
-        const { userId, date, description, entries, type, items } = req.body;
+        const { userId, date, description, entries, type, items, billNo, taxableAmount, vatAmount, totalAmount } = req.body;
         console.log("Attempting to save transaction:", { type, description, date });
 
         if (!date) return res.status(400).json({ error: "कृपया मिति छान्नुहोस्।" });
@@ -333,7 +337,11 @@ app.post('/api/transactions', async (req, res) => {
             date,
             description,
             entries,
-            type: type || 'JOURNAL'
+            type: type || 'JOURNAL',
+            billNo,
+            taxableAmount: taxableAmount || 0,
+            vatAmount: vatAmount || 0,
+            totalAmount: totalAmount || 0
         });
 
         await tx.save();
