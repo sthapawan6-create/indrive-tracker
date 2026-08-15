@@ -184,8 +184,8 @@ app.post('/api/accounts', async (req, res) => {
 app.put('/api/accounts/:id', async (req, res) => {
     try {
         const { name, type, openingBalance, phone, address, panVat, userId } = req.body;
-        const acc = await Account.findById(req.params.id);
-        if (!acc) return res.status(404).json({ error: "खाता भेटिएन" });
+        const acc = await Account.findOne({ _id: req.params.id, userId });
+        if (!acc) return res.status(404).json({ error: "खाता भेटिएन वा पहुँच छैन" });
 
         acc.name = name || acc.name;
         acc.type = type || acc.type;
@@ -217,7 +217,13 @@ app.put('/api/accounts/:id', async (req, res) => {
 
 app.delete('/api/accounts/:id', async (req, res) => {
     try {
-        const hasTx = await Transaction.findOne({ "entries.account": req.params.id });
+        const { userId } = req.query;
+        if (!userId) return res.status(400).json({ error: "userId आवश्यक छ" });
+
+        const acc = await Account.findOne({ _id: req.params.id, userId });
+        if (!acc) return res.status(404).json({ error: "खाता भेटिएन" });
+
+        const hasTx = await Transaction.findOne({ userId, "entries.account": req.params.id });
         if (hasTx) return res.status(400).json({ error: "यो खातामा कारोबार भइसकेको छ, मेटाउन मिल्दैन।" });
         await Account.findByIdAndDelete(req.params.id);
         res.json({ message: "सफल" });
@@ -285,7 +291,7 @@ app.post('/api/transactions', async (req, res) => {
 
         // Update Account Balances
         for (const entry of entries) {
-            const acc = await Account.findById(entry.account);
+            const acc = await Account.findOne({ _id: entry.account, userId: finalUserId });
             if (acc) {
                 const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 acc.balance += isDebitInc ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
@@ -298,7 +304,7 @@ app.post('/api/transactions', async (req, res) => {
             for (const item of items) {
                 const pId = item.productId || item.product;
                 if (pId) {
-                    const prod = await Product.findById(pId);
+                    const prod = await Product.findOne({ _id: pId, userId: finalUserId });
                     if (prod) {
                         const qty = Number(item.qty || item.quantity);
                         if (type === 'SALES' || type === 'PURCHASE_RETURN') prod.currentStock -= qty;

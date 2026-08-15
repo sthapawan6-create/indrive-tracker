@@ -1717,7 +1717,7 @@
                 const total = tx.entries.find(e => e.debit > 0)?.debit || 0;
                 const party = tx.entries.find(e => e.debit > 0)?.account?.name || '-';
                 const taxable = total / 1.13;
-                return `<tr><td>${tx.date}</td><td>${tx._id.slice(-6).toUpperCase()}</td><td>${party}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${(total - taxable).toFixed(2)}</td><td class="amt">${total.toFixed(2)}</td></tr>`;
+                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx._id.slice(-6).toUpperCase()}</td><td>${party}</td><td class="amt">${taxable.toFixed(2)}</td><td class="amt">${(total - taxable).toFixed(2)}</td><td class="amt">${total.toFixed(2)}</td></tr>`;
             }).join('');
         }
 
@@ -1744,7 +1744,7 @@
 
             document.getElementById('tbl-daybook-body').innerHTML = filtered.map(tx => {
                 const amt = tx.entries.reduce((acc, e) => acc + e.debit, 0) || tx.entries[0]?.credit || 0;
-                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTx('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
+                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTransaction('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('');
         }
 
@@ -1930,7 +1930,7 @@
                 const amt = tx.entries.reduce((sum, e) => sum + e.debit, 0);
                 return `
                     <tr>
-                        <td>${tx.date}</td>
+                        <td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td>
                         <td>${tx.description}</td>
                         <td class="amt">${amt.toLocaleString()}</td>
                         <td style="text-align:center;">
@@ -2104,7 +2104,7 @@
 
         async function deleteAccount(id) {
             if(!confirm("Are you sure you want to delete this account?")) return;
-            const res = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/accounts/${id}?userId=${user.uid}`, { method: 'DELETE' });
             if(res.ok) {
                 alert("Account Deleted Successfully!");
                 syncAll();
