@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pawan Electronics - ERP</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/nepali-date-converter/dist/nepali-date-converter.umd.js"></script>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -943,7 +944,19 @@
                 return;
             }
 
-            document.getElementById('current-date-display').innerText = 'Today: ' + new Date().toLocaleDateString('en-GB', { dateStyle: 'full' });
+            const adDate = new Date();
+            const adDateStr = adDate.toLocaleDateString('en-GB', { dateStyle: 'full' });
+
+            let displayStr = 'Today: ' + adDateStr;
+            try {
+                if (typeof NepaliDate !== 'undefined') {
+                    const nDate = new NepaliDate(adDate);
+                    // Formatting in Nepali Style: 2080/11/15
+                    displayStr += ` | BS: ${nDate.format('YYYY/MM/DD')}`;
+                }
+            } catch(e) { console.error("Nepali Date Error", e); }
+
+            document.getElementById('current-date-display').innerText = displayStr;
 
             await syncAll();
             showPage('gateway');
@@ -1134,6 +1147,18 @@
                     </div>
                 `).join('') || '<div style="color:green;">All items in stock.</div>';
             }
+        }
+
+        // UTILITIES
+        function toBS(adDate) {
+            if (!adDate) return '';
+            try {
+                if (typeof NepaliDate !== 'undefined') {
+                    const d = new Date(adDate);
+                    return new NepaliDate(d).format('YYYY/MM/DD');
+                }
+            } catch (e) { console.error(e); }
+            return '';
         }
 
         function getAccountBalance(accId) {
@@ -1372,7 +1397,7 @@
 
             body.innerHTML = ledgerEntries.map(le => `
                 <tr>
-                    <td>${le.date}</td>
+                    <td>${le.date}<br><small style="color:#64748b;">${toBS(le.date)}</small></td>
                     <td>${le.description}</td>
                     <td>${le.type}</td>
                     <td class="amt">${le.debit > 0 ? le.debit.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
@@ -1719,7 +1744,7 @@
 
             document.getElementById('tbl-daybook-body').innerHTML = filtered.map(tx => {
                 const amt = tx.entries.reduce((acc, e) => acc + e.debit, 0) || tx.entries[0]?.credit || 0;
-                return `<tr><td>${tx.date}</td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTx('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
+                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTx('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
             }).join('');
         }
 
