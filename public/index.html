@@ -284,6 +284,9 @@
             <div class="menu-item" onclick="showPage('vouchers')"><i class="fas fa-file-invoice-dollar" style="margin-right:10px; color:#f59e0b"></i><span><b>V</b>ouchers (भौचर)</span></div>
             <div class="menu-item" onclick="showPage('daybook')"><i class="fas fa-calendar-day" style="margin-right:10px; color:#64748b"></i><span><b>D</b>ay Book (दैनिक खाता)</span></div>
 
+            <div class="menu-title">Tax & Audit (कर तथा अडिट)</div>
+            <div class="menu-item" onclick="showPage('vat-report')" style="background:rgba(16,185,129,0.1); border-left:3px solid #10b981;"><i class="fas fa-file-invoice-dollar" style="margin-right:10px; color:#10b981"></i><span><b>V</b>AT Report (भ्याट रिपोर्ट)</span></div>
+
             <div class="menu-title">Reports (रिपोर्टहरू)</div>
             <div class="menu-item" onclick="showPage('statement')"><i class="fas fa-file-alt" style="margin-right:10px; color:#fbbf24"></i><span>Acc. <b>L</b>edger (खाता विवरण)</span></div>
             <div class="menu-item" onclick="showPage('sales-book')"><i class="fas fa-book" style="margin-right:10px; color:#10b981"></i><span>Sales Boo<b>k</b> (बिक्री किताब)</span></div>
@@ -812,6 +815,75 @@
         </div>
 
         <!-- Day Book Page -->
+        <!-- VAT AUDIT REPORT PAGE -->
+        <div id="page-vat-report" class="main-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <h1 style="margin:0; font-size:1.6rem; color:var(--tally-navy);">भ्याट अडिट रिपोर्ट (VAT Audit Summary)</h1>
+                    <p style="color:#64748b; margin:5px 0 0 0;">कर कार्यालय प्रयोजनका लागि बिक्री र खरिदको विस्तृत विवरण</p>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" style="background:#64748b;" onclick="window.print()"><i class="fas fa-print"></i> प्रिन्ट</button>
+                </div>
+            </div>
+
+            <div class="box" style="margin-bottom:20px; padding:15px; background:#f8fafc;">
+                <div style="display:flex; gap:20px; align-items:center;">
+                    <div>
+                        <label style="font-size:0.8rem; display:block; margin-bottom:4px;">मिति देखि:</label>
+                        <input type="date" id="vat-start-date" class="form-control" onchange="renderVATReport()">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; display:block; margin-bottom:4px;">मिति सम्म:</label>
+                        <input type="date" id="vat-end-date" class="form-control" onchange="renderVATReport()">
+                    </div>
+                    <div style="flex-grow:1;"></div>
+                    <div style="text-align:right;">
+                        <h4 style="margin:0; color:#64748b; font-size:0.9rem;">नेट भ्याट दायित्व (Net VAT Payable)</h4>
+                        <div id="vat-net-payable" style="font-size:1.8rem; font-weight:800; color:var(--tally-navy);">Rs. 0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="box">
+                    <h3 style="border-bottom:2px solid #10b981; padding-bottom:10px;"><i class="fas fa-arrow-up" style="color:#10b981;"></i> बिक्री रजिष्टर (Sales Register)</h3>
+                    <table style="font-size:0.85rem;">
+                        <tr><td>कुल बिक्री (Total Sales)</td><td class="amt" id="vat-sales-total">0.00</td></tr>
+                        <tr style="font-weight:bold; color:var(--tally-teal);"><td>कर लाग्ने बिक्री (Taxable Amount)</td><td class="amt" id="vat-sales-taxable">0.00</td></tr>
+                        <tr style="font-weight:bold; color:#10b981; border-top:1px solid #ddd;"><td>जम्मा भ्याट (Output VAT)</td><td class="amt" id="vat-sales-amt">0.00</td></tr>
+                    </table>
+                </div>
+
+                <div class="box">
+                    <h3 style="border-bottom:2px solid #f43f5e; padding-bottom:10px;"><i class="fas fa-arrow-down" style="color:#f43f5e;"></i> खरिद रजिष्टर (Purchase Register)</h3>
+                    <table style="font-size:0.85rem;">
+                        <tr><td>कुल खरिद (Total Purchase)</td><td class="amt" id="vat-pur-total">0.00</td></tr>
+                        <tr style="font-weight:bold; color:var(--tally-teal);"><td>कर लाग्ने खरिद (Taxable Amount)</td><td class="amt" id="vat-pur-taxable">0.00</td></tr>
+                        <tr style="font-weight:bold; color:#f43f5e; border-top:1px solid #ddd;"><td>जम्मा भ्याट (Input VAT)</td><td class="amt" id="vat-pur-amt">0.00</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="box" style="margin-top:20px; overflow-x: auto;">
+                <h3>विस्तृत कारोबार विवरण (Transaction Details)</h3>
+                <table>
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th>मिति</th>
+                            <th>बीजक नं. (Bill No)</th>
+                            <th>पार्टीको नाम</th>
+                            <th>प्रकार</th>
+                            <th class="amt">कर लाग्ने रकम</th>
+                            <th class="amt">भ्याट (13%)</th>
+                            <th class="amt">जम्मा</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vat-report-rows"></tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="page-daybook" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
                 <div style="display:flex; gap:15px; align-items:center;">
@@ -1279,6 +1351,7 @@
             transactions = await txRes.json();
             products = await prodRes.json();
             renderDashboardData();
+            renderVATReport(); // Sync VAT details
         }
 
         function showPage(pageId) {
@@ -1883,8 +1956,13 @@
 
             if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
 
-            const vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
-            if(vat > 0 && !vatAcc) return alert("अडिटको लागि कृपया पहिले 'VAT' नामको एउटा खाता (Ledger) बनाउनुहोस्।");
+            // Audit Consistency: Find or Alert for VAT Ledger
+            let vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
+
+            // If VAT is applicable but ledger not found, we must not proceed for audit integrity
+            if(vat > 0 && !vatAcc) {
+                return alert("त्रुटि: VAT खाता भेटिएन! कृपया 'Chart of Accounts' मा 'VAT Payable' वा 'VAT' नामको एउटा खाता बनाउनुहोस्।");
+            }
 
             const data = {
                 userId: user.uid,
@@ -1893,13 +1971,14 @@
                 billNo,
                 taxableAmount: taxable,
                 vatAmount: vat,
+                discountPercent: disc,
                 totalAmount: total,
-                description: document.getElementById('inv-narration').value || `Sales Invoice #${billNo}`,
+                description: document.getElementById('inv-narration').value || `बिक्री बिल नं. ${billNo}`,
                 entries: [
-                    { account: partyId, debit: total, credit: 0 },
-                    { account: salesId, debit: 0, credit: taxable },
-                    { account: vatAcc || salesId, debit: 0, credit: vat }
-                ].filter(e => e.credit !== 0 || e.debit !== 0),
+                    { account: partyId, debit: total, credit: 0 }, // Customer gets debited with full amount
+                    { account: salesId, debit: 0, credit: taxable }, // Sales gets credited with taxable amount only
+                    { account: vatAcc, debit: 0, credit: vat } // VAT gets credited separately for Audit
+                ].filter(e => e.credit > 0 || e.debit > 0),
                 items: items
             };
 
@@ -2061,19 +2140,26 @@
             const total = Number(document.getElementById('pur-grand-total').innerText);
             const taxable = Number(document.getElementById('pur-taxable-amt').innerText);
             const vat = Number(document.getElementById('pur-vat-amt').innerText);
-            const items = [];
+            const disc = Number(document.getElementById('pur-discount').value);
 
+            // Audit Consistency: Must have a separate VAT ledger
+            let vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
+
+            if(vat > 0 && !vatAcc) {
+                return alert("त्रुटि: VAT खाता भेटिएन! अडिट मिलाउन पहिले 'VAT' नामको एउटा खाता बनाउनुहोस्।");
+            }
+
+            const items = [];
             document.querySelectorAll('#pur-rows tr').forEach(tr => {
-                const prodId = tr.querySelector('.pur-item-select').value;
+                const select = tr.querySelector('.pur-item-select');
+                const prodId = select.value;
+                const prodName = select.options[select.selectedIndex].text;
                 const qty = Number(tr.querySelector('.pur-qty').value);
                 const rate = Number(tr.querySelector('.pur-rate').value);
-                if(prodId) items.push({ product: prodId, quantity: qty, rate: rate });
+                if(prodId) items.push({ product: prodId, name: prodName, quantity: qty, rate: rate });
             });
 
             if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
-
-            const vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
-            if(vat > 0 && !vatAcc) return alert("अडिटको लागि कृपया पहिले 'VAT' नामको एउटा खाता (Ledger) बनाउनुहोस्।");
 
             const data = {
                 userId: user.uid,
@@ -2082,13 +2168,14 @@
                 billNo,
                 taxableAmount: taxable,
                 vatAmount: vat,
+                discountPercent: disc,
                 totalAmount: total,
-                description: document.getElementById('pur-narration').value || `Purchase Bill #${billNo}`,
+                description: document.getElementById('pur-narration').value || `खरिद बिल नं. ${billNo}`,
                 entries: [
-                    { account: purLedgerId, debit: taxable, credit: 0 },
-                    { account: vatAcc || purLedgerId, debit: vat, credit: 0 },
-                    { account: partyId, debit: 0, credit: total }
-                ].filter(e => e.credit !== 0 || e.debit !== 0),
+                    { account: purLedgerId, debit: taxable, credit: 0 }, // Purchase (Taxable only)
+                    { account: vatAcc, debit: vat, credit: 0 },         // VAT (Separate Asset for Audit)
+                    { account: partyId, debit: 0, credit: total }      // Supplier (Full Amount)
+                ].filter(e => e.debit > 0 || e.credit > 0),
                 items: items
             };
 
@@ -2099,9 +2186,13 @@
             });
 
             if(res.ok) {
-                alert("Purchase Recorded!");
+                alert("खरिद सुरक्षित भयो (Purchase Recorded Successfully!)");
                 syncAll();
                 showPage('gateway');
+            } else {
+                alert("Error saving purchase.");
+            }
+        }
             } else {
                 const err = await res.json();
                 alert("Save Failed: " + (err.error || "Unknown Error"));
@@ -2154,27 +2245,47 @@
             const vatAmount = Number(document.getElementById('sr-vat-amt').innerText);
             const items = [];
             document.querySelectorAll('#sr-rows tr').forEach(tr => {
-                const prodId = tr.querySelector('.item-select').value;
+                const select = tr.querySelector('.item-select');
+                if(!select) return;
+                const prodId = select.value;
                 if(prodId) items.push({ product: prodId, quantity: Number(tr.querySelector('.qty').value), rate: Number(tr.querySelector('.rate').value) });
             });
 
-            const salesAcc = accounts.find(a => a.type === 'Revenue')?._id;
+            // Audit Integrity: Use a Sales Return account or the main Sales account
+            const salesAcc = accounts.find(a => a.name.toUpperCase().includes('RETURN') && a.type === 'Revenue')?._id || accounts.find(a => a.type === 'Revenue')?._id;
             const vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
 
-            if(vatAmount > 0 && !vatAcc) return alert("अडिटको लागि कृपया पहिले 'VAT' नामको एउटा खाता (Ledger) बनाउनुहोस्।");
+            if(vatAmount > 0 && !vatAcc) return alert("अडिटको लागि कृपया पहिले 'VAT' नामको एउटा खाता बनाउनुहोस्।");
             if(!salesAcc) return alert("बिक्री खाता (Sales Account) भेटिएन।");
 
             const data = {
                 userId: user.uid,
                 date: document.getElementById('sr-date').value,
                 type: 'SALES_RETURN',
-                description: "Sales Return (VAT Reversed)",
+                description: `बिक्री फिर्ता (Credit Note) - VAT Reversed`,
                 totalAmount: total,
                 taxableAmount: taxableAmount,
                 vatAmount: vatAmount,
                 entries: [
-                    { account: salesAcc, debit: taxableAmount, credit: 0 },
-                    { account: vatAcc, debit: vatAmount, credit: 0 },
+                    { account: salesAcc, debit: taxableAmount, credit: 0 }, // Revenue decrease (Debit)
+                    { account: vatAcc, debit: vatAmount, credit: 0 },       // VAT Liability decrease (Debit)
+                    { account: partyId, debit: 0, credit: total }          // Party/Customer (Credit)
+                ].filter(e => e.debit > 0 || e.credit > 0),
+                items
+            };
+
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if(res.ok) {
+                alert("बिक्री फिर्ता सुरक्षित भयो!");
+                syncAll();
+                showPage('gateway');
+            }
+        }
                     { account: partyId, debit: 0, credit: total }
                 ],
                 items
@@ -2190,33 +2301,36 @@
             const vatAmount = Number(document.getElementById('pr-vat-amt').innerText);
             const items = [];
             document.querySelectorAll('#pr-rows tr').forEach(tr => {
-                const prodId = tr.querySelector('.item-select').value;
+                const select = tr.querySelector('.item-select');
+                if(!select) return;
+                const prodId = select.value;
                 if(prodId) items.push({ product: prodId, quantity: Number(tr.querySelector('.qty').value), rate: Number(tr.querySelector('.rate').value) });
             });
 
-            const purAcc = accounts.find(a => a.type === 'Expense')?._id;
+            // Audit Integrity: Find VAT and Purchase Account
+            const purAcc = accounts.find(a => a.name.toUpperCase().includes('PURCHASE') && a.type === 'Expense')?._id || accounts.find(a => a.type === 'Expense')?._id;
             const vatAcc = accounts.find(a => a.name.toUpperCase().includes('VAT'))?._id;
 
-            if(vatAmount > 0 && !vatAcc) return alert("अडिटको लागि कृपया पहिले 'VAT' नामको एउटा खाता (Ledger) बनाउनुहोस्।");
+            if(vatAmount > 0 && !vatAcc) return alert("अडिटको लागि पहिले 'VAT' खाता बनाउनुहोस्।");
             if(!purAcc) return alert("खरिद खाता (Purchase Account) भेटिएन।");
 
             const data = {
                 userId: user.uid,
                 date: document.getElementById('pr-date').value,
                 type: 'PURCHASE_RETURN',
-                description: "Purchase Return (VAT Reversed)",
+                description: `खरिद फिर्ता (Debit Note) - VAT Reversed`,
                 totalAmount: total,
                 taxableAmount: taxableAmount,
                 vatAmount: vatAmount,
                 entries: [
-                    { account: partyId, debit: total, credit: 0 },
-                    { account: purAcc, debit: 0, credit: taxableAmount },
-                    { account: vatAcc, debit: 0, credit: vatAmount }
-                ],
+                    { account: partyId, debit: total, credit: 0 },          // Liability decrease (Debit)
+                    { account: purAcc, debit: 0, credit: taxableAmount },   // Expense decrease (Credit)
+                    { account: vatAcc, debit: 0, credit: vatAmount }        // VAT Credit reversal (Credit)
+                ].filter(e => e.debit > 0 || e.credit > 0),
                 items
             };
             const res = await fetch('/api/transactions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            if(res.ok) { alert("Purchase Return Saved with VAT!"); syncAll(); showPage('gateway'); }
+            if(res.ok) { alert("खरिद फिर्ता (Purchase Return) सुरक्षित भयो!"); syncAll(); showPage('gateway'); }
         }
 
         function updateReturnTotals(prefix) {
@@ -2719,7 +2833,71 @@
         }
 
         // ACCOUNT MASTER LOGIC
-        function renderAccountsList() {
+        function renderVATReport() {
+            const startDate = document.getElementById('vat-start-date').value;
+            const endDate = document.getElementById('vat-end-date').value;
+
+            let sTotal = 0, sTaxable = 0, sVat = 0;
+            let pTotal = 0, pTaxable = 0, pVat = 0;
+
+            const filteredTx = transactions.filter(t => {
+                const dateMatch = (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate);
+                return dateMatch && ['SALES', 'PURCHASE', 'SALES_RETURN', 'PURCHASE_RETURN'].includes(t.type);
+            });
+
+            const rowsHtml = filteredTx.map(t => {
+                const tax = t.vatAmount || 0;
+                const taxable = t.taxableAmount || 0;
+                const grand = t.totalAmount || (tax + taxable);
+                const party = accounts.find(a => a._id === t.entries[0]?.account)?.name || 'Unknown';
+
+                if(t.type === 'SALES') {
+                    sTotal += grand; sTaxable += taxable; sVat += tax;
+                } else if(t.type === 'PURCHASE') {
+                    pTotal += grand; pTaxable += taxable; pVat += tax;
+                } else if(t.type === 'SALES_RETURN') {
+                    sTotal -= grand; sTaxable -= taxable; sVat -= tax;
+                } else if(t.type === 'PURCHASE_RETURN') {
+                    pTotal -= grand; pTaxable -= taxable; pVat -= tax;
+                }
+
+                return `
+                    <tr>
+                        <td>${t.date}</td>
+                        <td>${t.billNo || '-'}</td>
+                        <td>${party}</td>
+                        <td><span class="badge ${t.type.includes('SALES') ? 'badge-success' : 'badge-danger'}">${t.type}</span></td>
+                        <td class="amt">${taxable.toFixed(2)}</td>
+                        <td class="amt">${tax.toFixed(2)}</td>
+                        <td class="amt">${grand.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('vat-report-rows').innerHTML = rowsHtml;
+            document.getElementById('vat-sales-total').innerText = sTotal.toFixed(2);
+            document.getElementById('vat-sales-taxable').innerText = sTaxable.toFixed(2);
+            document.getElementById('vat-sales-amt').innerText = sVat.toFixed(2);
+
+            document.getElementById('vat-pur-total').innerText = pTotal.toFixed(2);
+            document.getElementById('vat-pur-taxable').innerText = pTaxable.toFixed(2);
+            document.getElementById('vat-pur-amt').innerText = pVat.toFixed(2);
+
+            const netVat = sVat - pVat;
+            const netDisplay = document.getElementById('vat-net-payable');
+            netDisplay.innerText = `Rs. ${Math.abs(netVat).toFixed(2)}`;
+            netDisplay.style.color = netVat >= 0 ? '#f43f5e' : '#10b981'; // Red if payable, Green if credit
+
+            if(netVat >= 0) {
+                netDisplay.title = "यो रकम सरकारलाई तिर्नुपर्ने छ (Payable to Govt)";
+            } else {
+                netDisplay.title = "यो रकम कर कट्टी (Input Tax Credit) को रूपमा बाँकी छ";
+            }
+        }
+
+        function exportVATToExcel() {
+            alert("Excel export feature coming soon! You can print the report for now.");
+        }
             const search = document.getElementById('acc-search').value.toLowerCase();
             const filtered = accounts.filter(a => a.name.toLowerCase().includes(search));
             document.getElementById('tbl-accounts-body').innerHTML = filtered.map(a => `
