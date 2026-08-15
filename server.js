@@ -70,6 +70,7 @@ const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 const ProductSchema = new mongoose.Schema({
     userId: String,
+    code: { type: String, default: "" },
     name: { type: String, required: true },
     category: { type: String, default: 'General' },
     brand: { type: String, default: 'None' },

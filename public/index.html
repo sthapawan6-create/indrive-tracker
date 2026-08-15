@@ -817,6 +817,7 @@
             <table>
                 <thead>
                     <tr style="background:#f5f3ff;">
+                        <th>Code</th>
                         <th>Item Name</th>
                         <th>Unit</th>
                         <th class="amt">Purchase Price</th>
@@ -878,6 +879,10 @@
         <div class="modal-content" style="border-color:#8b5cf6;">
             <h3 style="margin-top:0; color:#8b5cf6;">Add New Product</h3>
             <div style="display:grid; gap:10px;">
+                <div>
+                    <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Item Code (सामानको कोड)</label>
+                    <input type="text" id="p-code" placeholder="e.g. ELE-001" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
+                </div>
                 <div>
                     <label style="font-size:0.75rem; color:#64748b; display:block; margin-bottom:2px;">Item Name (सामानको नाम)</label>
                     <input type="text" id="p-name" aria-label="Name" placeholder="Item Name (e.g. LED Bulb 9W)" style="padding:8px; border:1px solid #ccc; width:100%; box-sizing: border-box;">
@@ -2221,6 +2226,7 @@
 
             document.getElementById('tbl-products-body').innerHTML = products.map(p => `
                 <tr>
+                    <td style="font-family:monospace; color:var(--primary-color);">${p.code || '-'}</td>
                     <td>${p.name}<br><small style="color:#64748b;">${p.category || 'General'} | ${p.brand || 'None'}</small></td>
                     <td>${p.unit}</td>
                     <td class="amt">${p.purchasePrice}</td>
@@ -2232,9 +2238,11 @@
         }
 
         async function saveProduct() {
+            const code = document.getElementById('p-code').value;
             const name = document.getElementById('p-name').value;
             const data = {
                 userId: user.uid,
+                code,
                 name,
                 category: document.getElementById('p-cat').value || 'General',
                 brand: document.getElementById('p-brand').value || 'None',
