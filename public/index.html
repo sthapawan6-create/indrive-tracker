@@ -309,7 +309,8 @@
                 <table class="v-table" id="tbl-inv-items">
                     <thead>
                         <tr style="background:#f2f5f7;">
-                            <th style="width:50%;">Particulars / Item Name</th>
+                            <th style="width:15%;">Code</th>
+                            <th style="width:35%;">Particulars / Item Name</th>
                             <th style="width:10%; text-align:center;">Qty</th>
                             <th style="width:15%; text-align:right;">Rate</th>
                             <th style="width:20%; text-align:right;">Amount</th>
@@ -388,7 +389,8 @@
                 <table class="v-table" id="tbl-pur-items">
                     <thead>
                         <tr style="background:#f2f5f7;">
-                            <th style="width:50%;">Item Description</th>
+                            <th style="width:15%;">Code</th>
+                            <th style="width:35%;">Item Description</th>
                             <th style="width:10%; text-align:center;">Qty</th>
                             <th style="width:15%; text-align:right;">Rate</th>
                             <th style="width:20%; text-align:right;">Amount</th>
@@ -683,83 +685,6 @@
             </table>
         </div>
 
-        <!-- Print View for VAT Bill -->
-        <div id="vat-bill-view" class="vat-bill-print">
-            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
-                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
-                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
-                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <div>
-                    <strong>Buyer Details:</strong><br>
-                    Name: <span id="print-party-name">________________</span><br>
-                    Address: <span id="print-party-address">________________</span><br>
-                    Buyer's PAN: <span id="print-party-pan">________________</span>
-                </div>
-                <div style="text-align: right;">
-                    Invoice No: <span id="print-bill-no">________________</span><br>
-                    Date (AD): <span id="print-date-ad">________________</span><br>
-                    Date (BS): <span id="print-date-bs">________________</span>
-                </div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">S.N.</th>
-                        <th>Particulars</th>
-                        <th style="width: 80px;">Qty</th>
-                        <th style="width: 60px;">Unit</th>
-                        <th style="width: 100px;">Rate</th>
-                        <th style="width: 120px;">Total</th>
-                    </tr>
-                </thead>
-                <tbody id="print-items-body">
-                    <!-- Rows will be injected here -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
-                        <td id="print-sub-total" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
-                        <td id="print-discount" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
-                        <td id="print-taxable-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
-                        <td id="print-vat-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
-                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div style="margin-top: 20px;">
-                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>Buyer's Signature</p>
-                </div>
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>For Pawan Electronics</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Vouchers (Journal) Page -->
         <div id="page-vouchers" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #f59e0b; margin-bottom: 15px; padding-bottom:5px;">
@@ -842,83 +767,6 @@
             </table>
         </div>
 
-        <!-- Print View for VAT Bill -->
-        <div id="vat-bill-view" class="vat-bill-print">
-            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
-                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
-                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
-                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <div>
-                    <strong>Buyer Details:</strong><br>
-                    Name: <span id="print-party-name">________________</span><br>
-                    Address: <span id="print-party-address">________________</span><br>
-                    Buyer's PAN: <span id="print-party-pan">________________</span>
-                </div>
-                <div style="text-align: right;">
-                    Invoice No: <span id="print-bill-no">________________</span><br>
-                    Date (AD): <span id="print-date-ad">________________</span><br>
-                    Date (BS): <span id="print-date-bs">________________</span>
-                </div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">S.N.</th>
-                        <th>Particulars</th>
-                        <th style="width: 80px;">Qty</th>
-                        <th style="width: 60px;">Unit</th>
-                        <th style="width: 100px;">Rate</th>
-                        <th style="width: 120px;">Total</th>
-                    </tr>
-                </thead>
-                <tbody id="print-items-body">
-                    <!-- Rows will be injected here -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
-                        <td id="print-sub-total" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
-                        <td id="print-discount" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
-                        <td id="print-taxable-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
-                        <td id="print-vat-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
-                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div style="margin-top: 20px;">
-                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>Buyer's Signature</p>
-                </div>
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>For Pawan Electronics</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Reports: Balance Sheet -->
         <div id="page-reports-bs" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--tally-teal); margin-bottom: 15px; padding-bottom:5px;">
@@ -979,83 +827,6 @@
             </table>
         </div>
 
-        <!-- Print View for VAT Bill -->
-        <div id="vat-bill-view" class="vat-bill-print">
-            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
-                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
-                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
-                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <div>
-                    <strong>Buyer Details:</strong><br>
-                    Name: <span id="print-party-name">________________</span><br>
-                    Address: <span id="print-party-address">________________</span><br>
-                    Buyer's PAN: <span id="print-party-pan">________________</span>
-                </div>
-                <div style="text-align: right;">
-                    Invoice No: <span id="print-bill-no">________________</span><br>
-                    Date (AD): <span id="print-date-ad">________________</span><br>
-                    Date (BS): <span id="print-date-bs">________________</span>
-                </div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">S.N.</th>
-                        <th>Particulars</th>
-                        <th style="width: 80px;">Qty</th>
-                        <th style="width: 60px;">Unit</th>
-                        <th style="width: 100px;">Rate</th>
-                        <th style="width: 120px;">Total</th>
-                    </tr>
-                </thead>
-                <tbody id="print-items-body">
-                    <!-- Rows will be injected here -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
-                        <td id="print-sub-total" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
-                        <td id="print-discount" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
-                        <td id="print-taxable-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
-                        <td id="print-vat-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
-                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div style="margin-top: 20px;">
-                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>Buyer's Signature</p>
-                </div>
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>For Pawan Electronics</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Reports: Profit & Loss -->
         <div id="page-reports-pl" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #ec4899; margin-bottom: 15px; padding-bottom:5px;">
@@ -1103,83 +874,6 @@
             </table>
         </div>
 
-        <!-- Print View for VAT Bill -->
-        <div id="vat-bill-view" class="vat-bill-print">
-            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
-                <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
-                <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
-                <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <div>
-                    <strong>Buyer Details:</strong><br>
-                    Name: <span id="print-party-name">________________</span><br>
-                    Address: <span id="print-party-address">________________</span><br>
-                    Buyer's PAN: <span id="print-party-pan">________________</span>
-                </div>
-                <div style="text-align: right;">
-                    Invoice No: <span id="print-bill-no">________________</span><br>
-                    Date (AD): <span id="print-date-ad">________________</span><br>
-                    Date (BS): <span id="print-date-bs">________________</span>
-                </div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">S.N.</th>
-                        <th>Particulars</th>
-                        <th style="width: 80px;">Qty</th>
-                        <th style="width: 60px;">Unit</th>
-                        <th style="width: 100px;">Rate</th>
-                        <th style="width: 120px;">Total</th>
-                    </tr>
-                </thead>
-                <tbody id="print-items-body">
-                    <!-- Rows will be injected here -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
-                        <td id="print-sub-total" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
-                        <td id="print-discount" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
-                        <td id="print-taxable-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
-                        <td id="print-vat-amt" class="amt">0.00</td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
-                        <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            <div style="margin-top: 20px;">
-                <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>Buyer's Signature</p>
-                </div>
-                <div style="text-align: center;">
-                    <p>___________________</p>
-                    <p>For Pawan Electronics</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Settings Page -->
         <div id="page-settings" class="main-content">
             <h2>Settings & Tools</h2>
@@ -1195,6 +889,83 @@
                 <h3>Data Management</h3>
                 <button class="btn" style="background:#d97706;" onclick="exportData()">Download Backup (JSON)</button>
                 <button class="btn" style="background:#64748b;" onclick="closeFinancialYear()">Close Financial Year</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print View for VAT Bill -->
+    <div id="vat-bill-view" class="vat-bill-print">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 24px;">PAWAN ELECTRONICS</h1>
+            <p style="margin: 5px 0;">New Road, Kathmandu, Nepal</p>
+            <p style="margin: 5px 0;"><strong>PAN No: 123456789</strong> | Tel: 01-4XXXXXX</p>
+            <h3 style="margin: 15px 0 5px 0; text-decoration: underline;">TAX INVOICE (भ्याट बिल)</h3>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+                <strong>Buyer Details:</strong><br>
+                Name: <span id="print-party-name">________________</span><br>
+                Address: <span id="print-party-address">________________</span><br>
+                Buyer's PAN: <span id="print-party-pan">________________</span>
+            </div>
+            <div style="text-align: right;">
+                Invoice No: <span id="print-bill-no">________________</span><br>
+                Date (AD): <span id="print-date-ad">________________</span><br>
+                Date (BS): <span id="print-date-bs">________________</span>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">S.N.</th>
+                    <th>Particulars</th>
+                    <th style="width: 80px;">Qty</th>
+                    <th style="width: 60px;">Unit</th>
+                    <th style="width: 100px;">Rate</th>
+                    <th style="width: 120px;">Total</th>
+                </tr>
+            </thead>
+            <tbody id="print-items-body">
+                <!-- Rows will be injected here -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">Sub Total:</td>
+                    <td id="print-sub-total" class="amt">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">Discount:</td>
+                    <td id="print-discount" class="amt">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">Taxable Amount:</td>
+                    <td id="print-taxable-amt" class="amt">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">VAT (13%):</td>
+                    <td id="print-vat-amt" class="amt">0.00</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold; font-size: 18px;">Grand Total:</td>
+                    <td id="print-grand-total" class="amt" style="font-weight: bold; font-size: 18px;">0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="margin-top: 20px;">
+            <p><strong>In Words:</strong> <span id="print-amt-words">________________</span></p>
+        </div>
+
+        <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+            <div style="text-align: center;">
+                <p>___________________</p>
+                <p>Buyer's Signature</p>
+            </div>
+            <div style="text-align: center;">
+                <p>___________________</p>
+                <p>For Pawan Electronics</p>
             </div>
         </div>
     </div>
@@ -1523,6 +1294,51 @@
         }
 
         // UTILITIES
+        function numberToWords(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const scales = ['', 'Thousand', 'Million', 'Billion'];
+
+            if (num === 0) return 'Zero Only';
+            if (num < 0) return 'Negative ' + numberToWords(Math.abs(num));
+
+            let str = '';
+            let integerPart = Math.floor(num);
+            let decimalPart = Math.round((num - integerPart) * 100);
+
+            function convertThreeDigit(n) {
+                let s = '';
+                if (n >= 100) {
+                    s += ones[Math.floor(n / 100)] + ' Hundred ';
+                    n %= 100;
+                }
+                if (n >= 20) {
+                    s += tens[Math.floor(n / 10)] + ' ';
+                    n %= 10;
+                }
+                if (n > 0) {
+                    s += ones[n] + ' ';
+                }
+                return s.trim();
+            }
+
+            let scaleIdx = 0;
+            while (integerPart > 0) {
+                let chunk = integerPart % 1000;
+                if (chunk > 0) {
+                    str = convertThreeDigit(chunk) + ' ' + scales[scaleIdx] + ' ' + str;
+                }
+                integerPart = Math.floor(integerPart / 1000);
+                scaleIdx++;
+            }
+
+            str = str.trim() + ' Rupees';
+            if (decimalPart > 0) {
+                str += ' and ' + convertThreeDigit(decimalPart) + ' Paisa';
+            }
+            return str + ' Only';
+        }
+
         function toBS(adDate) {
             if (!adDate) return '';
             try {
@@ -1817,9 +1633,12 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
+                    <input type="text" class="inv-item-code" placeholder="Code" onchange="lookupProductByCode(this, 'inv')" aria-label="SKU">
+                </td>
+                <td>
                     <select class="inv-item-select" onchange="updateRowPrice(this)" aria-label="Item">
                         <option value="">-- Select Item --</option>
-                        ${products.map(p => `<option value="${p._id}" data-price="${p.salePrice}">${p.name} (Stock: ${p.currentStock})</option>`).join('')}
+                        ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.salePrice}">${p.name} (Stock: ${p.currentStock})</option>`).join('')}
                     </select>
                 </td>
                 <td><input type="number" class="inv-qty" value="1" oninput="calculateInvTotal()" aria-label="Qty"></td>
@@ -1830,9 +1649,33 @@
             document.getElementById('inv-rows').appendChild(tr);
         }
 
+        function lookupProductByCode(input, type) {
+            const code = input.value.trim().toUpperCase();
+            if (!code) return;
+            const product = products.find(p => p.code && p.code.toUpperCase() === code);
+            const tr = input.parentElement.parentElement;
+            const select = tr.querySelector(`.${type}-item-select`);
+
+            if (product) {
+                select.value = product._id;
+                if (type === 'inv') {
+                    tr.querySelector('.inv-rate').value = product.salePrice;
+                    calculateInvTotal();
+                } else if (type === 'pur') {
+                    tr.querySelector('.pur-rate').value = product.purchasePrice;
+                    calculatePurTotal();
+                }
+            } else {
+                select.value = "";
+                alert("Product code not found!");
+            }
+        }
+
         function updateRowPrice(sel) {
-            const rate = sel.options[sel.selectedIndex].dataset.price;
-            sel.parentElement.parentElement.querySelector('.inv-rate').value = rate;
+            const opt = sel.options[sel.selectedIndex];
+            const tr = sel.parentElement.parentElement;
+            tr.querySelector('.inv-rate').value = opt.dataset.price || 0;
+            tr.querySelector('.inv-item-code').value = opt.dataset.code || '';
             calculateInvTotal();
         }
 
@@ -1882,6 +1725,8 @@
 
             if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
 
+            const vatAcc = accounts.find(a => a.name.includes('VAT'))?._id || salesId;
+
             const data = {
                 userId: user.uid,
                 date,
@@ -1893,8 +1738,9 @@
                 description: document.getElementById('inv-narration').value || `Sales Invoice #${billNo}`,
                 entries: [
                     { account: partyId, debit: total, credit: 0 },
-                    { account: salesId, debit: 0, credit: total }
-                ],
+                    { account: salesId, debit: 0, credit: taxable },
+                    { account: vatAcc, debit: 0, credit: vat }
+                ].filter(e => e.credit !== 0 || e.debit !== 0),
                 items: items
             };
 
@@ -1950,6 +1796,7 @@
             document.getElementById('print-taxable-amt').innerText = tx.taxableAmount.toFixed(2);
             document.getElementById('print-vat-amt').innerText = tx.vatAmount.toFixed(2);
             document.getElementById('print-grand-total').innerText = tx.totalAmount.toFixed(2);
+            document.getElementById('print-amt-words').innerText = numberToWords(tx.totalAmount);
 
             // Show only the print view and hide everything else
             document.querySelectorAll('.main-content').forEach(p => p.style.display = 'none');
@@ -1999,9 +1846,12 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <select class="pur-item-select" aria-label="Item">
+                    <input type="text" class="pur-item-code" placeholder="Code" onchange="lookupProductByCode(this, 'pur')" aria-label="SKU">
+                </td>
+                <td>
+                    <select class="pur-item-select" onchange="updatePurRowPrice(this)" aria-label="Item">
                         <option value="">-- Select Item --</option>
-                        ${products.map(p => `<option value="${p._id}">${p.name}</option>`).join('')}
+                        ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.purchasePrice}">${p.name}</option>`).join('')}
                     </select>
                 </td>
                 <td><input type="number" class="pur-qty" value="1" oninput="calculatePurTotal()" aria-label="Qty"></td>
@@ -2010,6 +1860,14 @@
                 <td><button onclick="this.parentElement.parentElement.remove(); calculatePurTotal();">x</button></td>
             `;
             document.getElementById('pur-rows').appendChild(tr);
+        }
+
+        function updatePurRowPrice(sel) {
+            const opt = sel.options[sel.selectedIndex];
+            const tr = sel.parentElement.parentElement;
+            tr.querySelector('.pur-rate').value = opt.dataset.price || 0;
+            tr.querySelector('.pur-item-code').value = opt.dataset.code || '';
+            calculatePurTotal();
         }
 
         function calculatePurTotal() {
@@ -2055,6 +1913,8 @@
 
             if(!partyId || items.length === 0) return alert("कृपया पार्टी र सामानहरू छान्नुहोस्।");
 
+            const vatAcc = accounts.find(a => a.name.includes('VAT'))?._id || purLedgerId;
+
             const data = {
                 userId: user.uid,
                 date,
@@ -2065,9 +1925,10 @@
                 totalAmount: total,
                 description: document.getElementById('pur-narration').value || `Purchase Bill #${billNo}`,
                 entries: [
-                    { account: purLedgerId, debit: total, credit: 0 },
+                    { account: purLedgerId, debit: taxable, credit: 0 },
+                    { account: vatAcc, debit: vat, credit: 0 },
                     { account: partyId, debit: 0, credit: total }
-                ],
+                ].filter(e => e.credit !== 0 || e.debit !== 0),
                 items: items
             };
 
