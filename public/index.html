@@ -174,7 +174,16 @@
                 <div>
                     <h1 style="margin:0; font-size:1.8rem; color:var(--tally-navy);">Dashboard</h1>
                     <div id="current-user-display" style="color:var(--tally-teal); font-weight:bold; font-size:0.9rem;">User: ...</div>
-                    <div id="current-date-display" style="color:#64748b; font-weight:500;">Today: ...</div>
+                    <div style="margin-top:5px; display:flex; gap:10px; align-items:center;">
+                        <select id="dash-filter" onchange="renderDashboardData()" style="padding:5px; border-radius:4px; border:1px solid #ccc; font-size:0.85rem; background:white; cursor:pointer;">
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <div id="current-date-display" style="color:#64748b; font-weight:500; font-size:0.85rem;">Today: ...</div>
+                    </div>
                 </div>
                 <div style="text-align:right; display:flex; gap:10px; align-items:center;">
                     <button class="btn" onclick="logout()" style="background:#64748b; padding:8px 15px; font-size:0.8rem;"><i class="fas fa-sign-out-alt"></i> Logout</button>
@@ -1003,13 +1012,54 @@
             renderVoucherRecentList();
 
             let cash = 0, rec = 0, pay = 0, income = 0, expense = 0;
+            const filter = document.getElementById('dash-filter').value;
+            const now = new Date();
+            let startDate = new Date(0); // Default: All time
+
+            if (filter === 'today') {
+                startDate = new Date(now.setHours(0,0,0,0));
+            } else if (filter === 'yesterday') {
+                startDate = new Date(now.setDate(now.getDate() - 1));
+                startDate.setHours(0,0,0,0);
+                let endDate = new Date(startDate);
+                endDate.setHours(23,59,59,999);
+                // For yesterday, we need a range, but for simplicity let's filter after this date
+            } else if (filter === 'week') {
+                const day = now.getDay();
+                startDate = new Date(now.setDate(now.getDate() - day));
+                startDate.setHours(0,0,0,0);
+            } else if (filter === 'month') {
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            }
+
             accounts.forEach(a => {
                 const bal = getAccountBalance(a._id);
                 if(a.type === 'Asset') cash += bal;
                 if(a.type === 'Receivable') rec += bal;
                 if(a.type === 'Payable') pay += Math.abs(bal);
-                if(a.type === 'Revenue') income += Math.abs(bal);
-                if(a.type === 'Expense') expense += bal;
+
+                // Income and Expense should follow the time filter
+                if(a.type === 'Revenue' || a.type === 'Expense') {
+                    let periodTotal = 0;
+                    // Filter transactions for this specific account within the time range
+                    transactions.forEach(tx => {
+                        const txDate = new Date(tx.date);
+                        if (txDate >= startDate) {
+                            if (filter === 'yesterday') {
+                                let endDate = new Date(startDate);
+                                endDate.setHours(23,59,59,999);
+                                if (txDate > endDate) return;
+                            }
+                            const entry = tx.entries.find(e => (e.account._id || e.account) === a._id);
+                            if (entry) {
+                                periodTotal += (entry.debit - entry.credit);
+                            }
+                        }
+                    });
+
+                    if (a.type === 'Revenue') income += Math.abs(periodTotal);
+                    if (a.type === 'Expense') expense += periodTotal;
+                }
             });
 
             document.getElementById('dash-cash').innerText = 'Rs. ' + cash.toLocaleString();
