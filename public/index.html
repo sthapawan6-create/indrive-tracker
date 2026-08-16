@@ -1397,7 +1397,7 @@
                 if (txData) transactions = JSON.parse(txData);
                 if (prodData) products = JSON.parse(prodData);
 
-                // 2. Try API, but don't let it block the UI if it fails
+                // 2. Try API
                 const userId = user.uid || 'pawan-electronics-admin';
                 try {
                     const [accRes, txRes, prodRes] = await Promise.all([
@@ -1418,17 +1418,10 @@
                         products = await prodRes.json();
                         localStorage.setItem('pawan_items', JSON.stringify(products));
                     }
-                } catch (e) { console.log("Working in offline mode"); }
+                } catch (e) { console.log("Offline mode"); }
+            } catch (err) { console.error("Sync Error:", err); }
 
-            } catch (err) {
-                console.error("Sync Error:", err);
-            }
-
-            // 3. Force Render Dashboard immediately
-            setTimeout(() => {
-                try { renderDashboardData(); } catch(e) { console.error("Dash Error:", e); }
-                try { if(typeof renderVATReport === 'function') renderVATReport(); } catch(e) {}
-            }, 50);
+            renderDashboardData();
         }
 
         function showPage(pageId) {
