@@ -520,19 +520,32 @@
 
     <!-- Product Modal -->
     <div id="product-modal" class="modal">
-    <!-- Account Modal -->
-    <div id="account-modal" class="modal">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3>Add New Product</h3>
+                <h3 id="product-modal-title">Add New Product</h3>
                 <span onclick="closeProductModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
             </div>
             <div style="display:grid; gap:15px;">
-                <input type="text" id="prod-name" placeholder="Product Name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <div style="display:grid; grid-template-columns: 1fr 2fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Code</label>
+                        <input type="text" id="prod-code" readonly placeholder="Auto" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; background:#f8fafc;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Product Name</label>
+                        <input type="text" id="prod-name" placeholder="e.g. Samsung A54" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    </div>
+                </div>
                 <input type="text" id="prod-category" placeholder="Category (e.g. Mobile, TV)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <input type="number" id="prod-sale-price" placeholder="Sale Price" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
-                    <input type="number" id="prod-purchase-price" placeholder="Purchase Price" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Sale Price</label>
+                        <input type="number" id="prod-sale-price" placeholder="0.00" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Purchase Price</label>
+                        <input type="number" id="prod-purchase-price" placeholder="0.00" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    </div>
                 </div>
                 <input type="number" id="prod-stock" placeholder="Opening Stock" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
                 <button class="btn" onclick="saveProduct()">Save Product</button>
@@ -1337,7 +1350,14 @@
 
         function openProductModal() {
             editingProductId = null;
+            document.getElementById('product-modal-title').innerText = 'Add New Product';
             document.getElementById('product-modal').style.display = 'block';
+
+            // Auto-generate code
+            const nextNum = products.length + 1;
+            const code = "ITM-" + nextNum.toString().padStart(3, '0');
+
+            document.getElementById('prod-code').value = code;
             document.getElementById('prod-name').value = '';
             document.getElementById('prod-category').value = '';
             document.getElementById('prod-sale-price').value = '';
@@ -1347,6 +1367,7 @@
         function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
         async function saveProduct() {
+            const code = document.getElementById('prod-code').value;
             const name = document.getElementById('prod-name').value;
             const cat = document.getElementById('prod-category').value;
             const sp = parseFloat(document.getElementById('prod-sale-price').value) || 0;
@@ -1361,7 +1382,7 @@
             const res = await fetch(url, {
                 method: method,
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: currentUser.uid, name, category: cat, salePrice: sp, purchasePrice: pp, openingStock: stock })
+                body: JSON.stringify({ userId: currentUser.uid, code, name, category: cat, salePrice: sp, purchasePrice: pp, openingStock: stock })
             });
 
             if(res.ok) {
