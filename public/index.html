@@ -98,7 +98,15 @@
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 90%; max-width: 600px; border-radius: 12px; }
 
-        @media print { .no-print { display: none !important; } .main-content { margin-left: 0 !important; display: block !important; } }
+        /* Print Optimization */
+        @media print {
+            .no-print, .sidebar, .top-bar, .btn, select, input { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; display: block !important; }
+            .report-header { display: block !important; text-align: center; margin-bottom: 20px; }
+            table { width: 100% !important; border: 1px solid #000 !important; }
+            th, td { border: 1px solid #ddd !important; padding: 8px !important; font-size: 10pt !important; }
+        }
+        .report-header { display: none; }
     </style>
 </head>
 <body>
@@ -267,8 +275,83 @@
         <div id="page-products" class="main-content"><h3>Items Inventory</h3></div>
         <div id="page-purchase" class="main-content"><h3>Purchase Entry</h3></div>
         <div id="page-daybook" class="main-content"><h3>Day Book</h3></div>
-        <div id="page-sales-book" class="main-content"><h3>Sales Book</h3></div>
-        <div id="page-statement" class="main-content"><h3>Account Statement</h3></div>
+        <!-- Sales Book -->
+        <div id="page-sales-book" class="main-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Sales Book (Bikri Khata)</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <table id="sales-book-table">
+                <thead>
+                    <tr><th>Date</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody id="sales-book-body"></tbody>
+            </table>
+        </div>
+        <!-- Ledger Statement Page -->
+        <div id="page-statement" class="main-content">
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3>Account Ledger Statement</h3>
+                <button class="btn" onclick="window.print()" style="background:#1e293b;"><i class="fas fa-print"></i> Print PDF</button>
+            </div>
+
+            <div class="no-print" style="background:white; padding:15px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:20px; display:flex; gap:15px; align-items:flex-end;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem; color:#64748b;">Select Account</label>
+                    <select id="st-account-id" onchange="renderStatement()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        <option value="">-- Choose Account --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">From</label>
+                    <input type="date" id="st-from" onchange="renderStatement()" style="padding:7px; border:1px solid #ddd; border-radius:6px;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">To</label>
+                    <input type="date" id="st-to" onchange="renderStatement()" style="padding:7px; border:1px solid #ddd; border-radius:6px;">
+                </div>
+            </div>
+
+            <div id="statement-print-area" style="background:white; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
+                <div class="report-header">
+                    <h2 style="margin:0;">PAWAN ELECTRONICS</h2>
+                    <p style="margin:5px 0;">New Road, Kathmandu | Tel: 01-4XXXXXX</p>
+                    <hr>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                    <div>
+                        <h4 style="margin:0;" id="st-display-name">Account Statement</h4>
+                        <p style="margin:5px 0; color:#64748b; font-size:0.9rem;" id="st-display-type"></p>
+                    </div>
+                    <div style="text-align:right;">
+                        <p style="margin:0; font-size:0.85rem;" id="st-display-date"></p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Particulars / Description</th>
+                            <th>Vch Type</th>
+                            <th style="text-align:right;">Debit (Dr)</th>
+                            <th style="text-align:right;">Credit (Cr)</th>
+                            <th style="text-align:right;">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="st-tbody"></tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc; font-weight:bold;">
+                            <td colspan="3" style="text-align:right;">Total</td>
+                            <td id="st-total-dr" style="text-align:right;">0.00</td>
+                            <td id="st-total-cr" style="text-align:right;">0.00</td>
+                            <td id="st-final-bal" style="text-align:right;">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
         <div id="page-stock-summary" class="main-content"><h3>Stock Summary</h3></div>
         <div id="page-settings" class="main-content"><h3>System Settings</h3></div>
 
@@ -372,6 +455,8 @@
                 if(pageId === 'billing') initBillingForm();
                 if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
+                if(pageId === 'statement') initStatementPage();
+                if(pageId === 'sales-book') renderSalesBook();
             } catch (err) {
                 console.error("Data Load Error:", err);
             }
@@ -616,6 +701,86 @@
             } else {
                 alert("Error creating account");
             }
+        }
+
+        function viewStatement(accId) {
+            showPage('statement');
+            setTimeout(() => {
+                document.getElementById('st-account-id').value = accId;
+                renderStatement();
+            }, 100);
+        }
+
+        function initStatementPage() {
+            const select = document.getElementById('st-account-id');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Choose Account --</option>' +
+                accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+            select.value = currentVal;
+
+            if (!document.getElementById('st-from').value) {
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                document.getElementById('st-from').value = firstDay.toISOString().split('T')[0];
+                document.getElementById('st-to').value = now.toISOString().split('T')[0];
+            }
+        }
+
+        function renderStatement() {
+            const accId = document.getElementById('st-account-id').value;
+            const fromDate = document.getElementById('st-from').value;
+            const toDate = document.getElementById('st-to').value;
+
+            if (!accId) return;
+
+            const acc = accounts.find(a => a._id === accId);
+            document.getElementById('st-display-name').innerText = acc.name;
+            document.getElementById('st-display-type').innerText = `Group: ${acc.group || acc.type}`;
+            document.getElementById('st-display-date').innerText = `Period: ${fromDate} to ${toDate}`;
+
+            // Filter transactions involving this account
+            const filteredTx = transactions.filter(tx => {
+                const hasAcc = tx.entries.some(e => getAccountId(e.account) === accId);
+                return hasAcc && tx.date >= fromDate && tx.date <= toDate;
+            }).sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            let runningBal = acc.openingBalance || 0; // Assuming openingBalance exists, or use 0
+            let totalDr = 0, totalCr = 0;
+
+            const tbody = document.getElementById('st-tbody');
+            tbody.innerHTML = filteredTx.map(tx => {
+                // Find the specific entry for this account in the transaction
+                const entry = tx.entries.find(e => getAccountId(e.account) === accId);
+                const dr = entry.debit || 0;
+                const cr = entry.credit || 0;
+
+                // Asset/Expense: Dr increases, Cr decreases
+                // Liability/Income/Equity: Cr increases, Dr decreases
+                const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
+                if (isDebitNature) {
+                    runningBal += (dr - cr);
+                } else {
+                    runningBal += (cr - dr);
+                }
+
+                totalDr += dr;
+                totalCr += cr;
+
+                return `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>${tx.description}</td>
+                        <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 5px; border-radius:4px;">${tx.type}</span></td>
+                        <td style="text-align:right;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
+                        <td style="text-align:right;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
+                        <td style="text-align:right; font-weight:600;">${runningBal.toFixed(2)} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='6' style='text-align:center; padding:20px;'>No transactions found for this period.</td></tr>";
+
+            document.getElementById('st-total-dr').innerText = totalDr.toFixed(2);
+            document.getElementById('st-total-cr').innerText = totalCr.toFixed(2);
+            document.getElementById('st-final-bal').innerText = runningBal.toFixed(2);
         }
 
         function renderDayBook() {
