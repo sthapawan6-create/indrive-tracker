@@ -91,6 +91,8 @@
 
         /* Common Elements */
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; color: white; background: var(--primary-color); }
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1rem; transition: 0.2s; }
+        .btn-icon:hover { transform: scale(1.1); }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); text-align: left; }
         th { background: #f8fafc; font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
@@ -362,7 +364,7 @@
                 <button class="btn" onclick="openProductModal()">+ Add Product</button>
             </div>
             <table id="products-table">
-                <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Sale Price</th><th>Stock</th></tr></thead>
+                <thead><tr><th>Code</th><th>Name</th><th>Category</th><th style="text-align:right;">Sale Price</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Action</th></tr></thead>
                 <tbody id="products-list-body"></tbody>
             </table>
         </div>
@@ -484,7 +486,7 @@
             </div>
             <table id="stock-summary-table">
                 <thead>
-                    <tr><th>Item Name</th><th>Category</th><th>In Stock</th><th>Unit</th><th>Purchase Rate</th><th>Stock Value</th></tr>
+                    <tr><th>Item Name</th><th>Category</th><th style="text-align:right;">In Stock</th><th>Unit</th><th style="text-align:right;">Purchase Rate</th><th style="text-align:right;">Stock Value</th><th style="text-align:right;">Action</th></tr>
                 </thead>
                 <tbody id="stock-summary-body"></tbody>
                 <tfoot>
@@ -828,14 +830,44 @@
                     <td>${acc.group || acc.type}</td>
                     <td style="font-weight:600; color:${acc.balance < 0 ? 'red' : 'green'}">Rs. ${(acc.balance || 0).toFixed(2)}</td>
                     <td>
-                        <button onclick="viewStatement('${acc._id}')" title="Statement" style="border:none; background:none; color:var(--tally-navy); cursor:pointer;"><i class="fas fa-file-invoice"></i></button>
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="viewStatement('${acc._id}')" title="Statement" class="btn-icon"><i class="fas fa-file-invoice"></i></button>
+                            <button onclick="editAccount('${acc._id}')" title="Edit" class="btn-icon" style="color:blue;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteAccount('${acc._id}')" title="Delete" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
         }
 
+        let editingAccountId = null;
+        function editAccount(id) {
+            const acc = accounts.find(a => a._id === id);
+            if (!acc) return;
+            editingAccountId = id;
+            document.getElementById('modal-title').innerText = 'Edit Account';
+            document.getElementById('acc-name').value = acc.name;
+            document.getElementById('acc-type').value = acc.type;
+            document.getElementById('acc-balance').value = acc.openingBalance || 0;
+            document.getElementById('account-modal').style.display = 'block';
+        }
+
+        async function deleteAccount(id) {
+            if (!confirm("Are you sure you want to delete this account? It must not have any transactions.")) return;
+            const res = await fetch(`${API_URL}/accounts/${id}?userId=${currentUser.uid}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (res.ok) {
+                alert("Account deleted");
+                refreshData('accounts');
+            } else {
+                alert(data.error || "Delete failed");
+            }
+        }
+
         // --- Account Modal Logic ---
         function openAccountModal() {
+            editingAccountId = null;
+            document.getElementById('modal-title').innerText = 'Add New Account';
             document.getElementById('account-modal').style.display = 'block';
             document.getElementById('acc-name').value = '';
             document.getElementById('acc-balance').value = '0';
@@ -856,23 +888,25 @@
                 userId: currentUser.uid,
                 name: name,
                 type: type,
-                openingBalance: balance, // Changed from balance to openingBalance
-                balance: balance,
+                openingBalance: balance,
                 group: type
             };
 
-            const res = await fetch(`${API_URL}/accounts`, {
-                method: 'POST',
+            const url = editingAccountId ? `${API_URL}/accounts/${editingAccountId}` : `${API_URL}/accounts`;
+            const method = editingAccountId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(accData)
             });
 
             if (res.ok) {
-                alert("Account Created!");
+                alert(editingAccountId ? "Account Updated!" : "Account Created!");
                 closeAccountModal();
                 refreshData('accounts');
             } else {
-                alert("Error creating account");
+                alert("Error saving account");
             }
         }
 
@@ -987,7 +1021,12 @@
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
                         <td>${customer ? customer.name : 'Cash Sale'}</td>
                         <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
-                        <td><span style="color:green; font-size:0.7rem; font-weight:bold;">COMPLETED</span></td>
+                        <td>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <span style="color:green; font-size:0.7rem; font-weight:bold;">COMPLETED</span>
+                                <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('') || "<tr><td colspan='5' style='text-align:center'>No sales recorded.</td></tr>";
@@ -1002,7 +1041,7 @@
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th></tr>
+                        <tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th><th>Action</th></tr>
                     </thead>
                     <tbody>
                         ${transactions.map(tx => `
@@ -1011,11 +1050,26 @@
                                 <td>${tx.description}</td>
                                 <td>${tx.type}</td>
                                 <td style="text-align:right; font-weight:600;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
+                                <td>
+                                    <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             `;
+        }
+
+        async function deleteTx(id) {
+            if (!confirm("Are you sure you want to delete this transaction?")) return;
+            const res = await fetch(`${API_URL}/transactions/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert("Deleted");
+                refreshData(document.querySelector('.main-content.active').id.replace('page-', ''));
+            } else {
+                const err = await res.json();
+                alert(err.error || "Delete failed");
+            }
         }
 
         // --- Billing ---
@@ -1217,11 +1271,47 @@
                     <td>${p.category}</td>
                     <td style="text-align:right;">Rs. ${(p.salePrice || 0).toFixed(2)}</td>
                     <td style="font-weight:600; text-align:right; color:${p.currentStock <= 0 ? 'red' : 'inherit'}">${p.currentStock || 0} ${p.unit || 'Pcs'}</td>
+                    <td>
+                        <div style="display:flex; gap:10px; justify-content: flex-end;">
+                            <button onclick="editProduct('${p._id}')" class="btn-icon" style="color:blue;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteProduct('${p._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
                 </tr>
-            `).join('') || "<tr><td colspan='5' style='text-align:center'>No products found.</td></tr>";
+            `).join('') || "<tr><td colspan='6' style='text-align:center'>No products found.</td></tr>";
         }
 
-        function openProductModal() { document.getElementById('product-modal').style.display = 'block'; }
+        let editingProductId = null;
+        function editProduct(id) {
+            const prod = products.find(p => p._id === id);
+            if (!prod) return;
+            editingProductId = id;
+            document.getElementById('prod-name').value = prod.name;
+            document.getElementById('prod-category').value = prod.category;
+            document.getElementById('prod-sale-price').value = prod.salePrice;
+            document.getElementById('prod-purchase-price').value = prod.purchasePrice;
+            document.getElementById('prod-stock').value = prod.openingStock || 0;
+            document.getElementById('product-modal').style.display = 'block';
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm("Delete this product?")) return;
+            const res = await fetch(`${API_URL}/products/${id}?userId=${currentUser.uid}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert("Product deleted");
+                refreshData('products');
+            }
+        }
+
+        function openProductModal() {
+            editingProductId = null;
+            document.getElementById('product-modal').style.display = 'block';
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-category').value = '';
+            document.getElementById('prod-sale-price').value = '';
+            document.getElementById('prod-purchase-price').value = '';
+            document.getElementById('prod-stock').value = '';
+        }
         function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
 
         async function saveProduct() {
@@ -1233,14 +1323,17 @@
 
             if(!name) return alert("Product name required");
 
-            const res = await fetch(`${API_URL}/products`, {
-                method: 'POST',
+            const url = editingProductId ? `${API_URL}/products/${editingProductId}` : `${API_URL}/products`;
+            const method = editingProductId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId: currentUser.uid, name, category: cat, salePrice: sp, purchasePrice: pp, openingStock: stock })
             });
 
             if(res.ok) {
-                alert("Product Added");
+                alert(editingProductId ? "Product Updated" : "Product Added");
                 closeProductModal();
                 refreshData('products');
             }
@@ -1350,7 +1443,12 @@
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
                         <td>${supplier ? supplier.name : 'Cash Purchase'}</td>
                         <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
-                        <td><span style="color:blue; font-size:0.7rem; font-weight:bold;">RECEIVED</span></td>
+                        <td>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <span style="color:blue; font-size:0.7rem; font-weight:bold;">RECEIVED</span>
+                                <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             }).join('') || "<tr><td colspan='5' style='text-align:center'>No purchases recorded.</td></tr>";
@@ -1370,9 +1468,15 @@
                         <td>${p.unit || 'Pcs'}</td>
                         <td style="text-align:right;">${(p.purchasePrice || 0).toFixed(2)}</td>
                         <td style="text-align:right; font-weight:600;">${val.toFixed(2)}</td>
+                        <td>
+                             <div style="display:flex; gap:10px;">
+                                <button onclick="editProduct('${p._id}')" class="btn-icon" style="color:blue;"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteProduct('${p._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='6' style='text-align:center'>Empty Inventory.</td></tr>";
+            }).join('') || "<tr><td colspan='7' style='text-align:center'>Empty Inventory.</td></tr>";
             document.getElementById('total-stock-value').innerText = totalVal.toFixed(2);
         }
 

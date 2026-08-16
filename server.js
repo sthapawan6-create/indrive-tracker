@@ -338,6 +338,41 @@ app.post('/api/products', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "बचत असफल" }); }
 });
 
+app.put('/api/products/:id', async (req, res) => {
+    try {
+        const { userId, name, category, salePrice, purchasePrice, openingStock, unit } = req.body;
+        const prod = await Product.findOne({ _id: req.params.id, userId });
+        if (!prod) return res.status(404).json({ error: "सामान भेटिएन" });
+
+        prod.name = name || prod.name;
+        prod.category = category || prod.category;
+        prod.salePrice = salePrice !== undefined ? salePrice : prod.salePrice;
+        prod.purchasePrice = purchasePrice !== undefined ? purchasePrice : prod.purchasePrice;
+        prod.unit = unit || prod.unit;
+
+        if (openingStock !== undefined) {
+            const diff = openingStock - (prod.openingStock || 0);
+            prod.openingStock = openingStock;
+            prod.currentStock += diff;
+        }
+
+        await prod.save();
+        res.json(prod);
+    } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const prod = await Product.findOne({ _id: req.params.id, userId });
+        if (!prod) return res.status(404).json({ error: "सामान भेटिएन" });
+
+        // Check if product used in transactions? (Simplified for now)
+        await Product.findByIdAndDelete(req.params.id);
+        res.json({ message: "सफल" });
+    } catch (err) { res.status(500).json({ error: "मेटाउन सकिएन" }); }
+});
+
 app.post('/api/transactions', async (req, res) => {
     try {
         const { userId, date, description, entries, type, items, billNo, taxableAmount, vatAmount, totalAmount } = req.body;
