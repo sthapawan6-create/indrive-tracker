@@ -103,10 +103,12 @@
         /* Print Optimization */
         @media print {
             .no-print, .sidebar, .top-bar, .btn, select, input { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; display: block !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; display: none !important; }
+            .main-content.active { display: block !important; }
             .report-header { display: block !important; text-align: center; margin-bottom: 20px; }
             table { width: 100% !important; border: 1px solid #000 !important; }
             th, td { border: 1px solid #ddd !important; padding: 8px !important; font-size: 10pt !important; }
+            body, html { background: white !important; }
         }
         .report-header { display: none; }
     </style>
