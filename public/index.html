@@ -739,7 +739,91 @@
         }
 
         // --- Rendering Logic ---
+        function printInvoice(txId) {
+            const tx = transactions.find(t => t._id === txId);
+            if (!tx) return;
+
+            const party = accounts.find(a => a._id === getAccountId(tx.entries[0].account));
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS", address: "New Road", phone: "01-XXXX" };
+
+            const printWin = window.open('', '', 'width=800,height=900');
+            let itemRows = (tx.items || []).map(item => {
+                const p = products.find(prod => prod._id === item.product);
+                return `<tr>
+                    <td>${p ? p.name : 'Item'}</td>
+                    <td style="text-align:center;">${item.quantity}</td>
+                    <td style="text-align:right;">${item.rate.toFixed(2)}</td>
+                    <td style="text-align:right;">${(item.quantity * item.rate).toFixed(2)}</td>
+                </tr>`;
+            }).join('');
+
+            const total = tx.totalAmount;
+            const taxable = total / 1.13;
+            const vat = total - taxable;
+
+            printWin.document.write(`
+                <html>
+                <head><title>Invoice #${txId.slice(-6)}</title>
+                <style>
+                    body { font-family: sans-serif; padding: 30px; }
+                    .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                    .inv-details { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    .total-box { margin-top: 20px; text-align: right; }
+                </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>${settings.name}</h2>
+                        <p>${settings.address} | Phone: ${settings.phone}</p>
+                        <h3>TAX INVOICE</h3>
+                    </div>
+                    <div class="inv-details">
+                        <div><strong>Bill To:</strong><br>${party ? party.name : 'Cash Customer'}<br>PAN: ${party?.panVat || '-'}</div>
+                        <div><strong>Invoice No:</strong> #${txId.slice(-6).toUpperCase()}<br><strong>Date:</strong> ${tx.date}</div>
+                    </div>
+                    <table>
+                        <thead><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                    </table>
+                    <div class="total-box">
+                        <p>Taxable Amount: Rs. ${taxable.toFixed(2)}</p>
+                        <p>VAT (13%): Rs. ${vat.toFixed(2)}</p>
+                        <hr>
+                        <h3>Grand Total: Rs. ${total.toFixed(2)}</h3>
+                    </div>
+                    <div style="margin-top:50px;">Signature: _________________</div>
+                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
         function renderDashboard() {
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS" };
+            document.querySelector('.logo h2').innerText = settings.name;
+
+            // Low Stock Alert logic
+            const lowStock = products.filter(p => (p.currentStock || 0) < 5);
+            if(lowStock.length > 0) {
+                const alertDiv = document.createElement('div');
+                alertDiv.style.background = '#fee2e2';
+                alertDiv.style.color = '#991b1b';
+                alertDiv.style.padding = '10px';
+                alertDiv.style.borderRadius = '8px';
+                alertDiv.style.marginBottom = '20px';
+                alertDiv.style.border = '1px solid #fecaca';
+                alertDiv.innerHTML = `<strong><i class="fas fa-exclamation-triangle"></i> Low Stock Warning:</strong> ${lowStock.map(p => p.name).join(', ')} are running low!`;
+
+                const dashboard = document.getElementById('page-gateway');
+                const grid = dashboard.querySelector('.dashboard-grid');
+                if (!dashboard.querySelector('.stock-alert')) {
+                   alertDiv.className = 'stock-alert';
+                   dashboard.insertBefore(alertDiv, grid);
+                }
+            }
             // Calculate real-time totals from all data
             let cashBank = 0, rec = 0, pay = 0, income = 0, expense = 0;
 
@@ -1254,7 +1338,9 @@
             });
 
             if(res.ok) {
-                alert("Saved!");
+                const result = await res.json();
+                alert("Invoice Saved!");
+                printInvoice(result.transactionId || result._id);
                 showPage('gateway');
             } else {
                 alert("Error saving invoice");
