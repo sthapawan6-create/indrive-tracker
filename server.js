@@ -20,17 +20,36 @@ app.use((req, res, next) => {
 app.use(express.static(path.resolve(__dirname, 'public')));
 
 const MONGO_URI = process.env.MONGO_URI;
+console.log("Attempting to connect to MongoDB...");
+// Masking password for logs
+const maskedURI = MONGO_URI.replace(/:([^@]+)@/, ':****@');
+console.log("URI:", maskedURI);
 
 const connectDB = async () => {
     try {
-        await mongoose.connect(MONGO_URI);
+        await mongoose.connect(MONGO_URI, {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+        });
         console.log("✅ PAWAN ELECTRONICS डेटाबेस जडान सफल!");
     } catch (err) {
         console.error("❌ जडान त्रुटि:", err.message);
+        console.log("पर्खनुहोस्, ५ सेकेन्डमा पुन: प्रयास गर्दै...");
         setTimeout(connectDB, 5000);
     }
 };
 connectDB();
+
+// Health Check API
+app.get('/api/health', (req, res) => {
+    const status = {
+        server: "Running",
+        database: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+        dbState: mongoose.connection.readyState,
+        timestamp: new Date()
+    };
+    res.json(status);
+});
 
 // --- Models ---
 const BackupLogSchema = new mongoose.Schema({
@@ -215,8 +234,10 @@ app.post('/api/settings/close-day', async (req, res) => {
 app.get('/api/accounts', async (req, res) => {
     try {
         const { userId } = req.query;
-        // Strict filtering by userId. If no userId, show only legacy data.
-        const query = userId ? { userId } : { userId: { $exists: false } };
+        // Permissive search: return matches for userId, default admin, or legacy records
+        const query = userId
+            ? { $or: [{ userId }, { userId: 'pawan-electronics-admin' }, { userId: { $exists: false } }, { userId: "" }] }
+            : {};
         const accounts = await Account.find(query).sort({ name: 1 });
         res.json(accounts);
     } catch (err) { res.status(500).json({ error: "त्रुटि भयो" }); }
@@ -288,8 +309,10 @@ app.delete('/api/accounts/:id', async (req, res) => {
 app.get('/api/transactions', async (req, res) => {
     try {
         const { userId } = req.query;
-        const query = userId ? { userId } : { userId: { $exists: false } };
-        const txs = await Transaction.find(query).populate('entries.account').sort({ createdAt: -1 });
+        const query = userId
+            ? { $or: [{ userId }, { userId: 'pawan-electronics-admin' }, { userId: { $exists: false } }, { userId: "" }] }
+            : {};
+        const txs = await Transaction.find(query).populate('entries.account').sort({ date: -1, createdAt: -1 });
         res.json(txs);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
 });
@@ -298,7 +321,9 @@ app.get('/api/transactions', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         const { userId } = req.query;
-        const query = userId ? { userId } : { userId: { $exists: false } };
+        const query = userId
+            ? { $or: [{ userId }, { userId: 'pawan-electronics-admin' }, { userId: { $exists: false } }, { userId: "" }] }
+            : {};
         const products = await Product.find(query).sort({ name: 1 });
         res.json(products);
     } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
