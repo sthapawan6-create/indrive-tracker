@@ -116,6 +116,7 @@
             <div class="menu-item" onclick="showPage('products')"><i class="fas fa-boxes"></i>Items</div>
 
             <div class="menu-title">Transaction</div>
+            <div class="menu-item" onclick="showPage('journal')"><i class="fas fa-pen-nib"></i>Journal Entry</div>
             <div class="menu-item" onclick="showPage('billing')"><i class="fas fa-shopping-cart"></i>Sales (Bill)</div>
             <div class="menu-item" onclick="showPage('purchase')"><i class="fas fa-truck"></i>Purchase</div>
             <div class="menu-item" onclick="showPage('daybook')"><i class="fas fa-book"></i>Day Book</div>
@@ -159,6 +160,48 @@
                     <thead><tr><th>Date</th><th>Particulars</th><th>Type</th><th>Amount</th></tr></thead>
                     <tbody id="dash-recent-tx"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Journal Entry Page -->
+        <div id="page-journal" class="main-content">
+            <h3>New Journal Entry (Voucher)</h3>
+            <div style="background:white; padding:25px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="display:grid; grid-template-columns: 200px 1fr; gap:20px; margin-bottom:20px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Date</label>
+                        <input type="date" id="jr-date" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Narration (Description)</label>
+                        <input type="text" id="jr-desc" placeholder="e.g. Being cash paid for petrol" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                    </div>
+                </div>
+
+                <table id="jr-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50%;">Particulars (Account)</th>
+                            <th>Debit (Dr)</th>
+                            <th>Credit (Cr)</th>
+                            <th style="width:50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="jr-rows"></tbody>
+                </table>
+
+                <button class="btn" onclick="addJournalRow()" style="margin-top:15px; background:#64748b;">+ Add Line</button>
+
+                <div style="margin-top:30px; padding:20px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span id="jr-status" style="font-weight:600; font-size:0.9rem;"></span>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.9rem; color:#64748b;">Total Dr: <span id="jr-total-debit" style="font-weight:700; color:var(--text-main);">0.00</span></div>
+                        <div style="font-size:0.9rem; color:#64748b;">Total Cr: <span id="jr-total-credit" style="font-weight:700; color:var(--text-main);">0.00</span></div>
+                        <button class="btn" id="jr-save-btn" onclick="saveJournal()" style="margin-top:10px; padding:10px 30px;">Save Journal Entry</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -230,6 +273,16 @@
             return typeof acc === 'object' ? (acc._id || acc.id) : acc;
         }
 
+        // Helper to get total amount from any transaction type
+        function getTxAmount(tx) {
+            if (tx.totalAmount && tx.totalAmount > 0) return tx.totalAmount;
+            if (tx.entries && tx.entries.length > 0) {
+                // Sum all debits (which is the total transaction value)
+                return tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+            }
+            return 0;
+        }
+
         // --- Core Navigation ---
         window.showPage = function(pageId) {
             console.log("Navigating to:", pageId);
@@ -262,6 +315,7 @@
                 if(pageId === 'gateway') renderDashboard();
                 if(pageId === 'accounts') renderAccountsList();
                 if(pageId === 'billing') initBillingForm();
+                if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
             } catch (err) {
                 console.error("Data Load Error:", err);
@@ -311,7 +365,7 @@
                     <td>${tx.date}</td>
                     <td>${tx.description}</td>
                     <td><span style="font-size:0.7rem; padding:2px 6px; border-radius:4px; background:#e2e8f0;">${tx.type}</span></td>
-                    <td style="font-weight:600; text-align:right;">Rs. ${(tx.totalAmount || 0).toFixed(2)}</td>
+                    <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
                 </tr>
             `).join('') || "<tr><td colspan='4' style='text-align:center'>No transactions found.</td></tr>";
         }
@@ -347,7 +401,7 @@
                                 <td>${tx.date}</td>
                                 <td>${tx.description}</td>
                                 <td>${tx.type}</td>
-                                <td style="text-align:right; font-weight:600;">Rs. ${(tx.totalAmount || 0).toFixed(2)}</td>
+                                <td style="text-align:right; font-weight:600;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -445,6 +499,103 @@
                 showPage('gateway');
             } else {
                 alert("Error saving invoice");
+            }
+        }
+
+        // --- Journal Entry ---
+        function initJournalForm() {
+            document.getElementById('jr-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('jr-rows').innerHTML = '';
+            document.getElementById('jr-desc').value = '';
+            addJournalRow();
+            addJournalRow(); // Start with 2 rows
+        }
+
+        function addJournalRow() {
+            const tbody = document.getElementById('jr-rows');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <select class="jr-acc" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+                        <option value="">-- Select Account --</option>
+                        ${accounts.map(a => `<option value="${a._id}">${a.name} (Bal: ${a.balance || 0})</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="jr-debit" value="0" oninput="calcJournal()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;"></td>
+                <td><input type="number" class="jr-credit" value="0" oninput="calcJournal()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;"></td>
+                <td><button onclick="this.closest('tr').remove(); calcJournal();" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function calcJournal() {
+            let totalDr = 0;
+            let totalCr = 0;
+
+            document.querySelectorAll('#jr-rows tr').forEach(row => {
+                const dr = parseFloat(row.querySelector('.jr-debit').value) || 0;
+                const cr = parseFloat(row.querySelector('.jr-credit').value) || 0;
+                totalDr += dr;
+                totalCr += cr;
+            });
+
+            document.getElementById('jr-total-debit').innerText = totalDr.toFixed(2);
+            document.getElementById('jr-total-credit').innerText = totalCr.toFixed(2);
+
+            const status = document.getElementById('jr-status');
+            const saveBtn = document.getElementById('jr-save-btn');
+
+            if (totalDr === totalCr && totalDr > 0) {
+                status.innerText = "✓ Balanced";
+                status.style.color = "green";
+                saveBtn.disabled = false;
+                saveBtn.style.opacity = "1";
+            } else {
+                const diff = Math.abs(totalDr - totalCr);
+                status.innerText = totalDr === totalCr ? "Enter amounts" : `Difference: Rs. ${diff.toFixed(2)}`;
+                status.style.color = "red";
+                saveBtn.disabled = true;
+                saveBtn.style.opacity = "0.5";
+            }
+        }
+
+        async function saveJournal() {
+            const date = document.getElementById('jr-date').value;
+            const desc = document.getElementById('jr-desc').value || "Journal Voucher";
+
+            const entries = [];
+            document.querySelectorAll('#jr-rows tr').forEach(row => {
+                const accId = row.querySelector('.jr-acc').value;
+                const dr = parseFloat(row.querySelector('.jr-debit').value) || 0;
+                const cr = parseFloat(row.querySelector('.jr-credit').value) || 0;
+
+                if (accId && (dr > 0 || cr > 0)) {
+                    entries.push({ account: accId, debit: dr, credit: cr });
+                }
+            });
+
+            if (entries.length < 2) return alert("Please select at least 2 accounts");
+
+            const txData = {
+                userId: currentUser.uid,
+                date,
+                description: desc,
+                type: 'JOURNAL',
+                totalAmount: 0, // Server will sum this from entries
+                entries: entries
+            };
+
+            const res = await fetch(`${API_URL}/transactions`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(txData)
+            });
+
+            if (res.ok) {
+                alert("Journal Entry Saved!");
+                showPage('daybook');
+            } else {
+                alert("Error saving journal");
             }
         }
 
