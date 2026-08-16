@@ -1037,6 +1037,7 @@
 
         function renderSalesBook() {
             const tbody = document.getElementById('sales-book-body');
+            if (!tbody) return;
             const sales = transactions.filter(tx => tx.type === 'SALES');
             tbody.innerHTML = sales.map(tx => {
                 const drEntry = tx.entries.find(e => (e.debit > 0));
@@ -1053,9 +1054,8 @@
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
                         <td style="text-align:right;">${vat.toFixed(2)}</td>
                         <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
-                        <td>
+                        <td class="no-print">
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <span style="color:green; font-size:0.7rem; font-weight:bold;">COMPLETED</span>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
@@ -1465,6 +1465,7 @@
 
         function renderPurchaseBook() {
             const tbody = document.getElementById('purchase-book-body');
+            if (!tbody) return;
             const purchases = transactions.filter(tx => tx.type === 'PURCHASE');
             tbody.innerHTML = purchases.map(tx => {
                 const crEntry = tx.entries.find(e => (e.credit > 0));
@@ -1481,9 +1482,8 @@
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
                         <td style="text-align:right;">${vat.toFixed(2)}</td>
                         <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
-                        <td>
+                        <td class="no-print">
                             <div style="display:flex; gap:10px; align-items:center;">
-                                <span style="color:blue; font-size:0.7rem; font-weight:bold;">RECEIVED</span>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
