@@ -263,18 +263,44 @@
             position: relative;
         }
 
-        @media print {
-            .sidebar, .top-bar, .no-print, .btn, .menu-section, .logo, #sync-status, .search-container { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; width: 100% !important; background: white !important; }
-            .main-content.active { display: block !important; }
-            body { background: white !important; }
-            .vat-bill-print { display: block !important; padding: 20px; }
-            table { width: 100% !important; border-collapse: collapse !important; margin-top: 10px; }
-            th, td { border: 1px solid #000 !important; padding: 5px; }
-            .amt { text-align: right; }
-            .info-card, .box { border: 1px solid #ccc !important; box-shadow: none !important; }
+        /* Daybook & Account List Enhancements */
+        .daybook-type {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
-        .vat-bill-print { display: none; }
+        .type-sales { background: #dcfce7; color: #166534; }
+        .type-purchase { background: #dbeafe; color: #1e40af; }
+        .type-voucher { background: #fef3c7; color: #92400e; }
+        .type-service { background: #fee2e2; color: #991b1b; }
+
+        .acc-row:hover { background-color: #f8fafc; cursor: pointer; }
+        .balance-dr { color: #10b981; font-weight: bold; }
+        .balance-cr { color: #ef4444; font-weight: bold; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .main-content { margin: 0 !important; padding: 0 !important; display: block !important; }
+        }
+        .print-only { display: none; }
+
+        /* Thermal Print Styles */
+        .thermal-print {
+            width: 80mm;
+            padding: 5mm;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.2;
+            color: #000;
+            background: #fff;
+        }
+        .thermal-print h1, .thermal-print h2 { text-align: center; margin: 5px 0; }
+        .thermal-print table { border: none; font-size: 11px; }
+        .thermal-print th, .thermal-print td { border-bottom: 1px dashed #ccc; padding: 4px 0; }
+        .thermal-divider { border-top: 1px dashed #000; margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -446,7 +472,7 @@
                 <h2 style="border-bottom:none; margin:0;">खाता पाताहरूको सूची (Chart of Accounts)</h2>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="acc-search" placeholder="खाता खोज्नुहोस्..." oninput="renderAccountsList()" aria-label="Search" style="padding:4px 10px; border:1px solid var(--tally-border); width:200px; font-size:0.8rem;">
-                    <button class="btn" onclick="openModal('accModal')">+ नयाँ खाता (Create Ledger)</button>
+                    <button class="btn" onclick="openAccountModal()">+ नयाँ खाता (Create Ledger)</button>
                 </div>
             </div>
             <table>
@@ -766,6 +792,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="generateConfirmationPaper()" style="font-size: 0.8rem; padding: 5px 15px; background: #6366f1;"><i class="fas fa-file-contract"></i> कन्फर्मेसन पेपर</button>
                     <button class="btn" onclick="window.print()" style="font-size: 0.8rem; padding: 5px 15px;"><i class="fas fa-print"></i> प्रिन्ट (Print)</button>
                 </div>
             </div>
@@ -1104,7 +1131,7 @@
         <div id="page-products" class="main-content">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #8b5cf6; margin-bottom: 15px; padding-bottom:5px;">
                 <h2 style="border-bottom:none; margin:0; color:#8b5cf6;">सामानहरूको सूची (Product Master)</h2>
-                <button class="btn" onclick="openModal('prodModal')" style="background:#8b5cf6;">+ नयाँ सामान (Add New)</button>
+                <button class="btn" onclick="openProductModal()" style="background:#8b5cf6;">+ नयाँ सामान (Add New)</button>
             </div>
             <table>
                 <thead>
@@ -1323,34 +1350,36 @@
 
         // INITIALIZATION
         async function init() {
-            // Check for logged in user
-            const savedUser = localStorage.getItem('pawanelex_user');
-            if (savedUser) {
-                user = JSON.parse(savedUser);
-                const userDisp = document.getElementById('current-user-display');
-                if(userDisp) userDisp.innerText = 'User: ' + (user.displayName || user.email);
-            } else {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const adDate = new Date();
-            const adDateStr = adDate.toLocaleDateString('en-GB', { dateStyle: 'full' });
-
-            let displayStr = 'Today: ' + adDateStr;
             try {
+                const savedUser = localStorage.getItem('pawanelex_user');
+                if (savedUser) {
+                    user = JSON.parse(savedUser);
+                    const userDisp = document.getElementById('current-user-display');
+                    if(userDisp) userDisp.innerText = 'User: ' + (user.displayName || user.email);
+                } else {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const adDate = new Date();
+                const adDateStr = adDate.toLocaleDateString('en-GB', { dateStyle: 'full' });
+                let displayStr = 'Today: ' + adDateStr;
+
                 if (typeof NepaliDate !== 'undefined') {
                     const nDate = new NepaliDate(adDate);
-                    // Formatting in Nepali Style: 2080/11/15
                     displayStr += ` | BS: ${nDate.format('YYYY/MM/DD')}`;
                 }
-            } catch(e) { console.error("Nepali Date Error", e); }
+                document.getElementById('current-date-display').innerText = displayStr;
 
-            document.getElementById('current-date-display').innerText = displayStr;
-
-            await syncAll();
-            showPage('gateway');
+                await syncAll();
+                showPage('gateway');
+            } catch (e) {
+                console.error("Init error:", e);
+                showPage('gateway'); // Fallback to show something
+            }
         }
+
+        window.onload = init;
 
         function logout() {
             localStorage.removeItem('pawanelex_user');
@@ -1359,18 +1388,17 @@
 
         async function syncAll() {
             try {
+                // 1. RECOVERY: Immediately load from ALL possible local storage keys
+                const accData = localStorage.getItem('pawan_accounts') || localStorage.getItem('accounts');
+                const txData = localStorage.getItem('pawan_transactions') || localStorage.getItem('transactions');
+                const prodData = localStorage.getItem('pawan_items') || localStorage.getItem('products');
+
+                if (accData) accounts = JSON.parse(accData);
+                if (txData) transactions = JSON.parse(txData);
+                if (prodData) products = JSON.parse(prodData);
+
+                // 2. Try API, but don't let it block the UI if it fails
                 const userId = user.uid || 'pawan-electronics-admin';
-
-                // 1. Recover data from ALL possible LocalStorage keys first
-                const localAcc = localStorage.getItem('pawan_accounts') || localStorage.getItem('accounts');
-                const localTx = localStorage.getItem('pawan_transactions') || localStorage.getItem('transactions');
-                const localProd = localStorage.getItem('pawan_items') || localStorage.getItem('products');
-
-                if (localAcc) accounts = JSON.parse(localAcc);
-                if (localTx) transactions = JSON.parse(localTx);
-                if (localProd) products = JSON.parse(localProd);
-
-                // 2. Try to update from API, but don't crash if it fails
                 try {
                     const [accRes, txRes, prodRes] = await Promise.all([
                         fetch(`/api/accounts?userId=${userId}`).catch(() => null),
@@ -1381,127 +1409,122 @@
                     if (accRes && accRes.ok) accounts = await accRes.json();
                     if (txRes && txRes.ok) transactions = await txRes.json();
                     if (prodRes && prodRes.ok) products = await prodRes.json();
-                } catch (e) { console.warn("Offline mode active"); }
-
-                // 3. Ensure arrays are never null to prevent crashes
-                accounts = Array.isArray(accounts) ? accounts : [];
-                transactions = Array.isArray(transactions) ? transactions : [];
-                products = Array.isArray(products) ? products : [];
+                } catch (e) { console.log("Working in offline mode"); }
 
             } catch (err) {
-                console.error("Critical Sync Error:", err);
+                console.error("Sync Error:", err);
             }
 
-            // Always render even if errors exist
+            // 3. Force Render Dashboard immediately
             setTimeout(() => {
-                try { renderDashboardData(); } catch(e) {}
-                try { renderVATReport(); } catch(e) {}
-            }, 100);
+                try { renderDashboardData(); } catch(e) { console.error("Dash Error:", e); }
+                try { if(typeof renderVATReport === 'function') renderVATReport(); } catch(e) {}
+            }, 50);
         }
 
         function showPage(pageId) {
-            document.querySelectorAll('.main-content').forEach(p => p.classList.remove('active'));
-            document.getElementById('page-' + pageId).classList.add('active');
+            try {
+                const targetPage = document.getElementById('page-' + pageId);
+                if (!targetPage) return;
 
-            // Refresh logic based on page
-            if(pageId === 'accounts') renderAccountsList();
-            if(pageId === 'sales-book') renderSalesBook();
-            if(pageId === 'purchase-book') renderPurchaseBook();
-            if(pageId === 'billing') {
-                document.getElementById('inv-date').valueAsDate = new Date();
-                resetInvoice();
+                // Hide all and show target
+                document.querySelectorAll('.main-content').forEach(p => p.classList.remove('active'));
+                targetPage.classList.add('active');
+
+                // Sidebar active state
+                document.querySelectorAll('.sidebar a, .menu-item').forEach(el => el.classList.remove('active'));
+
+                // Safely execute refresh logic
+                setTimeout(() => {
+                    try {
+                        if(pageId === 'accounts') renderAccountsList();
+                        else if(pageId === 'sales-book') renderSalesBook();
+                        else if(pageId === 'purchase-book') renderPurchaseBook();
+                        else if(pageId === 'stock-summary') renderStockSummary();
+                        else if(pageId === 'products') renderProductsList();
+                        else if(pageId === 'daybook') renderDayBook();
+                        else if(pageId === 'statement') populateStatementAccountSelect();
+                        else if(pageId === 'vat-audit') { if(typeof renderVATReport === 'function') renderVATReport(); }
+                        else if(pageId === 'vouchers') renderVoucherRecentList();
+                        else if(pageId === 'reports-bs') renderBalanceSheet();
+                        else if(pageId === 'reports-pl') renderPLAccount();
+                        else if(pageId === 'reports-tb') renderTrialBalance();
+                        else if(pageId === 'sales-return') resetReturnPage('sr');
+                        else if(pageId === 'purchase-return') resetReturnPage('pr');
+                    } catch (err) {
+                        console.warn("UI Refresh Error:", err);
+                    }
+                }, 10);
+            } catch (globalErr) {
+                console.error("Navigation Error:", globalErr);
             }
-            if(pageId === 'purchase') {
-                document.getElementById('pur-date').valueAsDate = new Date();
-                resetPurchase();
-            }
-            if(pageId === 'service-entry') {
-                document.getElementById('ser-date').valueAsDate = new Date();
-                populateServiceSelects();
-            }
-            if(pageId === 'service-book') renderServiceBook();
-            if(pageId === 'sales-book') renderSalesBook();
-            if(pageId === 'statement') populateStatementAccountSelect();
-            if(pageId === 'purchase-book') renderPurchaseBook();
-            if(pageId === 'stock-summary') renderStockSummary();
-            if(pageId === 'products') renderProductsList();
-            if(pageId === 'daybook') renderDayBook();
-            if(pageId === 'vouchers') {
-                if(!editingVoucherId) resetVoucher();
-                renderVoucherRecentList();
-            }
-            if(pageId === 'reports-bs') renderBalanceSheet();
-            if(pageId === 'reports-pl') renderPLAccount();
-            if(pageId === 'reports-tb') renderTrialBalance();
-            if(pageId === 'sales-return') resetReturnPage('sr');
-            if(pageId === 'purchase-return') resetReturnPage('pr');
         }
 
         // Dashboard Data
         let dashChart = null;
         function renderDashboardData() {
-            renderDashboardRecent();
-            updateLowStockAlerts();
-            renderCharts();
-            renderVoucherRecentList();
+            try {
+                renderDashboardRecent();
+                updateLowStockAlerts();
+                renderCharts();
+                renderVoucherRecentList();
 
-            let cash = 0, rec = 0, pay = 0, income = 0, expense = 0;
-            const filter = document.getElementById('dash-filter').value;
-            const now = new Date();
-            let startDate = new Date(0); // Default: All time
+                let cash = 0, rec = 0, pay = 0, income = 0, expense = 0;
+                const filterEl = document.getElementById('dash-filter');
+                const filter = filterEl ? filterEl.value : 'all';
+                const now = new Date();
+                let startDate = new Date(0);
 
-            if (filter === 'today') {
-                startDate = new Date(now.setHours(0,0,0,0));
-            } else if (filter === 'yesterday') {
-                startDate = new Date(now.setDate(now.getDate() - 1));
-                startDate.setHours(0,0,0,0);
-                let endDate = new Date(startDate);
-                endDate.setHours(23,59,59,999);
-                // For yesterday, we need a range, but for simplicity let's filter after this date
-            } else if (filter === 'week') {
-                const day = now.getDay();
-                startDate = new Date(now.setDate(now.getDate() - day));
-                startDate.setHours(0,0,0,0);
-            } else if (filter === 'month') {
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            }
-
-            accounts.forEach(a => {
-                const bal = getAccountBalance(a._id);
-                if(a.type === 'Asset') cash += bal;
-                if(a.type === 'Receivable') rec += bal;
-                if(a.type === 'Payable') pay += Math.abs(bal);
-
-                // Income and Expense should follow the time filter
-                if(a.type === 'Revenue' || a.type === 'Expense') {
-                    let periodTotal = 0;
-                    // Filter transactions for this specific account within the time range
-                    transactions.forEach(tx => {
-                        const txDate = new Date(tx.date);
-                        if (txDate >= startDate) {
-                            if (filter === 'yesterday') {
-                                let endDate = new Date(startDate);
-                                endDate.setHours(23,59,59,999);
-                                if (txDate > endDate) return;
-                            }
-                            const entry = tx.entries.find(e => (e.account._id || e.account) === a._id);
-                            if (entry) {
-                                periodTotal += (entry.debit - entry.credit);
-                            }
-                        }
-                    });
-
-                    if (a.type === 'Revenue') income += Math.abs(periodTotal);
-                    if (a.type === 'Expense') expense += periodTotal;
+                if (filter === 'today') {
+                    startDate = new Date(now.setHours(0,0,0,0));
+                } else if (filter === 'yesterday') {
+                    startDate = new Date(now.setDate(now.getDate() - 1));
+                    startDate.setHours(0,0,0,0);
+                } else if (filter === 'week') {
+                    startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+                    startDate.setHours(0,0,0,0);
+                } else if (filter === 'month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 }
-            });
 
-            document.getElementById('dash-cash').innerText = 'Rs. ' + cash.toLocaleString();
-            if(document.getElementById('dash-income')) document.getElementById('dash-income').innerText = 'Rs. ' + income.toLocaleString();
-            if(document.getElementById('dash-expense')) document.getElementById('dash-expense').innerText = 'Rs. ' + expense.toLocaleString();
-            document.getElementById('dash-rec').innerText = 'Rs. ' + rec.toLocaleString();
-            document.getElementById('dash-pay').innerText = 'Rs. ' + pay.toLocaleString();
-            document.getElementById('dash-profit').innerText = 'Rs. ' + (income - expense).toLocaleString();
+                accounts.forEach(a => {
+                    const bal = getAccountBalance(a._id || a.id);
+                    if(a.type === 'Asset') cash += bal;
+                    if(a.type === 'Receivable') rec += bal;
+                    if(a.type === 'Payable') pay += Math.abs(bal);
+
+                    if(a.type === 'Revenue' || a.type === 'Expense') {
+                        let periodTotal = 0;
+                        transactions.forEach(tx => {
+                            if (!tx || !tx.date || !tx.entries) return;
+                            const txDate = new Date(tx.date);
+                            if (txDate >= startDate) {
+                                const entry = tx.entries.find(e => {
+                                    const eAccId = (e.account && typeof e.account === 'object') ? (e.account._id || e.account.id) : e.account;
+                                    return eAccId === (a._id || a.id);
+                                });
+                                if (entry) periodTotal += (Number(entry.debit || 0) - Number(entry.credit || 0));
+                            }
+                        });
+                        if (a.type === 'Revenue') income += Math.abs(periodTotal);
+                        if (a.type === 'Expense') expense += periodTotal;
+                    }
+                });
+
+                const updateText = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = 'Rs. ' + (val || 0).toLocaleString(undefined, {minimumFractionDigits:2});
+                };
+
+                updateText('dash-cash', cash);
+                updateText('dash-income', income);
+                updateText('dash-expense', expense);
+                updateText('dash-rec', rec);
+                updateText('dash-pay', pay);
+                updateText('dash-profit', (income - expense));
+            } catch (err) {
+                console.error("Dashboard Rendering Error:", err);
+            }
         }
 
         let currentQuickType = '';
@@ -1546,6 +1569,40 @@
                             <td style="padding:10px; text-align:right; font-weight:bold;">${displayBal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                         </tr>`;
                     }
+        function editTransaction(id) {
+            const tx = transactions.find(t => t._id === id);
+            if(!tx) return;
+
+            if(tx.type === 'INVOICE') {
+                showPage('billing');
+                editingTransactionId = id;
+                document.getElementById('inv-date').value = tx.date;
+                document.getElementById('inv-bill-no').value = tx.billNo || '';
+                document.getElementById('inv-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('inv-ledger-acc').value = tx.entries.find(e => e.credit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('inv-narration').value = tx.description;
+                document.getElementById('inv-discount').value = tx.discountPercent || 0;
+
+                const tbody = document.getElementById('inv-rows');
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <input type="text" class="inv-item-code" value="${products.find(p => p._id === (item.product?._id || item.product))?.code || ''}" oninput="lookupProductByCode(this, 'inv')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;">
+                        </td>
+                        <td>
+                            <select class="inv-item-select" onchange="updateInvRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
+                                <option value="">-- Select --</option>
+                                ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.salePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="inv-qty" value="${item.quantity}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
+                        <td><input type="number" class="inv-rate" value="${item.rate}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
+                        <td class="amt inv-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateInvTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
                 });
 
                 html += `</tbody><tfoot><tr style="background:#f1f5f9; font-weight:bold;">
@@ -1627,16 +1684,86 @@
             return '';
         }
 
+        function printGenericVoucher(txId) {
+            const tx = transactions.find(t => (t._id || t.id) === txId);
+            if (!tx) return;
+
+            const shopName = document.getElementById('cfg-shop-name').value || 'PAWAN ELECTRONICS';
+            const shopAddr = document.getElementById('cfg-address').value || 'New Road, Kathmandu';
+            const shopPan = document.getElementById('cfg-pan').value || '123456789';
+
+            let itemsHtml = '';
+            let total = 0;
+
+            if (tx.type === 'SALES' || tx.type === 'PURCHASE') {
+                total = tx.totalAmount;
+                itemsHtml = (tx.items || []).map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td class="amt">${Number(item.rate).toFixed(2)}</td>
+                        <td class="amt">${(item.quantity * item.rate).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } else {
+                total = tx.entries.reduce((sum, e) => sum + (Number(e.debit) || 0), 0);
+                itemsHtml = tx.entries.map(e => {
+                    const accName = accounts.find(a => (a._id || a.id) === ((typeof e.account === 'object') ? (e.account._id || e.account.id) : e.account))?.name || 'Account';
+                    return `
+                        <tr>
+                            <td>${accName}</td>
+                            <td>-</td>
+                            <td class="amt">${e.debit > 0 ? e.debit.toFixed(2) : '-'}</td>
+                            <td class="amt">${e.credit > 0 ? e.credit.toFixed(2) : '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const printDiv = document.createElement('div');
+            printDiv.className = 'thermal-print print-only';
+            printDiv.innerHTML = `
+                <h2>${shopName}</h2>
+                <p style="text-align:center;">${shopAddr}<br>PAN: ${shopPan}</p>
+                <div class="thermal-divider"></div>
+                <p>Date: ${tx.date} (${toBS(tx.date)})<br>Ref: ${tx.billNo || tx._id?.slice(-8).toUpperCase()}</p>
+                <p>Type: ${tx.type}</p>
+                <div class="thermal-divider"></div>
+                <table style="width:100%">
+                    <thead>
+                        <tr><th>Particulars</th><th>Qty</th><th class="amt">Dr/Rate</th><th class="amt">Cr/Amt</th></tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div class="thermal-divider"></div>
+                <p style="font-weight:bold; font-size:14px;">Total: Rs. ${total.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                <p style="font-size:10px;">In Words: ${numberToWords(total)}</p>
+                <div class="thermal-divider"></div>
+                <p style="text-align:center; margin-top:10px;">Thank You!</p>
+            `;
+
+            document.body.appendChild(printDiv);
+            window.print();
+            document.body.removeChild(printDiv);
+        }
+
         function getAccountBalance(accId) {
-            const acc = accounts.find(a => a._id === accId);
-            let bal = acc?.openingBalance || 0;
-            transactions.forEach(tx => {
-                tx.entries.forEach(e => {
-                    if(e.account._id === accId || e.account === accId) {
-                        bal += (e.debit - e.credit);
+            if (!accId) return 0;
+            const acc = accounts.find(a => (a._id || a.id) === accId);
+            let bal = Number(acc?.openingBalance || 0);
+
+            if (Array.isArray(transactions)) {
+                transactions.forEach(tx => {
+                    if (tx && tx.entries) {
+                        tx.entries.forEach(e => {
+                            const eAccId = (e.account && typeof e.account === 'object') ? (e.account._id || e.account.id) : e.account;
+                            if(eAccId === accId) {
+                                bal += (Number(e.debit || 0) - Number(e.credit || 0));
+                            }
+                        });
                     }
                 });
-            });
+            }
             return bal;
         }
 
@@ -1652,11 +1779,26 @@
 
         function renderDashboardRecent() {
             // Sort by date (descending) and then take top 8
-            const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt) - new Date(a.createdAt));
+            const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
             const recent = sorted.slice(0, 8);
             document.getElementById('dash-recent-tx').innerHTML = recent.map(tx => {
-                const amt = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
-                return `<tr><td>${tx.date}</td><td>${tx.description.substring(0,30)}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td></tr>`;
+                const totalDr = tx.entries.reduce((sum, e) => sum + (Number(e.debit) || 0), 0);
+                const totalCr = tx.entries.reduce((sum, e) => sum + (Number(e.credit) || 0), 0);
+                const amt = Math.max(totalDr, totalCr);
+
+                let typeClass = 'type-voucher';
+                if(tx.type === 'SALES') typeClass = 'type-sales';
+                else if(tx.type === 'PURCHASE') typeClass = 'type-purchase';
+                else if(tx.type === 'SERVICE') typeClass = 'type-service';
+
+                return `
+                    <tr style="cursor:pointer;" onclick="printGenericVoucher('${tx._id}')">
+                        <td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td>
+                        <td>${tx.description.substring(0,30)}${tx.description.length > 30 ? '...' : ''}</td>
+                        <td><span class="daybook-type ${typeClass}">${tx.type}</span></td>
+                        <td class="amt" style="font-weight:700;">${amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
             }).join('');
         }
 
@@ -1710,7 +1852,6 @@
                             if (acc.type === 'Expense') dailyExp += (Number(e.debit || 0) - Number(e.credit || 0));
                         });
                     });
-
                     incomeData.push(dailyInc);
                     expenseData.push(dailyExp);
                 }
@@ -1979,6 +2120,7 @@
             document.getElementById('inv-tax-details').style.display = vatCheck ? 'block' : 'none';
         }
 
+        let editingTransactionId = null;
         async function saveInvoice() {
             const partyId = document.getElementById('inv-party-acc').value;
             const partyName = document.getElementById('inv-party-acc').options[document.getElementById('inv-party-acc').selectedIndex].text;
@@ -2020,21 +2162,26 @@
                 totalAmount: total,
                 description: document.getElementById('inv-narration').value || `बिक्री बिल नं. ${billNo}`,
                 entries: [
-                    { account: partyId, debit: total, credit: 0 }, // Customer gets debited with full amount
-                    { account: salesId, debit: 0, credit: taxable }, // Sales gets credited with taxable amount only
-                    { account: vatAcc, debit: 0, credit: vat } // VAT gets credited separately for Audit
+                    { account: partyId, debit: total, credit: 0 },
+                    { account: salesId, debit: 0, credit: taxable },
+                    { account: vatAcc, debit: 0, credit: vat }
                 ].filter(e => e.credit > 0 || e.debit > 0),
                 items: items
             };
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+            const method = editingTransactionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
             if(res.ok) {
-                if(confirm("Invoice Saved! Do you want to PRINT?")) {
+                alert(editingTransactionId ? "Invoice Updated!" : "Invoice Saved!");
+                editingTransactionId = null;
+                if(confirm("Do you want to PRINT?")) {
                     preparePrint(data, partyName, disc);
                 } else {
                     syncAll();
@@ -2198,9 +2345,54 @@
             document.querySelectorAll('#pur-rows tr').forEach(tr => {
                 const select = tr.querySelector('.pur-item-select');
                 const prodId = select.value;
-                const prodName = select.options[select.selectedIndex].text;
                 const qty = Number(tr.querySelector('.pur-qty').value);
                 const rate = Number(tr.querySelector('.pur-rate').value);
+                if (prodId && qty > 0) {
+                    items.push({ product: prodId, quantity: qty, rate: rate });
+                }
+            });
+
+            if (items.length === 0) return alert("कम्तिमा एउटा सामान थप्नुहोस्!");
+
+            const payload = {
+                type: 'PURCHASE',
+                date,
+                billNo,
+                description: document.getElementById('pur-narration').value || `Purchase Bill: ${billNo}`,
+                items,
+                taxableAmount: taxable,
+                vatAmount: vat,
+                discountPercent: disc,
+                entries: [
+                    { account: partyId, debit: 0, credit: total },
+                    { account: purLedgerId, debit: taxable, credit: 0 }
+                ]
+            };
+
+            if (vat > 0) {
+                payload.entries.push({ account: vatAcc, debit: vat, credit: 0 });
+            }
+
+            try {
+                const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+                const method = editingTransactionId ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    alert("खरिद बिल सुरक्षित भयो!");
+                    editingTransactionId = null;
+                    showPage('dashboard');
+                    init();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("सुरक्षित गर्न सकिएन!");
+            }
+        }
+
                 if(prodId) items.push({ product: prodId, name: prodName, quantity: qty, rate: rate });
             });
 
@@ -2217,31 +2409,105 @@
                 totalAmount: total,
                 description: document.getElementById('pur-narration').value || `खरिद बिल नं. ${billNo}`,
                 entries: [
-                    { account: purLedgerId, debit: taxable, credit: 0 }, // Purchase (Taxable only)
-                    { account: vatAcc, debit: vat, credit: 0 },         // VAT (Separate Asset for Audit)
-                    { account: partyId, debit: 0, credit: total }      // Supplier (Full Amount)
+                    { account: purLedgerId, debit: taxable, credit: 0 },
+                    { account: vatAcc, debit: vat, credit: 0 },
+                    { account: partyId, debit: 0, credit: total }
                 ].filter(e => e.debit > 0 || e.credit > 0),
                 items: items
             };
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+            const method = editingTransactionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
 
             if(res.ok) {
-                alert("खरिद सुरक्षित भयो (Purchase Recorded Successfully!)");
+                alert(editingTransactionId ? "Purchase Updated!" : "Purchase Saved!");
+                editingTransactionId = null;
                 syncAll();
                 showPage('gateway');
-            } else {
-                alert("Error saving purchase.");
-            }
-        }
             } else {
                 const err = await res.json();
                 alert("Save Failed: " + (err.error || "Unknown Error"));
             }
+        }
+
+        function generateConfirmationPaper() {
+            const accId = document.getElementById('stmt-acc-select').value;
+            if (!accId) return alert("कृपया पहिले एउटा खाता छान्नुहोस्।");
+
+            const acc = accounts.find(a => a._id === accId);
+            const bal = getAccountBalance(accId);
+            const shopName = document.getElementById('cfg-shop-name').value;
+            const shopAddr = document.getElementById('cfg-address').value;
+            const shopPan = document.getElementById('cfg-pan').value;
+
+            // Calculate Total Sales to this party
+            const totalSales = transactions
+                .filter(tx => tx.type === 'SALES' && tx.entries.some(e => (e.account._id || e.account) === accId))
+                .reduce((sum, tx) => sum + tx.totalAmount, 0);
+
+            const printHtml = `
+                <div style="padding: 50px; font-family: sans-serif; line-height: 1.6; color: #333;">
+                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px;">
+                        <h1 style="margin: 0; font-size: 24px; text-transform: uppercase;">${shopName}</h1>
+                        <p style="margin: 5px 0;">${shopAddr} | PAN No: ${shopPan}</p>
+                        <h2 style="margin: 20px 0 0 0; text-decoration: underline;">Balance Confirmation Letter</h2>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                        <div>
+                            <strong>To,</strong><br>
+                            ${acc.name}<br>
+                            Account Type: ${acc.type}
+                        </div>
+                        <div>
+                            <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
+                            <strong>BS:</strong> ${toBS(new Date().toISOString().split('T')[0])}
+                        </div>
+                    </div>
+
+                    <p>Dear Sir/Madam,</p>
+                    <p>We are writing to confirm the balance of your account as per our records. Below is the summary of transactions for the current period:</p>
+
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background: #f4f4f4;">
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">विवरण (Description)</th>
+                            <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">रकम (Amount Rs.)</th>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 12px;">कुल जम्मा खरिद (Total Purchases from us)</td>
+                            <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold;">${totalSales.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 12px;">हालको बाँकी मौज्दात (Outstanding Balance)</td>
+                            <td style="border: 1px solid #ddd; padding: 12px; text-align: right; font-weight: bold; color: ${bal >= 0 ? 'green' : 'red'};">
+                                ${Math.abs(bal).toLocaleString(undefined, {minimumFractionDigits: 2})} ${bal >= 0 ? 'Dr (Debit)' : 'Cr (Credit)'}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p style="margin-top: 30px;">Please verify this balance with your records. If there are any discrepancies, please inform us within 7 days.</p>
+
+                    <div style="margin-top: 80px; display: flex; justify-content: space-between;">
+                        <div style="text-align: center; width: 200px; border-top: 1px solid #333;">
+                            <p>Authorized Signature</p>
+                        </div>
+                        <div style="text-align: center; width: 200px; border-top: 1px solid #333;">
+                            <p>Customer Signature & Stamp</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>Balance Confirmation - ${acc.name}</title></head><body>${printHtml}</body></html>`);
+            win.document.close();
+            win.print();
         }
 
         // RETURN LOGIC
@@ -2319,24 +2585,21 @@
                 items
             };
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+            const method = editingTransactionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
 
             if(res.ok) {
-                alert("बिक्री फिर्ता सुरक्षित भयो!");
+                alert(editingTransactionId ? "बिक्री फिर्ता अपडेट भयो!" : "बिक्री फिर्ता सुरक्षित भयो!");
+                editingTransactionId = null;
                 syncAll();
                 showPage('gateway');
             }
-        }
-                    { account: partyId, debit: 0, credit: total }
-                ],
-                items
-            };
-            const res = await fetch('/api/transactions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            if(res.ok) { alert("Sales Return Saved with VAT!"); syncAll(); showPage('gateway'); }
         }
 
         async function savePurchaseReturn() {
@@ -2374,8 +2637,22 @@
                 ].filter(e => e.debit > 0 || e.credit > 0),
                 items
             };
-            const res = await fetch('/api/transactions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            if(res.ok) { alert("खरिद फिर्ता (Purchase Return) सुरक्षित भयो!"); syncAll(); showPage('gateway'); }
+
+            const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+            const method = editingTransactionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+
+            if(res.ok) {
+                alert(editingTransactionId ? "खरिद फिर्ता अपडेट भयो!" : "खरिद फिर्ता सुरक्षित भयो!");
+                editingTransactionId = null;
+                syncAll();
+                showPage('gateway');
+            }
         }
 
         function updateReturnTotals(prefix) {
@@ -2462,14 +2739,18 @@
                 ]
             };
 
-            const res = await fetch('/api/transactions', {
-                method: 'POST',
+            const url = editingTransactionId ? `/api/transactions/${editingTransactionId}` : '/api/transactions';
+            const method = editingTransactionId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
 
             if(res.ok) {
-                alert("Service Entry Saved!");
+                alert(editingTransactionId ? "Service Entry Updated!" : "Service Entry Saved!");
+                editingTransactionId = null;
                 syncAll();
                 showPage('gateway');
             }
@@ -2524,15 +2805,41 @@
             const toDate = document.getElementById('daybook-to').value;
 
             let filtered = transactions.filter(tx => {
-                const matchesSearch = tx.description.toLowerCase().includes(search) || tx.type.toLowerCase().includes(search);
+                const desc = (tx.description || "").toLowerCase();
+                const type = (tx.type || "").toLowerCase();
+                const matchesSearch = desc.includes(search) || type.includes(search);
                 const matchesFrom = fromDate ? (tx.date >= fromDate) : true;
                 const matchesTo = toDate ? (tx.date <= toDate) : true;
                 return matchesSearch && matchesFrom && matchesTo;
             });
 
             document.getElementById('tbl-daybook-body').innerHTML = filtered.map(tx => {
-                const amt = tx.entries.reduce((acc, e) => acc + e.debit, 0) || tx.entries[0]?.credit || 0;
-                return `<tr><td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td><td>${tx.description}</td><td>${tx.type}</td><td class="amt">${amt.toLocaleString()}</td><td style="text-align:center;"><button onclick="deleteTransaction('${tx._id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td></tr>`;
+                // Calculate Net Dr and Net Cr for the summary view
+                const totalDr = tx.entries.reduce((sum, e) => sum + (Number(e.debit) || 0), 0);
+                const totalCr = tx.entries.reduce((sum, e) => sum + (Number(e.credit) || 0), 0);
+
+                let typeClass = 'type-voucher';
+                if(tx.type === 'SALES') typeClass = 'type-sales';
+                else if(tx.type === 'PURCHASE') typeClass = 'type-purchase';
+                else if(tx.type === 'SERVICE') typeClass = 'type-service';
+
+                return `
+                    <tr class="acc-row">
+                        <td>${tx.date}<br><small style="color:#64748b;">${toBS(tx.date)}</small></td>
+                        <td>
+                            <div style="font-weight:600;">${tx.description}</div>
+                            <div style="font-size:0.75rem; color:#64748b;">Ref: ${tx.billNo || tx._id?.slice(-8).toUpperCase() || 'N/A'}</div>
+                        </td>
+                        <td><span class="daybook-type ${typeClass}">${tx.type}</span></td>
+                        <td class="amt">${totalDr > 0 ? totalDr.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                        <td class="amt">${totalCr > 0 ? totalCr.toLocaleString(undefined, {minimumFractionDigits: 2}) : '-'}</td>
+                        <td style="text-align:center;">
+                            <button class="btn" onclick="printGenericVoucher('${tx._id}')" style="padding:4px 8px; background:#64748b;"><i class="fas fa-print"></i></button>
+                            <button class="btn" onclick="editTransaction('${tx._id}')" style="padding:4px 8px; background:var(--tally-teal); margin-left:5px;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteTransaction('${tx._id}')" style="color:#ef4444; border:none; background:none; cursor:pointer; margin-left:10px;"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
             }).join('');
         }
 
@@ -2596,7 +2903,7 @@
 
             list.innerHTML = filtered.map(a => `
                 <div class="vch-option"
-                     onclick="selectVoucherAccount(this, '${a._id}', '${a.name.replace(/'/g, "\\'")}')"
+                     onclick="selectVoucherAccount(this, '${a._id || a.id}', '${a.name.replace(/'/g, "\\'")}')"
                      style="padding:8px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:0.9rem;">
                     <strong>${a.name}</strong> <span style="font-size:0.75rem; color:#666;">(${a.type})</span>
                 </div>
@@ -2624,18 +2931,12 @@
         function updateVchRowBalance(selectEl) {
             const accId = selectEl.value;
             // Robust targeting for both searchable container and standard select
-            let balDisplay = selectEl.nextElementSibling;
-            if (!balDisplay || !balDisplay.classList.contains('vch-bal-display')) {
-                balDisplay = selectEl.parentElement.nextElementSibling;
-            }
-
-            if (accId && balDisplay && balDisplay.classList.contains('vch-bal-display')) {
+            let balDisplay = selectEl.closest('td').querySelector('.vch-bal-display');
+            if (balDisplay) {
                 const bal = getAccountBalance(accId);
-                balDisplay.innerText = `Current Bal: ${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}`;
-                balDisplay.style.color = bal >= 0 ? '#10b981' : '#f43f5e';
-            } else if (balDisplay && balDisplay.classList.contains('vch-bal-display')) {
-                balDisplay.innerText = 'Balance: 0.00';
-                balDisplay.style.color = '#64748b';
+                const balText = Math.abs(bal).toLocaleString(undefined, {minimumFractionDigits: 2}) + (bal >= 0 ? ' Dr' : ' Cr');
+                balDisplay.innerText = `Balance: ${balText}`;
+                balDisplay.style.color = bal >= 0 ? '#10b981' : '#ef4444';
             }
         }
 
@@ -2767,8 +3068,116 @@
             window.scrollTo(0,0);
         }
 
+        function editTransaction(id) {
+            const tx = transactions.find(t => t._id === id);
+            if (!tx) return;
+            editingTransactionId = id;
+
+            if (tx.type === 'INVOICE') {
+                showPage('billing');
+                document.getElementById('inv-date').value = tx.date;
+                document.getElementById('inv-bill-no').value = tx.billNo || '';
+                document.getElementById('inv-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('inv-ledger-acc').value = tx.entries.find(e => e.credit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('inv-narration').value = tx.description;
+                document.getElementById('inv-discount').value = tx.discountPercent || 0;
+                document.getElementById('inv-vat-check').checked = (tx.vatAmount > 0);
+
+                const tbody = document.getElementById('inv-rows');
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const p = products.find(prod => prod._id === (item.product?._id || item.product));
+                    tr.innerHTML = `
+                        <td><input type="text" class="inv-item-code" value="${p?.code || ''}" oninput="lookupProductByCode(this, 'inv')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;"></td>
+                        <td>
+                            <select class="inv-item-select" onchange="updateInvRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
+                                <option value="">-- Select --</option>
+                                ${products.map(prod => `<option value="${prod._id}" data-code="${prod.code || ''}" data-price="${prod.salePrice}" ${prod._id === (item.product?._id || item.product) ? 'selected' : ''}>${prod.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="inv-qty" value="${item.quantity}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
+                        <td><input type="number" class="inv-rate" value="${item.rate}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
+                        <td class="amt inv-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateInvTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                calculateInvTotal();
+            } else if (tx.type === 'PURCHASE') {
+                showPage('purchase');
+                document.getElementById('pur-date').value = tx.date;
+                document.getElementById('pur-bill-no').value = tx.billNo || '';
+                document.getElementById('pur-party-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('pur-ledger-acc').value = tx.entries.find(e => e.debit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('pur-narration').value = tx.description;
+                document.getElementById('pur-discount').value = tx.discountPercent || 0;
+                document.getElementById('pur-vat-check').checked = (tx.vatAmount > 0);
+
+                const tbody = document.getElementById('pur-rows');
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const p = products.find(prod => prod._id === (item.product?._id || item.product));
+                    tr.innerHTML = `
+                        <td><input type="text" class="pur-item-code" value="${p?.code || ''}" oninput="lookupProductByCode(this, 'pur')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;"></td>
+                        <td>
+                            <select class="pur-item-select" onchange="updatePurRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
+                                <option value="">-- Select --</option>
+                                ${products.map(prod => `<option value="${prod._id}" data-code="${prod.code || ''}" data-price="${prod.purchasePrice}" ${prod._id === (item.product?._id || item.product) ? 'selected' : ''}>${prod.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="pur-qty" value="${item.quantity}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
+                        <td><input type="number" class="pur-rate" value="${item.rate}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
+                        <td class="amt pur-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculatePurTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                calculatePurTotal();
+            } else if (tx.type === 'SERVICE') {
+                showPage('service-entry');
+                populateServiceSelects();
+                document.getElementById('ser-date').value = tx.date;
+                document.getElementById('ser-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('ser-income-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('ser-desc').value = tx.description.split(" | ")[0];
+                document.getElementById('ser-amount').value = tx.entries.find(e => e.debit > 0)?.debit || 0;
+            } else if (tx.type === 'SALES_RETURN' || tx.type === 'PURCHASE_RETURN') {
+                const prefix = tx.type === 'SALES_RETURN' ? 'sr' : 'pr';
+                showPage(tx.type === 'SALES_RETURN' ? 'sales-return' : 'purchase-return');
+                resetReturnPage(prefix);
+                document.getElementById(`${prefix}-date`).value = tx.date;
+                document.getElementById(`${prefix}-party-acc`).value = tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account?._id || tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account;
+
+                const tbody = document.getElementById(`${prefix}-rows`);
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <select class="item-select" style="width:100%;" onchange="updateReturnRowRate(this)">
+                                <option value="">-- Select Product --</option>
+                                ${products.map(p => `<option value="${p._id}" data-sprice="${p.salePrice}" data-pprice="${p.purchasePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name} [${p.code || ''}]</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="qty" value="${item.quantity}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:center;"></td>
+                        <td><input type="number" class="rate" value="${item.rate}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:right;"></td>
+                        <td class="amt-cell amt" style="text-align:right;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td><button onclick="this.parentElement.parentElement.remove(); updateReturnTotals('${prefix}')" style="color:red; background:none; border:none;">&times;</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                updateReturnTotals(prefix);
+            } else if (tx.type === 'JOURNAL') {
+                editVoucher(id);
+            }
+            window.scrollTo(0, 0);
+        }
+
+
         async function deleteTransaction(id) {
-            if(!confirm("Are you sure you want to delete this transaction?")) return;
+            if(!confirm("Are you sure you want to delete this transaction? This will reverse stock and ledger balances.")) return;
             const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
             if(res.ok) {
                 alert("Deleted Successfully!");
@@ -2936,43 +3345,40 @@
                 if (netDisplay) {
                     netDisplay.innerText = `Rs. ${Math.abs(netVat).toFixed(2)}`;
                     netDisplay.style.color = netVat >= 0 ? '#f43f5e' : '#10b981';
+
+                    if(netVat >= 0) {
+                        netDisplay.title = "यो रकम सरकारलाई तिर्नुपर्ने छ (Payable to Govt)";
+                    } else {
+                        netDisplay.title = "यो रकम कर कट्टी (Input Tax Credit) को रूपमा बाँकी छ";
+                    }
                 }
             } catch (e) { console.error("VAT Render Error Suppressed", e); }
-        }
-
-            document.getElementById('vat-pur-total').innerText = pTotal.toFixed(2);
-            document.getElementById('vat-pur-taxable').innerText = pTaxable.toFixed(2);
-            document.getElementById('vat-pur-amt').innerText = pVat.toFixed(2);
-
-            const netVat = sVat - pVat;
-            const netDisplay = document.getElementById('vat-net-payable');
-            netDisplay.innerText = `Rs. ${Math.abs(netVat).toFixed(2)}`;
-            netDisplay.style.color = netVat >= 0 ? '#f43f5e' : '#10b981'; // Red if payable, Green if credit
-
-            if(netVat >= 0) {
-                netDisplay.title = "यो रकम सरकारलाई तिर्नुपर्ने छ (Payable to Govt)";
-            } else {
-                netDisplay.title = "यो रकम कर कट्टी (Input Tax Credit) को रूपमा बाँकी छ";
-            }
         }
 
         function exportVATToExcel() {
             alert("Excel export feature coming soon! You can print the report for now.");
         }
+        function renderAccountsList() {
             const search = document.getElementById('acc-search').value.toLowerCase();
             const filtered = accounts.filter(a => a.name.toLowerCase().includes(search));
-            document.getElementById('tbl-accounts-body').innerHTML = filtered.map(a => `
-                <tr>
-                    <td>${a.name}</td>
-                    <td>${a.type}</td>
-                    <td class="amt">${getAccountBalance(a._id).toLocaleString()}</td>
-                    <td style="text-align:center; display:flex; gap:5px; justify-content:center;">
-                        <button class="btn" onclick="viewStatement('${a._id}')" style="padding:2px 10px; font-size:0.7rem; background:var(--tally-teal);">Statement</button>
-                        <button class="btn" style="padding:2px 10px; font-size:0.7rem; background:#64748b;">Edit</button>
-                        <button class="btn" onclick="deleteAccount('${a._id}')" style="padding:2px 10px; font-size:0.7rem; background:#f43f5e;"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('');
+
+            document.getElementById('tbl-accounts-body').innerHTML = filtered.map(a => {
+                const bal = getAccountBalance(a._id || a.id);
+                const balClass = bal >= 0 ? 'balance-dr' : 'balance-cr';
+                const balText = Math.abs(bal).toLocaleString(undefined, {minimumFractionDigits: 2}) + (bal >= 0 ? ' Dr' : ' Cr');
+
+                return `
+                    <tr class="acc-row" onclick="viewStatement('${a._id || a.id}')">
+                        <td style="font-weight:600; color:var(--tally-navy);">${a.name}</td>
+                        <td><span style="font-size:0.8rem; color:#64748b; font-weight:500;">${a.type}</span></td>
+                        <td class="amt ${balClass}">${balText}</td>
+                        <td style="text-align:center; display:flex; gap:5px; justify-content:center;" onclick="event.stopPropagation()">
+                            <button class="btn" onclick="viewStatement('${a._id || a.id}')" style="padding:4px 10px; font-size:0.7rem; background:var(--tally-teal);"><i class="fas fa-file-alt"></i> Statement</button>
+                            <button class="btn" onclick="deleteAccount('${a._id || a.id}')" style="padding:4px 10px; font-size:0.7rem; background:#f43f5e;"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function deleteAccount(id) {
@@ -2996,6 +3402,7 @@
             renderAccountStatement();
         }
 
+        let editingAccountId = null;
         async function saveAccount() {
             const name = document.getElementById('new-aname').value.trim();
             const type = document.getElementById('new-atype').value;
@@ -3003,25 +3410,49 @@
 
             if(!name) return alert("Please enter account name");
 
-            // Prevent duplicate names
-            const exists = accounts.find(a => a.name.toLowerCase() === name.toLowerCase());
-            if (exists) {
-                return alert("This account name already exists!");
+            // Prevent duplicate names (if not editing)
+            if (!editingAccountId) {
+                const exists = accounts.find(a => a.name.toLowerCase() === name.toLowerCase());
+                if (exists) {
+                    return alert("This account name already exists!");
+                }
             }
 
-            const res = await fetch('/api/accounts', {
-                method: 'POST',
+            const method = editingAccountId ? 'PUT' : 'POST';
+            const url = editingAccountId ? `/api/accounts/${editingAccountId}` : '/api/accounts';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId: user.uid, name, type, openingBalance: ob })
             });
 
             if(res.ok) {
-                alert("Account Created Successfully!");
+                alert(editingAccountId ? "Account Updated Successfully!" : "Account Created Successfully!");
                 closeModals();
                 syncAll();
             } else {
                 alert("Failed to save account.");
             }
+        }
+
+        function openAccountModal(id = null) {
+            editingAccountId = id;
+            if (id) {
+                const a = accounts.find(acc => (acc._id || acc.id) === id);
+                if (a) {
+                    document.getElementById('new-aname').value = a.name;
+                    document.getElementById('new-atype').value = a.type;
+                    document.getElementById('new-aob').value = a.openingBalance || 0;
+                    document.querySelector('#accModal h3').innerText = "खाता परिमार्जन गर्नुहोस् (Edit Ledger)";
+                }
+            } else {
+                document.getElementById('new-aname').value = '';
+                document.getElementById('new-atype').value = 'Receivable';
+                document.getElementById('new-aob').value = '0';
+                document.querySelector('#accModal h3').innerText = "नयाँ खाता थप्नुहोस् (Add New Ledger)";
+            }
+            openModal('accModal');
         }
 
         // PRODUCT MASTER LOGIC
@@ -3040,11 +3471,15 @@
                     <td class="amt">${p.purchasePrice}</td>
                     <td class="amt">${p.salePrice}</td>
                     <td class="amt" style="font-weight:bold;">${p.currentStock}</td>
-                    <td style="text-align:center;"><button class="btn" style="padding:2px 10px; font-size:0.7rem; background:#64748b;">Edit</button></td>
+                    <td style="text-align:center; display:flex; gap:5px; justify-content:center;">
+                        <button class="btn" onclick="editProduct('${p._id || p.id}')" style="padding:2px 10px; font-size:0.7rem; background:var(--tally-teal);"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="btn" onclick="deleteProduct('${p._id || p.id}')" style="padding:2px 10px; font-size:0.7rem; background:#f43f5e;"><i class="fas fa-trash"></i></button>
+                    </td>
                 </tr>
             `).join('');
         }
 
+        let editingProductId = null;
         async function saveProduct() {
             const code = document.getElementById('p-code').value;
             const name = document.getElementById('p-name').value;
@@ -3059,13 +3494,67 @@
                 purchasePrice: Number(document.getElementById('p-pur-price').value),
                 salePrice: Number(document.getElementById('p-sale-price').value)
             };
-            await fetch('/api/products', {
-                method: 'POST',
+
+            const method = editingProductId ? 'PUT' : 'POST';
+            const url = editingProductId ? `/api/products/${editingProductId}` : '/api/products';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
-            closeModals();
-            syncAll();
+
+            if (res.ok) {
+                alert(editingProductId ? "Product Updated Successfully!" : "Product Saved Successfully!");
+                closeModals();
+                syncAll();
+            } else {
+                alert("Failed to save product.");
+            }
+        }
+
+        function editProduct(id) {
+            editingProductId = id;
+            const p = products.find(prod => (prod._id || prod.id) === id);
+            if (p) {
+                document.getElementById('p-code').value = p.code || '';
+                document.getElementById('p-name').value = p.name || '';
+                document.getElementById('p-cat').value = p.category || 'General';
+                document.getElementById('p-brand').value = p.brand || 'None';
+                document.getElementById('p-unit').value = p.unit || 'Pcs';
+                document.getElementById('p-opening').value = p.openingStock || 0;
+                document.getElementById('p-pur-price').value = p.purchasePrice || 0;
+                document.getElementById('p-sale-price').value = p.salePrice || 0;
+                document.querySelector('#prodModal h3').innerText = "सामान परिमार्जन गर्नुहोस् (Edit Product)";
+                openModal('prodModal');
+            }
+        }
+
+        function openProductModal() {
+            editingProductId = null;
+            document.getElementById('p-code').value = '';
+            document.getElementById('p-name').value = '';
+            document.getElementById('p-cat').value = '';
+            document.getElementById('p-brand').value = '';
+            document.getElementById('p-unit').value = 'Pcs';
+            document.getElementById('p-opening').value = '0';
+            document.getElementById('p-pur-price').value = '0';
+            document.getElementById('p-sale-price').value = '0';
+            document.querySelector('#prodModal h3').innerText = "नयाँ सामान थप्नुहोस् (Add New Product)";
+            openModal('prodModal');
+        }
+
+        async function deleteProduct(id) {
+            if(!confirm("Are you sure you want to delete this product?")) return;
+            const res = await fetch(`/api/products/${id}?userId=${user.uid}`, { method: 'DELETE' });
+            if(res.ok) {
+                alert("Product Deleted Successfully!");
+                syncAll();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Delete failed");
+            }
+        }
         }
 
         // UTILS
@@ -3091,6 +3580,114 @@
             if(key === 'k' && e.altKey) { e.preventDefault(); showPage('stock-summary'); return; }
             if(key === 'g' && e.altKey) { e.preventDefault(); document.getElementById('goto-bar').focus(); return; }
         });
+
+        function editTransaction(id) {
+            const tx = transactions.find(t => t._id === id);
+            if(!tx) return;
+            editingTransactionId = id;
+
+            if(tx.type === 'INVOICE') {
+                showPage('billing');
+                document.getElementById('inv-date').value = tx.date;
+                document.getElementById('inv-bill-no').value = tx.billNo || '';
+                document.getElementById('inv-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('inv-ledger-acc').value = tx.entries.find(e => e.credit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('inv-narration').value = tx.description;
+                document.getElementById('inv-discount').value = tx.discountPercent || 0;
+
+                const tbody = document.getElementById('inv-rows');
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <input type="text" class="inv-item-code" value="${products.find(p => p._id === (item.product?._id || item.product))?.code || ''}" oninput="lookupProductByCode(this, 'inv')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;">
+                        </td>
+                        <td>
+                            <select class="inv-item-select" onchange="updateInvRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
+                                <option value="">-- Select --</option>
+                                ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.salePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="inv-qty" value="${item.quantity}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
+                        <td><input type="number" class="inv-rate" value="${item.rate}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
+                        <td class="amt inv-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateInvTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('inv-vat-check').checked = (tx.vatAmount > 0);
+                calculateInvTotal();
+            } else if(tx.type === 'PURCHASE') {
+                showPage('purchase');
+                document.getElementById('pur-date').value = tx.date;
+                document.getElementById('pur-bill-no').value = tx.billNo || '';
+                document.getElementById('pur-party-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('pur-ledger-acc').value = tx.entries.find(e => e.debit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('pur-narration').value = tx.description;
+                document.getElementById('pur-discount').value = tx.discountPercent || 0;
+
+                const tbody = document.getElementById('pur-rows');
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <input type="text" class="pur-item-code" value="${products.find(p => p._id === (item.product?._id || item.product))?.code || ''}" oninput="lookupProductByCode(this, 'pur')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;">
+                        </td>
+                        <td>
+                            <select class="pur-item-select" onchange="updatePurRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
+                                <option value="">-- Select --</option>
+                                ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.purchasePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="pur-qty" value="${item.quantity}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
+                        <td><input type="number" class="pur-rate" value="${item.rate}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
+                        <td class="amt pur-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculatePurTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                document.getElementById('pur-vat-check').checked = (tx.vatAmount > 0);
+                calculatePurTotal();
+            } else if(tx.type === 'SERVICE') {
+                showPage('service-entry');
+                populateServiceSelects();
+                document.getElementById('ser-date').value = tx.date;
+                document.getElementById('ser-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
+                document.getElementById('ser-income-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
+                document.getElementById('ser-desc').value = tx.description.split(" | ")[0];
+                document.getElementById('ser-amount').value = tx.entries.find(e => e.debit > 0)?.debit || 0;
+            } else if(tx.type === 'SALES_RETURN' || tx.type === 'PURCHASE_RETURN') {
+                const prefix = tx.type === 'SALES_RETURN' ? 'sr' : 'pr';
+                showPage(tx.type === 'SALES_RETURN' ? 'sales-return' : 'purchase-return');
+                resetReturnPage(prefix);
+                document.getElementById(`${prefix}-date`).value = tx.date;
+                document.getElementById(`${prefix}-party-acc`).value = tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account?._id || tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account;
+
+                const tbody = document.getElementById(`${prefix}-rows`);
+                tbody.innerHTML = "";
+                tx.items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <select class="item-select" style="width:100%;" onchange="updateReturnRowRate(this)">
+                                <option value="">-- Select Product --</option>
+                                ${products.map(p => `<option value="${p._id}" data-sprice="${p.salePrice}" data-pprice="${p.purchasePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name} [${p.code || ''}]</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="qty" value="${item.quantity}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:center;"></td>
+                        <td><input type="number" class="rate" value="${item.rate}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:right;"></td>
+                        <td class="amt-cell amt" style="text-align:right;">${(item.quantity * item.rate).toFixed(2)}</td>
+                        <td><button onclick="this.parentElement.parentElement.remove(); updateReturnTotals('${prefix}')" style="color:red; background:none; border:none;">&times;</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                updateReturnTotals(prefix);
+            } else if(tx.type === 'JOURNAL') {
+                editVoucher(id);
+            }
+        }
 
         init();
     </script>
