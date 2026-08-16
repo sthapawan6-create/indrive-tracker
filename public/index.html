@@ -536,7 +536,35 @@
                 </tfoot>
             </table>
         </div>
-        <div id="page-settings" class="main-content"><h3>System Settings</h3></div>
+        <div id="page-settings" class="main-content">
+            <h3>System Settings</h3>
+            <div style="background:white; padding:25px; border-radius:12px; border:1px solid var(--border-color); max-width: 600px;">
+                <h4 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;"><i class="fas fa-building"></i> Company Profile</h4>
+                <div style="display:grid; gap:15px; margin-top:15px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Business / Shop Name</label>
+                        <input type="text" id="set-comp-name" placeholder="e.g. Pawan Electronics" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Address</label>
+                        <input type="text" id="set-comp-addr" placeholder="e.g. New Road, Kathmandu" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="font-size:0.8rem; color:#64748b;">Phone Number</label>
+                            <input type="text" id="set-comp-phone" placeholder="01-XXXXXX" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.8rem; color:#64748b;">PAN / VAT Number</label>
+                            <input type="text" id="set-comp-pan" placeholder="606XXXXXX" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <button class="btn" onclick="saveSettings()" style="width:100%; padding:12px;"><i class="fas fa-save"></i> Save System Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -686,6 +714,7 @@
                 if(pageId === 'trial-balance') renderTrialBalance();
                 if(pageId === 'profit-loss') renderProfitLoss();
                 if(pageId === 'balance-sheet') renderBalanceSheet();
+                if(pageId === 'settings') initSettings();
             } catch (err) {
                 console.error("Data Load Error:", err);
             }
@@ -1506,6 +1535,49 @@
             }
         }
 
+        function printSalesBook() {
+            const rows = document.getElementById('sales-book-body').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=900');
+            const header = getHeaderHTML("Sales Statement (Sales Book)");
+
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Print Sales Book</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10pt; }
+                        th { background-color: #f4f4f4; }
+                        .text-right { text-align: right; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    \${header}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Bill No</th>
+                                <th>Party Name</th>
+                                <th>PAN/VAT</th>
+                                <th>Total Amt</th>
+                                <th>VAT (13%)</th>
+                                <th>Net Amt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${rows}
+                        </tbody>
+                    </table>
+                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
         function renderPurchaseBook() {
             const tbody = document.getElementById('purchase-book-body');
             if (!tbody) return;
@@ -1533,6 +1605,48 @@
                     </tr>
                 `;
             }).join('') || "<tr><td colspan='7' style='text-align:center'>No purchases recorded.</td></tr>";
+        }
+
+        function printPurchaseBook() {
+            const rows = document.getElementById('purchase-book-body').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=900');
+            const header = getHeaderHTML("Purchase Statement (Purchase Book)");
+
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Print Purchase Book</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 10pt; }
+                        th { background-color: #f4f4f4; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    \${header}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Inv No</th>
+                                <th>Supplier Name</th>
+                                <th>PAN/VAT</th>
+                                <th>Total Amt</th>
+                                <th>VAT (13%)</th>
+                                <th>Net Amt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            \${rows}
+                        </tbody>
+                    </table>
+                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         function renderStockSummary() {
@@ -1822,6 +1936,48 @@
                 </html>
             `);
             printWin.document.close();
+        }
+
+        function initSettings() {
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || {
+                name: "PAWAN ELECTRONICS",
+                address: "New Road, Kathmandu",
+                phone: "01-4XXXXXX",
+                pan: "606XXXXXX"
+            };
+            document.getElementById('set-comp-name').value = settings.name;
+            document.getElementById('set-comp-addr').value = settings.address;
+            document.getElementById('set-comp-phone').value = settings.phone;
+            document.getElementById('set-comp-pan').value = settings.pan;
+        }
+
+        function saveSettings() {
+            const settings = {
+                name: document.getElementById('set-comp-name').value,
+                address: document.getElementById('set-comp-addr').value,
+                phone: document.getElementById('set-comp-phone').value,
+                pan: document.getElementById('set-comp-pan').value
+            };
+            localStorage.setItem('erp_settings', JSON.stringify(settings));
+            alert("Settings Saved Successfully!");
+            location.reload(); // Reload to apply changes everywhere
+        }
+
+        function getHeaderHTML(title) {
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || {
+                name: "PAWAN ELECTRONICS",
+                address: "New Road, Kathmandu",
+                phone: "01-4XXXXXX",
+                pan: "606XXXXXX"
+            };
+            return `
+                <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
+                    <h2 style="margin:0; text-transform:uppercase;">\${settings.name}</h2>
+                    <p style="margin:2px 0;">\${settings.address} | Tel: \${settings.phone}</p>
+                    <p style="margin:2px 0;"><strong>PAN/VAT No: \${settings.pan}</strong></p>
+                    <h3 style="margin:10px 0 0 0; background:#eee; padding:5px; border-radius:4px;">\${title}</h3>
+                </div>
+            `;
         }
 
         function logout() {
