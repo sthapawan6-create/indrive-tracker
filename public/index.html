@@ -84,7 +84,7 @@
         .main-content.active { display: block; }
 
         /* Dashboard Cards */
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 25px; }
         .info-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
         .info-card h4 { margin: 0; color: #64748b; font-size: 0.8rem; }
         .info-card p { margin: 10px 0 0; font-size: 1.5rem; font-weight: 700; }
@@ -147,6 +147,19 @@
         </div>
     </div>
 
+    <!-- Dashboard Detail Modal -->
+    <div id="dash-detail-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 id="dash-detail-title">Details</h3>
+                <span onclick="closeDashDetailModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            </div>
+            <div id="dash-detail-body" style="max-height: 400px; overflow-y: auto;">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Top Bar -->
     <div class="top-bar no-print">
         <div style="font-weight: 600; color: var(--tally-navy);">ERP System v2.0</div>
@@ -155,6 +168,7 @@
             <button class="btn" onclick="logout()" style="background:#64748b; font-size:0.75rem;">Logout</button>
         </div>
     </div>
+
 
     <!-- Pages Container -->
     <div id="pages-container">
@@ -166,10 +180,51 @@
                 <button class="btn" onclick="showPage('billing')">+ New Sale</button>
             </div>
             <div class="dashboard-grid">
-                <div class="info-card"><h4>Cash/Bank</h4><p id="dash-cash">Rs. 0</p></div>
-                <div class="info-card"><h4>Total Income</h4><p id="dash-income" style="color:var(--success-color);">Rs. 0</p></div>
-                <div class="info-card"><h4>Total Expense</h4><p id="dash-expense" style="color:var(--danger-color);">Rs. 0</p></div>
-                <div class="info-card"><h4>Receivables</h4><p id="dash-rec">Rs. 0</p></div>
+                <div class="info-card" onclick="openDashDetail('cash')" style="cursor:pointer; border-left: 5px solid #1e293b;">
+                    <h4>Cash/Bank</h4>
+                    <p id="dash-cash">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Combined liquidity</small>
+                </div>
+                <div class="info-card" onclick="openDashDetail('income')" style="cursor:pointer; border-left: 5px solid var(--success-color);">
+                    <h4>Total Income (Today)</h4>
+                    <p id="dash-income" style="color:var(--success-color);">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Today's earnings</small>
+                </div>
+                <div class="info-card" onclick="openDashDetail('expense')" style="cursor:pointer; border-left: 5px solid var(--danger-color);">
+                    <h4>Total Expense (Today)</h4>
+                    <p id="dash-expense" style="color:var(--danger-color);">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Today's spending</small>
+                </div>
+                <div class="info-card" onclick="openDashDetail('receivable')" style="cursor:pointer; border-left: 5px solid #2563eb;">
+                    <h4>Receivables (Linu Parne)</h4>
+                    <p id="dash-rec">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Total from customers</small>
+                </div>
+                <div class="info-card" onclick="openDashDetail('payable')" style="cursor:pointer; border-left: 5px solid #f59e0b;">
+                    <h4>Payables (Tirnu Parne)</h4>
+                    <p id="dash-pay">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Total to suppliers</small>
+                </div>
+                <div class="info-card" onclick="openDashDetail('purchase')" style="cursor:pointer; border-left: 5px solid #64748b;">
+                    <h4>Today's Purchase</h4>
+                    <p id="dash-today-pur">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Stock entry today</small>
+                </div>
+                <div class="info-card" onclick="showPage('stock-summary')" style="cursor:pointer; border-left: 5px solid #8b5cf6;">
+                    <h4>Stock Value</h4>
+                    <p id="dash-stock">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Inventory valuation</small>
+                </div>
+                <div class="info-card" onclick="showPage('sales-book')" style="cursor:pointer; border-left: 5px solid #10b981;">
+                    <h4>Today's Sales</h4>
+                    <p id="dash-today-sales">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Total billing today</small>
+                </div>
+                <div class="info-card" onclick="showPage('profit-loss')" style="cursor:pointer; border-left: 5px solid #ec4899;">
+                    <h4>Net Profit</h4>
+                    <p id="dash-profit">Rs. 0</p>
+                    <small style="color:#64748b; font-size:0.7rem;">Overall business result</small>
+                </div>
             </div>
 
             <!-- Chart Section -->
@@ -602,6 +657,7 @@
             </div>
         </div>
     </div>
+
     <!-- Account Modal -->
     <div id="account-modal" class="modal">
         <div class="modal-content">
@@ -640,6 +696,7 @@
             </div>
         </div>
     </div>
+
 
     <script>
         // --- Global State & Auth ---
@@ -740,6 +797,95 @@
             localStorage.setItem('pawan_transactions', JSON.stringify(transactions));
         }
 
+        window.openDashDetail = function(type) {
+            const modal = document.getElementById('dash-detail-modal');
+            const title = document.getElementById('dash-detail-title');
+            const body = document.getElementById('dash-detail-body');
+            modal.style.display = 'block';
+
+            let html = `<table><thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead><tbody>`;
+            let total = 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (type === 'cash') {
+                title.innerText = 'Cash & Bank Balances';
+                accounts.filter(a => a.type === 'Asset').forEach(acc => {
+                    html += `<tr><td>${acc.name}</td><td style="text-align:right;">Rs. ${(acc.balance || 0).toLocaleString()}</td></tr>`;
+                    total += (acc.balance || 0);
+                });
+            } else if (type === 'income') {
+                title.innerText = "Today's Income Breakdown (" + todayStr + ")";
+                const incomeAccs = {};
+                transactions.filter(tx => tx.date === todayStr).forEach(tx => {
+                    tx.entries.forEach(e => {
+                        const acc = accounts.find(a => a._id === getAccountId(e.account));
+                        if (acc && acc.type === 'Revenue') {
+                            incomeAccs[acc.name] = (incomeAccs[acc.name] || 0) + (e.credit || 0);
+                        }
+                    });
+                });
+                Object.keys(incomeAccs).forEach(name => {
+                    html += `<tr><td>${name}</td><td style="text-align:right;">Rs. ${incomeAccs[name].toLocaleString()}</td></tr>`;
+                    total += incomeAccs[name];
+                });
+            } else if (type === 'expense') {
+                title.innerText = "Today's Expenses (" + todayStr + ")";
+                const expenseAccs = {};
+                transactions.filter(tx => tx.date === todayStr).forEach(tx => {
+                    tx.entries.forEach(e => {
+                        const acc = accounts.find(a => a._id === getAccountId(e.account));
+                        if (acc && acc.type === 'Expense') {
+                            expenseAccs[acc.name] = (expenseAccs[acc.name] || 0) + (e.debit || 0);
+                        }
+                    });
+                });
+                Object.keys(expenseAccs).forEach(name => {
+                    html += `<tr><td>${name}</td><td style="text-align:right;">Rs. ${expenseAccs[name].toLocaleString()}</td></tr>`;
+                    total += expenseAccs[name];
+                });
+            } else if (type === 'receivable') {
+                title.innerText = 'Receivables (Linu Parne)';
+                accounts.filter(a => a.type === 'Receivable' && (a.balance || 0) > 0).forEach(acc => {
+                    html += `<tr onclick="viewLedger('${acc._id}')" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <td>${acc.name}</td>
+                        <td style="text-align:right;">Rs. ${(acc.balance || 0).toLocaleString()}</td>
+                    </tr>`;
+                    total += (acc.balance || 0);
+                });
+            } else if (type === 'payable') {
+                title.innerText = 'Payables (Tirnu Parne)';
+                accounts.filter(a => a.type === 'Payable' && (a.balance || 0) > 0).forEach(acc => {
+                    html += `<tr onclick="viewLedger('${acc._id}')" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                        <td>${acc.name}</td>
+                        <td style="text-align:right;">Rs. ${(acc.balance || 0).toLocaleString()}</td>
+                    </tr>`;
+                    total += (acc.balance || 0);
+                });
+            } else if (type === 'purchase') {
+                title.innerText = "Today's Purchases (" + todayStr + ")";
+                transactions.filter(tx => tx.date === todayStr && tx.type === 'PURCHASE').forEach(tx => {
+                    html += `<tr><td>${tx.description}</td><td style="text-align:right;">Rs. ${tx.totalAmount.toLocaleString()}</td></tr>`;
+                    total += tx.totalAmount;
+                });
+            }
+
+            if (total === 0) html += `<tr><td colspan="2" style="text-align:center; padding:20px; color:#64748b;">No records found for today.</td></tr>`;
+
+            html += `</tbody><tfoot><tr style="font-weight:bold; background:#f8fafc;"><td>Total</td><td style="text-align:right;">Rs. ${total.toLocaleString()}</td></tr></tfoot></table>`;
+            body.innerHTML = html;
+        };
+
+        window.closeDashDetailModal = function() {
+            document.getElementById('dash-detail-modal').style.display = 'none';
+        };
+
+        window.viewLedger = function(accountId) {
+            closeDashDetailModal();
+            // Store selected account in localStorage for the statement page to pick up
+            localStorage.setItem('selected_ledger_account', accountId);
+            showPage('statement');
+        };
+
         // --- Rendering Logic ---
         function printInvoice(txId) {
             const tx = transactions.find(t => t._id === txId);
@@ -828,20 +974,52 @@
             }
             // Calculate real-time totals from all data
             let cashBank = 0, rec = 0, pay = 0, income = 0, expense = 0;
+            let todaySales = 0;
+            const todayStr = new Date().toISOString().split('T')[0];
 
             accounts.forEach(acc => {
                 const bal = acc.balance || 0;
                 if (acc.type === 'Asset') cashBank += bal;
                 if (acc.type === 'Receivable') rec += bal;
                 if (acc.type === 'Payable') pay += bal;
-                if (acc.type === 'Revenue') income += bal;
-                if (acc.type === 'Expense') expense += bal;
             });
+
+            // Calculate Today's metrics from transactions
+            let todayPur = 0;
+            transactions.forEach(tx => {
+                if (tx.date === todayStr) {
+                    if (tx.type === 'SALES') todaySales += tx.totalAmount;
+                    if (tx.type === 'PURCHASE') todayPur += tx.totalAmount;
+
+                    tx.entries.forEach(e => {
+                        const acc = accounts.find(a => a._id === getAccountId(e.account));
+                        if (acc) {
+                            if (acc.type === 'Revenue') income += (e.credit || 0);
+                            if (acc.type === 'Expense') expense += (e.debit || 0);
+                        }
+                    });
+                }
+            });
+
+            // Calculate Stock Value
+            let stockVal = 0;
+            products.forEach(p => stockVal += (p.currentStock || 0) * (p.purchasePrice || 0));
+
+            // Calculate Net Profit
+            const netProfit = calculateNetProfit();
 
             document.getElementById('dash-cash').innerText = `Rs. ${cashBank.toLocaleString()}`;
             document.getElementById('dash-income').innerText = `Rs. ${income.toLocaleString()}`;
             document.getElementById('dash-expense').innerText = `Rs. ${expense.toLocaleString()}`;
             document.getElementById('dash-rec').innerText = `Rs. ${rec.toLocaleString()}`;
+            document.getElementById('dash-pay').innerText = `Rs. ${pay.toLocaleString()}`;
+            document.getElementById('dash-stock').innerText = `Rs. ${stockVal.toLocaleString()}`;
+            document.getElementById('dash-today-sales').innerText = `Rs. ${todaySales.toLocaleString()}`;
+            document.getElementById('dash-today-pur').innerText = `Rs. ${todayPur.toLocaleString()}`;
+            document.getElementById('dash-profit').innerText = `Rs. ${netProfit.toLocaleString()}`;
+
+            if (netProfit < 0) document.getElementById('dash-profit').style.color = 'var(--danger-color)';
+            else document.getElementById('dash-profit').style.color = 'var(--success-color)';
 
             const recentTbody = document.getElementById('dash-recent-tx');
             recentTbody.innerHTML = transactions.slice(0, 10).map(tx => `
@@ -1096,10 +1274,15 @@
 
         function initStatementPage() {
             const select = document.getElementById('st-account-id');
-            const currentVal = select.value;
             select.innerHTML = '<option value="">-- Choose Account --</option>' +
                 accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-            select.value = currentVal;
+
+            // Check if we navigated from dashboard drill-down
+            const preSelected = localStorage.getItem('selected_ledger_account');
+            if (preSelected) {
+                select.value = preSelected;
+                localStorage.removeItem('selected_ledger_account');
+            }
 
             if (!document.getElementById('st-from').value) {
                 const now = new Date();
@@ -1107,6 +1290,8 @@
                 document.getElementById('st-from').value = firstDay.toISOString().split('T')[0];
                 document.getElementById('st-to').value = now.toISOString().split('T')[0];
             }
+
+            if (select.value) renderStatement();
         }
 
         function renderStatement() {
