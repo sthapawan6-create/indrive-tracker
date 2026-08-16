@@ -140,6 +140,7 @@
             <div class="menu-item" onclick="showPage('profit-loss')"><i class="fas fa-chart-line"></i>Profit & Loss</div>
             <div class="menu-item" onclick="showPage('balance-sheet')"><i class="fas fa-balance-scale"></i>Balance Sheet</div>
             <div class="menu-item" onclick="showPage('vat-report')"><i class="fas fa-file-invoice"></i>VAT Report</div>
+            <div class="menu-item" onclick="showPage('payment-book')"><i class="fas fa-money-bill-wave"></i>Payment Book</div>
             <div class="menu-item" onclick="showPage('statement')"><i class="fas fa-file-alt"></i>Ledger</div>
             <div class="menu-item" onclick="showPage('stock-summary')"><i class="fas fa-warehouse"></i>Stock</div>
             <div class="menu-item" onclick="showPage('settings')"><i class="fas fa-cog"></i>Settings</div>
@@ -433,6 +434,25 @@
                 <tbody id="purchase-book-body"></tbody>
             </table>
         </div>
+        <!-- Payment Book -->
+        <div id="page-payment-book" class="main-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Payment & Receipt Book</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <table id="payment-book-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Account Name</th>
+                        <th>Description</th>
+                        <th style="text-align:right;">Paid (Out)</th>
+                        <th style="text-align:right;">Received (In)</th>
+                    </tr>
+                </thead>
+                <tbody id="payment-book-body"></tbody>
+            </table>
+        </div>
         <!-- Ledger Statement Page -->
         <div id="page-statement" class="main-content">
             <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -455,6 +475,7 @@
                     <label style="font-size:0.8rem; color:#64748b;">To</label>
                     <input type="date" id="st-to" onchange="renderStatement()" style="padding:7px; border:1px solid #ddd; border-radius:6px;">
                 </div>
+                <button class="btn" onclick="printConfirmation()" style="background:#059669;"><i class="fas fa-certificate"></i> Confirmation</button>
             </div>
 
             <div id="statement-print-area" style="background:white; padding:30px; border-radius:12px; border:1px solid var(--border-color);">
@@ -1720,6 +1741,88 @@
                     </p>
                 </div>
             `;
+        }
+
+        function renderPaymentBook() {
+            const tbody = document.getElementById('payment-book-body');
+            if (!tbody) return;
+            const payments = transactions.filter(tx => tx.type === 'JOURNAL' || tx.type === 'PAYMENT' || tx.type === 'RECEIPT');
+
+            tbody.innerHTML = payments.map(tx => {
+                let drAmt = 0;
+                let crAmt = 0;
+                let partyName = "Multiple Accounts";
+
+                tx.entries.forEach(e => {
+                    const acc = accounts.find(a => a._id === getAccountId(e.account));
+                    if (acc && !['Cash', 'Bank'].includes(acc.group) && !acc.name.toLowerCase().includes('cash')) {
+                        partyName = acc.name;
+                    }
+                    drAmt += e.debit || 0;
+                    crAmt += e.credit || 0;
+                });
+
+                return `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>${partyName}</td>
+                        <td>${tx.description}</td>
+                        <td style="text-align:right;">${drAmt > 0 ? drAmt.toFixed(2) : '-'}</td>
+                        <td style="text-align:right;">${crAmt > 0 ? crAmt.toFixed(2) : '-'}</td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='5' style='text-align:center'>No payments recorded.</td></tr>";
+        }
+
+        function printConfirmation() {
+            const accId = document.getElementById('st-account-id').value;
+            if (!accId) return alert("Please select an account first");
+
+            const acc = accounts.find(a => a._id === accId);
+            const balEl = document.getElementById('st-final-bal').innerText;
+            const dateRange = document.getElementById('st-display-date').innerText;
+
+            const printWin = window.open('', '', 'width=800,height=600');
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Balance Confirmation</title>
+                    <style>
+                        body { font-family: 'Inter', sans-serif; padding: 50px; line-height: 1.6; }
+                        .header { text-align: center; margin-bottom: 50px; }
+                        .content { margin-bottom: 50px; }
+                        .footer { margin-top: 100px; display: flex; justify-content: space-between; }
+                        .sign-box { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>PAWAN ELECTRONICS</h1>
+                        <p>New Road, Kathmandu | PAN: 606XXXXXX</p>
+                        <hr>
+                        <h3>BALANCE CONFIRMATION LETTER</h3>
+                    </div>
+                    <div class="content">
+                        <p>Date: ${new Date().toLocaleDateString()}</p>
+                        <p>To,<br><strong>${acc.name}</strong><br>PAN: ${acc.panVat || 'N/A'}</p>
+                        <p>Subject: Confirmation of Balance</p>
+                        <p>Dear Sir/Madam,</p>
+                        <p>Our records show a outstanding balance in your account as of ${new Date().toLocaleDateString()} for the ${dateRange} as follows:</p>
+                        <h2 style="text-align:center; padding:20px; border:1px solid #ddd; background:#f9f9f9;">
+                            Closing Balance: Rs. ${balEl}
+                        </h2>
+                        <p>Please examine the above balance and let us know if it agrees with your records. If there is any discrepancy, please provide us with the details.</p>
+                        <p>If we do not hear from you within 7 days, we will assume that the balance shown above is correct.</p>
+                    </div>
+                    <div class="footer">
+                        <div class="sign-box">Authorized Signature<br>(Pawan Electronics)</div>
+                        <div class="sign-box">Receiver's Signature<br>(${acc.name})</div>
+                    </div>
+                    <script>window.onload = function() { window.print(); window.close(); }</script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
         }
 
         function logout() {
