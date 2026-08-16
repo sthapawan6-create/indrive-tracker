@@ -10,16 +10,16 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
         :root {
-            --primary-color: #2563eb;
-            --secondary-color: #1e293b;
-            --accent-color: #3b82f6;
+            --primary-color: #dc2626;
+            --secondary-color: #7f1d1d;
+            --accent-color: #ef4444;
             --success-color: #10b981;
-            --danger-color: #ef4444;
-            --bg-color: #f8fafc;
+            --danger-color: #991b1b;
+            --bg-color: #fff1f1;
             --sidebar-width: 280px;
-            --border-color: #e2e8f0;
-            --text-main: #334155;
-            --tally-navy: #0f172a;
+            --border-color: #fee2e2;
+            --text-main: #450a0a;
+            --tally-navy: #450a0a;
         }
 
         body {
@@ -96,7 +96,7 @@
             color: #fff;
         }
         .menu-item.active {
-            background: rgba(59, 130, 246, 0.1);
+            background: rgba(220, 38, 38, 0.1);
             color: #fff;
             border-right-color: var(--accent-color);
         }
@@ -232,7 +232,7 @@
             transition: border-color 0.2s;
             background: #fff;
         }
-        input:focus, select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        input:focus, select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1); }
 
         .search-container { position: relative; }
         #goto-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; z-index: 1000; }
@@ -1406,9 +1406,18 @@
                         fetch(`/api/products?userId=${userId}`).catch(() => null)
                     ]);
 
-                    if (accRes && accRes.ok) accounts = await accRes.json();
-                    if (txRes && txRes.ok) transactions = await txRes.json();
-                    if (prodRes && prodRes.ok) products = await prodRes.json();
+                    if (accRes && accRes.ok) {
+                        accounts = await accRes.json();
+                        localStorage.setItem('pawan_accounts', JSON.stringify(accounts));
+                    }
+                    if (txRes && txRes.ok) {
+                        transactions = await txRes.json();
+                        localStorage.setItem('pawan_transactions', JSON.stringify(transactions));
+                    }
+                    if (prodRes && prodRes.ok) {
+                        products = await prodRes.json();
+                        localStorage.setItem('pawan_items', JSON.stringify(products));
+                    }
                 } catch (e) { console.log("Working in offline mode"); }
 
             } catch (err) {
@@ -1569,40 +1578,6 @@
                             <td style="padding:10px; text-align:right; font-weight:bold;">${displayBal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                         </tr>`;
                     }
-        function editTransaction(id) {
-            const tx = transactions.find(t => t._id === id);
-            if(!tx) return;
-
-            if(tx.type === 'INVOICE') {
-                showPage('billing');
-                editingTransactionId = id;
-                document.getElementById('inv-date').value = tx.date;
-                document.getElementById('inv-bill-no').value = tx.billNo || '';
-                document.getElementById('inv-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
-                document.getElementById('inv-ledger-acc').value = tx.entries.find(e => e.credit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
-                document.getElementById('inv-narration').value = tx.description;
-                document.getElementById('inv-discount').value = tx.discountPercent || 0;
-
-                const tbody = document.getElementById('inv-rows');
-                tbody.innerHTML = "";
-                tx.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>
-                            <input type="text" class="inv-item-code" value="${products.find(p => p._id === (item.product?._id || item.product))?.code || ''}" oninput="lookupProductByCode(this, 'inv')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;">
-                        </td>
-                        <td>
-                            <select class="inv-item-select" onchange="updateInvRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
-                                <option value="">-- Select --</option>
-                                ${products.map(p => `<option value="${p._id}" data-code="${p.code || ''}" data-price="${p.salePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="number" class="inv-qty" value="${item.quantity}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
-                        <td><input type="number" class="inv-rate" value="${item.rate}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
-                        <td class="amt inv-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
-                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateInvTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
-                    `;
-                    tbody.appendChild(tr);
                 });
 
                 html += `</tbody><tfoot><tr style="background:#f1f5f9; font-weight:bold;">
@@ -2181,6 +2156,10 @@
             if(res.ok) {
                 alert(editingTransactionId ? "Invoice Updated!" : "Invoice Saved!");
                 editingTransactionId = null;
+
+                // LOCAL RECOVERY CACHE UPDATE
+                localStorage.setItem('pawan_transactions', JSON.stringify(transactions));
+
                 if(confirm("Do you want to PRINT?")) {
                     preparePrint(data, partyName, disc);
                 } else {
@@ -2384,6 +2363,10 @@
                 if (res.ok) {
                     alert("खरिद बिल सुरक्षित भयो!");
                     editingTransactionId = null;
+
+                    // LOCAL RECOVERY CACHE UPDATE
+                    localStorage.setItem('pawan_transactions', JSON.stringify(transactions));
+
                     showPage('dashboard');
                     init();
                 }
@@ -3068,114 +3051,6 @@
             window.scrollTo(0,0);
         }
 
-        function editTransaction(id) {
-            const tx = transactions.find(t => t._id === id);
-            if (!tx) return;
-            editingTransactionId = id;
-
-            if (tx.type === 'INVOICE') {
-                showPage('billing');
-                document.getElementById('inv-date').value = tx.date;
-                document.getElementById('inv-bill-no').value = tx.billNo || '';
-                document.getElementById('inv-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
-                document.getElementById('inv-ledger-acc').value = tx.entries.find(e => e.credit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
-                document.getElementById('inv-narration').value = tx.description;
-                document.getElementById('inv-discount').value = tx.discountPercent || 0;
-                document.getElementById('inv-vat-check').checked = (tx.vatAmount > 0);
-
-                const tbody = document.getElementById('inv-rows');
-                tbody.innerHTML = "";
-                tx.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const p = products.find(prod => prod._id === (item.product?._id || item.product));
-                    tr.innerHTML = `
-                        <td><input type="text" class="inv-item-code" value="${p?.code || ''}" oninput="lookupProductByCode(this, 'inv')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;"></td>
-                        <td>
-                            <select class="inv-item-select" onchange="updateInvRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
-                                <option value="">-- Select --</option>
-                                ${products.map(prod => `<option value="${prod._id}" data-code="${prod.code || ''}" data-price="${prod.salePrice}" ${prod._id === (item.product?._id || item.product) ? 'selected' : ''}>${prod.name}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="number" class="inv-qty" value="${item.quantity}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
-                        <td><input type="number" class="inv-rate" value="${item.rate}" oninput="calculateInvTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
-                        <td class="amt inv-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
-                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculateInvTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                calculateInvTotal();
-            } else if (tx.type === 'PURCHASE') {
-                showPage('purchase');
-                document.getElementById('pur-date').value = tx.date;
-                document.getElementById('pur-bill-no').value = tx.billNo || '';
-                document.getElementById('pur-party-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
-                document.getElementById('pur-ledger-acc').value = tx.entries.find(e => e.debit > 0 && !accounts.find(a => a._id === (e.account?._id || e.account))?.name.toUpperCase().includes('VAT'))?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
-                document.getElementById('pur-narration').value = tx.description;
-                document.getElementById('pur-discount').value = tx.discountPercent || 0;
-                document.getElementById('pur-vat-check').checked = (tx.vatAmount > 0);
-
-                const tbody = document.getElementById('pur-rows');
-                tbody.innerHTML = "";
-                tx.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const p = products.find(prod => prod._id === (item.product?._id || item.product));
-                    tr.innerHTML = `
-                        <td><input type="text" class="pur-item-code" value="${p?.code || ''}" oninput="lookupProductByCode(this, 'pur')" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px;"></td>
-                        <td>
-                            <select class="pur-item-select" onchange="updatePurRowPrice(this)" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; background:white;">
-                                <option value="">-- Select --</option>
-                                ${products.map(prod => `<option value="${prod._id}" data-code="${prod.code || ''}" data-price="${prod.purchasePrice}" ${prod._id === (item.product?._id || item.product) ? 'selected' : ''}>${prod.name}</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="number" class="pur-qty" value="${item.quantity}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:center;"></td>
-                        <td><input type="number" class="pur-rate" value="${item.rate}" oninput="calculatePurTotal()" style="width:100%; border:1px solid #ccc; padding:6px; border-radius:4px; text-align:right;"></td>
-                        <td class="amt pur-row-total" style="padding:8px; text-align:right; font-weight:bold;">${(item.quantity * item.rate).toFixed(2)}</td>
-                        <td style="text-align:center;"><button onclick="this.parentElement.parentElement.remove(); calculatePurTotal();" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:1.1rem;"><i class="fas fa-trash"></i></button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                calculatePurTotal();
-            } else if (tx.type === 'SERVICE') {
-                showPage('service-entry');
-                populateServiceSelects();
-                document.getElementById('ser-date').value = tx.date;
-                document.getElementById('ser-party-acc').value = tx.entries.find(e => e.debit > 0)?.account?._id || tx.entries.find(e => e.debit > 0)?.account;
-                document.getElementById('ser-income-acc').value = tx.entries.find(e => e.credit > 0)?.account?._id || tx.entries.find(e => e.credit > 0)?.account;
-                document.getElementById('ser-desc').value = tx.description.split(" | ")[0];
-                document.getElementById('ser-amount').value = tx.entries.find(e => e.debit > 0)?.debit || 0;
-            } else if (tx.type === 'SALES_RETURN' || tx.type === 'PURCHASE_RETURN') {
-                const prefix = tx.type === 'SALES_RETURN' ? 'sr' : 'pr';
-                showPage(tx.type === 'SALES_RETURN' ? 'sales-return' : 'purchase-return');
-                resetReturnPage(prefix);
-                document.getElementById(`${prefix}-date`).value = tx.date;
-                document.getElementById(`${prefix}-party-acc`).value = tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account?._id || tx.entries.find(e => (tx.type === 'SALES_RETURN' ? e.credit > 0 : e.debit > 0))?.account;
-
-                const tbody = document.getElementById(`${prefix}-rows`);
-                tbody.innerHTML = "";
-                tx.items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>
-                            <select class="item-select" style="width:100%;" onchange="updateReturnRowRate(this)">
-                                <option value="">-- Select Product --</option>
-                                ${products.map(p => `<option value="${p._id}" data-sprice="${p.salePrice}" data-pprice="${p.purchasePrice}" ${p._id === (item.product?._id || item.product) ? 'selected' : ''}>${p.name} [${p.code || ''}]</option>`).join('')}
-                            </select>
-                        </td>
-                        <td><input type="number" class="qty" value="${item.quantity}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:center;"></td>
-                        <td><input type="number" class="rate" value="${item.rate}" oninput="updateReturnTotals('${prefix}')" style="width:100%; text-align:right;"></td>
-                        <td class="amt-cell amt" style="text-align:right;">${(item.quantity * item.rate).toFixed(2)}</td>
-                        <td><button onclick="this.parentElement.parentElement.remove(); updateReturnTotals('${prefix}')" style="color:red; background:none; border:none;">&times;</button></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                updateReturnTotals(prefix);
-            } else if (tx.type === 'JOURNAL') {
-                editVoucher(id);
-            }
-            window.scrollTo(0, 0);
-        }
-
-
         async function deleteTransaction(id) {
             if(!confirm("Are you sure you want to delete this transaction? This will reverse stock and ledger balances.")) return;
             const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
@@ -3554,7 +3429,6 @@
                 const err = await res.json();
                 alert(err.error || "Delete failed");
             }
-        }
         }
 
         // UTILS
