@@ -154,6 +154,23 @@
                 <div class="info-card"><h4>Total Expense</h4><p id="dash-expense" style="color:var(--danger-color);">Rs. 0</p></div>
                 <div class="info-card"><h4>Receivables</h4><p id="dash-rec">Rs. 0</p></div>
             </div>
+
+            <!-- Chart Section -->
+            <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color); margin-bottom: 25px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h4 style="margin:0;">Income vs Expense Analysis</h4>
+                    <select id="chart-timeframe" onchange="renderChart()" style="padding:8px; border-radius:6px; border:1px solid #ddd; outline:none; font-size:0.85rem; cursor:pointer;">
+                        <option value="daily">Last 7 Days (Daily)</option>
+                        <option value="weekly">Last 4 Weeks (Weekly)</option>
+                        <option value="monthly" selected>Current Year (Monthly)</option>
+                        <option value="yearly">Last 5 Years (Yearly)</option>
+                    </select>
+                </div>
+                <div style="height: 320px; position: relative;">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+            </div>
+
             <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
                 <h4>Recent Transactions</h4>
                 <table>
@@ -266,6 +283,7 @@
         let accounts = [];
         let products = [];
         let transactions = [];
+        let dashboardChart = null;
 
         // Helper to handle both string IDs and Mongoose objects
         function getAccountId(acc) {
@@ -312,7 +330,10 @@
                 // Pull all data from API to ensure we have the latest "old data"
                 await Promise.all([loadAccounts(), loadProducts(), loadTransactions()]);
 
-                if(pageId === 'gateway') renderDashboard();
+                if(pageId === 'gateway') {
+                    renderDashboard();
+                    renderChart();
+                }
                 if(pageId === 'accounts') renderAccountsList();
                 if(pageId === 'billing') initBillingForm();
                 if(pageId === 'journal') initJournalForm();
@@ -368,6 +389,144 @@
                     <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
                 </tr>
             `).join('') || "<tr><td colspan='4' style='text-align:center'>No transactions found.</td></tr>";
+        }
+
+        // --- Chart Logic ---
+        function renderChart() {
+            const timeframe = document.getElementById('chart-timeframe').value;
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+
+            if (dashboardChart) dashboardChart.destroy();
+
+            const labels = [];
+            const incomeData = [];
+            const expenseData = [];
+
+            const now = new Date();
+
+            if (timeframe === 'monthly') {
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                months.forEach((m, i) => {
+                    labels.push(m);
+                    let inc = 0, exp = 0;
+                    transactions.forEach(tx => {
+                        const d = new Date(tx.date);
+                        if (d.getFullYear() === now.getFullYear() && d.getMonth() === i) {
+                            tx.entries.forEach(e => {
+                                const acc = accounts.find(a => a._id === getAccountId(e.account));
+                                if (acc) {
+                                    if (acc.type === 'Revenue') inc += (e.credit - e.debit);
+                                    if (acc.type === 'Expense') exp += (e.debit - e.credit);
+                                }
+                            });
+                        }
+                    });
+                    incomeData.push(inc);
+                    expenseData.push(exp);
+                });
+            } else if (timeframe === 'daily') {
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dateStr = d.toISOString().split('T')[0];
+                    labels.push(dateStr);
+                    let inc = 0, exp = 0;
+                    transactions.forEach(tx => {
+                        if (tx.date === dateStr) {
+                            tx.entries.forEach(e => {
+                                const acc = accounts.find(a => a._id === getAccountId(e.account));
+                                if (acc) {
+                                    if (acc.type === 'Revenue') inc += (e.credit - e.debit);
+                                    if (acc.type === 'Expense') exp += (e.debit - e.credit);
+                                }
+                            });
+                        }
+                    });
+                    incomeData.push(inc);
+                    expenseData.push(exp);
+                }
+            } else if (timeframe === 'weekly') {
+                // Last 4 Weeks
+                for (let i = 3; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (i * 7));
+                    labels.push(`Week -${i}`);
+
+                    let inc = 0, exp = 0;
+                    const start = new Date(d);
+                    start.setDate(start.getDate() - 6);
+                    start.setHours(0,0,0,0);
+                    const end = new Date(d);
+                    end.setHours(23,59,59,999);
+
+                    transactions.forEach(tx => {
+                        const txDate = new Date(tx.date);
+                        if (txDate >= start && txDate <= end) {
+                            tx.entries.forEach(e => {
+                                const acc = accounts.find(a => a._id === getAccountId(e.account));
+                                if (acc) {
+                                    if (acc.type === 'Revenue') inc += (e.credit - e.debit);
+                                    if (acc.type === 'Expense') exp += (e.debit - e.credit);
+                                }
+                            });
+                        }
+                    });
+                    incomeData.push(inc);
+                    expenseData.push(exp);
+                }
+            } else if (timeframe === 'yearly') {
+                for (let i = 4; i >= 0; i--) {
+                    const year = now.getFullYear() - i;
+                    labels.push(year.toString());
+                    let inc = 0, exp = 0;
+                    transactions.forEach(tx => {
+                        const d = new Date(tx.date);
+                        if (d.getFullYear() === year) {
+                            tx.entries.forEach(e => {
+                                const acc = accounts.find(a => a._id === getAccountId(e.account));
+                                if (acc) {
+                                    if (acc.type === 'Revenue') inc += (e.credit - e.debit);
+                                    if (acc.type === 'Expense') exp += (e.debit - e.credit);
+                                }
+                            });
+                        }
+                    });
+                    incomeData.push(inc);
+                    expenseData.push(exp);
+                }
+            }
+
+            dashboardChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: incomeData,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Expense',
+                            data: expenseData,
+                            backgroundColor: '#dc2626',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 6 } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: true, color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
         }
 
         function renderAccountsList() {
