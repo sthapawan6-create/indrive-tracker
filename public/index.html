@@ -274,6 +274,40 @@
 
     </div>
 
+    <!-- Account Modal -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 id="modal-title">Add New Account</h3>
+                <span onclick="closeAccountModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            </div>
+            <div style="display:grid; gap:15px;">
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">Account Name</label>
+                    <input type="text" id="acc-name" placeholder="e.g. Ram Prasad / Petrol Expense" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">Account Type (Group)</label>
+                    <select id="acc-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                        <option value="Receivable">Customer (Receivable)</option>
+                        <option value="Payable">Supplier (Payable)</option>
+                        <option value="Expense">Expense (खर्च)</option>
+                        <option value="Asset">Bank/Cash (Asset)</option>
+                        <option value="Revenue">Income (Revenue)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">Opening Balance (Optional)</label>
+                    <input type="number" id="acc-balance" value="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="btn" onclick="saveAccount()" style="flex:1;">Save Account</button>
+                    <button class="btn" onclick="closeAccountModal()" style="background:#64748b; flex:1;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- Global State & Auth ---
         let currentUser = JSON.parse(localStorage.getItem('pawanelex_user'));
@@ -537,10 +571,51 @@
                     <td>${acc.group || acc.type}</td>
                     <td style="font-weight:600; color:${acc.balance < 0 ? 'red' : 'green'}">Rs. ${(acc.balance || 0).toFixed(2)}</td>
                     <td>
-                        <button onclick="alert('Account ID: ${acc._id}')" style="border:none; background:none; color:blue; cursor:pointer;"><i class="fas fa-eye"></i></button>
+                        <button onclick="viewStatement('${acc._id}')" title="Statement" style="border:none; background:none; color:var(--tally-navy); cursor:pointer;"><i class="fas fa-file-invoice"></i></button>
                     </td>
                 </tr>
             `).join('');
+        }
+
+        // --- Account Modal Logic ---
+        function openAccountModal() {
+            document.getElementById('account-modal').style.display = 'block';
+            document.getElementById('acc-name').value = '';
+            document.getElementById('acc-balance').value = '0';
+        }
+
+        function closeAccountModal() {
+            document.getElementById('account-modal').style.display = 'none';
+        }
+
+        async function saveAccount() {
+            const name = document.getElementById('acc-name').value;
+            const type = document.getElementById('acc-type').value;
+            const balance = parseFloat(document.getElementById('acc-balance').value) || 0;
+
+            if (!name) return alert("Please enter account name");
+
+            const accData = {
+                userId: currentUser.uid,
+                name: name,
+                type: type,
+                balance: balance,
+                group: type // Using type as group for simplicity
+            };
+
+            const res = await fetch(`${API_URL}/accounts`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(accData)
+            });
+
+            if (res.ok) {
+                alert("Account Created!");
+                closeAccountModal();
+                refreshData('accounts');
+            } else {
+                alert("Error creating account");
+            }
         }
 
         function renderDayBook() {
