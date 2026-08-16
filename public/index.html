@@ -131,6 +131,10 @@
 
             <div class="menu-title">Reports</div>
             <div class="menu-item" onclick="showPage('sales-book')"><i class="fas fa-list"></i>Sales Book</div>
+            <div class="menu-item" onclick="showPage('purchase-book')"><i class="fas fa-list-ul"></i>Purchase Book</div>
+            <div class="menu-item" onclick="showPage('trial-balance')"><i class="fas fa-scale-balanced"></i>Trial Balance</div>
+            <div class="menu-item" onclick="showPage('profit-loss')"><i class="fas fa-chart-line"></i>Profit & Loss</div>
+            <div class="menu-item" onclick="showPage('balance-sheet')"><i class="fas fa-balance-scale"></i>Balance Sheet</div>
             <div class="menu-item" onclick="showPage('vat-report')"><i class="fas fa-file-invoice"></i>VAT Report</div>
             <div class="menu-item" onclick="showPage('statement')"><i class="fas fa-file-alt"></i>Ledger</div>
             <div class="menu-item" onclick="showPage('stock-summary')"><i class="fas fa-warehouse"></i>Stock</div>
@@ -263,6 +267,86 @@
             </div>
         </div>
 
+        <div class="main-content" id="page-trial-balance">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Trial Balance</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <table id="trial-balance-table">
+                <thead>
+                    <tr><th>Account Name</th><th>Group</th><th style="text-align:right;">Debit (Dr)</th><th style="text-align:right;">Credit (Cr)</th></tr>
+                </thead>
+                <tbody id="trial-balance-body"></tbody>
+                <tfoot>
+                    <tr style="font-weight:bold; background:#f8fafc;">
+                        <td colspan="2" style="text-align:right;">Total:</td>
+                        <td id="tb-total-dr" style="text-align:right;">0.00</td>
+                        <td id="tb-total-cr" style="text-align:right;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="main-content" id="page-profit-loss">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Profit & Loss Account</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div>
+                    <h4>Expenses (Debit)</h4>
+                    <table>
+                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
+                        <tbody id="pl-expenses-body"></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h4>Incomes (Credit)</h4>
+                    <table>
+                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
+                        <tbody id="pl-incomes-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top:20px; padding:15px; background:white; border-radius:8px; border:1px solid var(--border-color); display:flex; justify-content:space-between; font-weight:bold; font-size:1.1rem;">
+                <span>Net Profit / (Loss):</span>
+                <span id="pl-net-result">0.00</span>
+            </div>
+        </div>
+
+        <div class="main-content" id="page-balance-sheet">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Balance Sheet</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div>
+                    <h4>Liabilities & Equity</h4>
+                    <table>
+                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
+                        <tbody id="bs-liabilities-body"></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h4>Assets</h4>
+                    <table>
+                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
+                        <tbody id="bs-assets-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="margin-top:20px; padding:15px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; border:1px solid #ddd;">
+                <div style="width:50%; display:flex; justify-content:space-between; padding-right:20px;">
+                    <span>Total Liabilities:</span>
+                    <span id="bs-total-liabilities">0.00</span>
+                </div>
+                <div style="width:50%; display:flex; justify-content:space-between; padding-left:20px;">
+                    <span>Total Assets:</span>
+                    <span id="bs-total-assets">0.00</span>
+                </div>
+            </div>
+        </div>
+
         <!-- VAT Report -->
         <div id="page-vat-report" class="main-content">
             <h3>VAT Report</h3>
@@ -272,8 +356,36 @@
         </div>
 
         <!-- Placeholder for other pages -->
-        <div id="page-products" class="main-content"><h3>Items Inventory</h3></div>
-        <div id="page-purchase" class="main-content"><h3>Purchase Entry</h3></div>
+        <div id="page-products" class="main-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Items Inventory</h3>
+                <button class="btn" onclick="openProductModal()">+ Add Product</button>
+            </div>
+            <table id="products-table">
+                <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Sale Price</th><th>Stock</th></tr></thead>
+                <tbody id="products-list-body"></tbody>
+            </table>
+        </div>
+
+        <div id="page-purchase" class="main-content">
+            <h3>New Purchase Entry</h3>
+            <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <input type="date" id="pur-date">
+                    <select id="pur-party-acc"><option value="">-- Select Supplier --</option></select>
+                </div>
+                <table id="pur-table">
+                    <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead>
+                    <tbody id="pur-rows"></tbody>
+                </table>
+                <button class="btn" onclick="addPurRow()" style="margin-top:10px;">+ Add Item</button>
+                <div style="text-align:right; margin-top:20px;">
+                    <h4>Total: Rs. <span id="pur-grand-total">0.00</span></h4>
+                    <button class="btn" onclick="savePurchase()">Save Purchase</button>
+                </div>
+            </div>
+        </div>
+
         <div id="page-daybook" class="main-content"><h3>Day Book</h3></div>
         <!-- Sales Book -->
         <div id="page-sales-book" class="main-content">
@@ -286,6 +398,19 @@
                     <tr><th>Date</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Status</th></tr>
                 </thead>
                 <tbody id="sales-book-body"></tbody>
+            </table>
+        </div>
+        <!-- Purchase Book (Added) -->
+        <div id="page-purchase-book" class="main-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Purchase Book (Kharid Khata)</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <table id="purchase-book-table">
+                <thead>
+                    <tr><th>Date</th><th>Vch No</th><th>Supplier</th><th>Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody id="purchase-book-body"></tbody>
             </table>
         </div>
         <!-- Ledger Statement Page -->
@@ -352,11 +477,50 @@
                 </table>
             </div>
         </div>
-        <div id="page-stock-summary" class="main-content"><h3>Stock Summary</h3></div>
+        <div id="page-stock-summary" class="main-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Stock Summary</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
+            </div>
+            <table id="stock-summary-table">
+                <thead>
+                    <tr><th>Item Name</th><th>Category</th><th>In Stock</th><th>Unit</th><th>Purchase Rate</th><th>Stock Value</th></tr>
+                </thead>
+                <tbody id="stock-summary-body"></tbody>
+                <tfoot>
+                    <tr style="font-weight:bold; background:#f8fafc;">
+                        <td colspan="5" style="text-align:right;">Total Inventory Value:</td>
+                        <td id="total-stock-value" style="text-align:right;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div id="page-settings" class="main-content"><h3>System Settings</h3></div>
         <div id="page-settings" class="main-content"><h3>System Settings</h3></div>
 
     </div>
 
+    <!-- Product Modal -->
+    <div id="product-modal" class="modal">
+    <!-- Account Modal -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3>Add New Product</h3>
+                <span onclick="closeProductModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+            </div>
+            <div style="display:grid; gap:15px;">
+                <input type="text" id="prod-name" placeholder="Product Name" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <input type="text" id="prod-category" placeholder="Category (e.g. Mobile, TV)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <input type="number" id="prod-sale-price" placeholder="Sale Price" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    <input type="number" id="prod-purchase-price" placeholder="Purchase Price" style="padding:10px; border:1px solid #ddd; border-radius:6px;">
+                </div>
+                <input type="number" id="prod-stock" placeholder="Opening Stock" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <button class="btn" onclick="saveProduct()">Save Product</button>
+            </div>
+        </div>
+    </div>
     <!-- Account Modal -->
     <div id="account-modal" class="modal">
         <div class="modal-content">
@@ -377,6 +541,7 @@
                         <option value="Expense">Expense (खर्च)</option>
                         <option value="Asset">Bank/Cash (Asset)</option>
                         <option value="Revenue">Income (Revenue)</option>
+                        <option value="Equity">Equity/Capital (पुँजी)</option>
                     </select>
                 </div>
                 <div>
@@ -452,11 +617,18 @@
                     renderChart();
                 }
                 if(pageId === 'accounts') renderAccountsList();
+                if(pageId === 'products') renderProductsList();
                 if(pageId === 'billing') initBillingForm();
+                if(pageId === 'purchase') initPurchaseForm();
                 if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
                 if(pageId === 'statement') initStatementPage();
                 if(pageId === 'sales-book') renderSalesBook();
+                if(pageId === 'purchase-book') renderPurchaseBook();
+                if(pageId === 'stock-summary') renderStockSummary();
+                if(pageId === 'trial-balance') renderTrialBalance();
+                if(pageId === 'profit-loss') renderProfitLoss();
+                if(pageId === 'balance-sheet') renderBalanceSheet();
             } catch (err) {
                 console.error("Data Load Error:", err);
             }
@@ -684,8 +856,9 @@
                 userId: currentUser.uid,
                 name: name,
                 type: type,
+                openingBalance: balance, // Changed from balance to openingBalance
                 balance: balance,
-                group: type // Using type as group for simplicity
+                group: type
             };
 
             const res = await fetch(`${API_URL}/accounts`, {
@@ -738,30 +911,48 @@
             document.getElementById('st-display-type').innerText = `Group: ${acc.group || acc.type}`;
             document.getElementById('st-display-date').innerText = `Period: ${fromDate} to ${toDate}`;
 
-            // Filter transactions involving this account
-            const filteredTx = transactions.filter(tx => {
+            // 1. Calculate Opening Balance before 'fromDate'
+            let openingBal = acc.openingBalance || 0;
+            const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
+
+            transactions.forEach(tx => {
+                if (tx.date < fromDate) {
+                    const entry = tx.entries.find(e => getAccountId(e.account) === accId);
+                    if (entry) {
+                        const dr = entry.debit || 0;
+                        const cr = entry.credit || 0;
+                        if (isDebitNature) openingBal += (dr - cr);
+                        else openingBal += (cr - dr);
+                    }
+                }
+            });
+
+            // 2. Filter transactions for the selected period
+            const periodTx = transactions.filter(tx => {
                 const hasAcc = tx.entries.some(e => getAccountId(e.account) === accId);
                 return hasAcc && tx.date >= fromDate && tx.date <= toDate;
             }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
-            let runningBal = acc.openingBalance || 0; // Assuming openingBalance exists, or use 0
+            let runningBal = openingBal;
             let totalDr = 0, totalCr = 0;
 
             const tbody = document.getElementById('st-tbody');
-            tbody.innerHTML = filteredTx.map(tx => {
-                // Find the specific entry for this account in the transaction
+            let rows = `
+                <tr style="background:#f1f5f9; font-weight:600;">
+                    <td colspan="3">Opening Balance (B/F)</td>
+                    <td style="text-align:right;">-</td>
+                    <td style="text-align:right;">-</td>
+                    <td style="text-align:right;">${Math.abs(openingBal).toFixed(2)} ${openingBal >= 0 ? 'Dr' : 'Cr'}</td>
+                </tr>
+            `;
+
+            rows += periodTx.map(tx => {
                 const entry = tx.entries.find(e => getAccountId(e.account) === accId);
                 const dr = entry.debit || 0;
                 const cr = entry.credit || 0;
 
-                // Asset/Expense: Dr increases, Cr decreases
-                // Liability/Income/Equity: Cr increases, Dr decreases
-                const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
-                if (isDebitNature) {
-                    runningBal += (dr - cr);
-                } else {
-                    runningBal += (cr - dr);
-                }
+                if (isDebitNature) runningBal += (dr - cr);
+                else runningBal += (cr - dr);
 
                 totalDr += dr;
                 totalCr += cr;
@@ -770,17 +961,36 @@
                     <tr>
                         <td>${tx.date}</td>
                         <td>${tx.description}</td>
-                        <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 5px; border-radius:4px;">${tx.type}</span></td>
+                        <td><span style="font-size:0.75rem; border:1px solid #ddd; padding:1px 4px; border-radius:3px;">${tx.type}</span></td>
                         <td style="text-align:right;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
                         <td style="text-align:right;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
-                        <td style="text-align:right; font-weight:600;">${runningBal.toFixed(2)} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td>
+                        <td style="text-align:right; font-weight:600;">${Math.abs(runningBal).toFixed(2)} ${runningBal >= 0 ? 'Dr' : 'Cr'}</td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='6' style='text-align:center; padding:20px;'>No transactions found for this period.</td></tr>";
+            }).join('');
 
+            tbody.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:20px;'>No transactions found.</td></tr>";
             document.getElementById('st-total-dr').innerText = totalDr.toFixed(2);
             document.getElementById('st-total-cr').innerText = totalCr.toFixed(2);
-            document.getElementById('st-final-bal').innerText = runningBal.toFixed(2);
+            document.getElementById('st-final-bal').innerText = Math.abs(runningBal).toFixed(2) + (runningBal >= 0 ? ' Dr' : ' Cr');
+        }
+
+        function renderSalesBook() {
+            const tbody = document.getElementById('sales-book-body');
+            const sales = transactions.filter(tx => tx.type === 'SALES');
+            tbody.innerHTML = sales.map(tx => {
+                const drEntry = tx.entries.find(e => (e.debit > 0));
+                const customer = accounts.find(a => a._id === getAccountId(drEntry?.account));
+                return `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>#${tx._id.slice(-6).toUpperCase()}</td>
+                        <td>${customer ? customer.name : 'Cash Sale'}</td>
+                        <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
+                        <td><span style="color:green; font-size:0.7rem; font-weight:bold;">COMPLETED</span></td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='5' style='text-align:center'>No sales recorded.</td></tr>";
         }
 
         function renderDayBook() {
@@ -995,6 +1205,303 @@
                 showPage('daybook');
             } else {
                 alert("Error saving journal");
+            }
+        }
+
+        function renderProductsList() {
+            const tbody = document.getElementById('products-list-body');
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td>${p.code || '-'}</td>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td style="text-align:right;">Rs. ${(p.salePrice || 0).toFixed(2)}</td>
+                    <td style="font-weight:600; text-align:right; color:${p.currentStock <= 0 ? 'red' : 'inherit'}">${p.currentStock || 0} ${p.unit || 'Pcs'}</td>
+                </tr>
+            `).join('') || "<tr><td colspan='5' style='text-align:center'>No products found.</td></tr>";
+        }
+
+        function openProductModal() { document.getElementById('product-modal').style.display = 'block'; }
+        function closeProductModal() { document.getElementById('product-modal').style.display = 'none'; }
+
+        async function saveProduct() {
+            const name = document.getElementById('prod-name').value;
+            const cat = document.getElementById('prod-category').value;
+            const sp = parseFloat(document.getElementById('prod-sale-price').value) || 0;
+            const pp = parseFloat(document.getElementById('prod-purchase-price').value) || 0;
+            const stock = parseFloat(document.getElementById('prod-stock').value) || 0;
+
+            if(!name) return alert("Product name required");
+
+            const res = await fetch(`${API_URL}/products`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: currentUser.uid, name, category: cat, salePrice: sp, purchasePrice: pp, openingStock: stock })
+            });
+
+            if(res.ok) {
+                alert("Product Added");
+                closeProductModal();
+                refreshData('products');
+            }
+        }
+
+        // --- Purchase ---
+        function initPurchaseForm() {
+            const partySelect = document.getElementById('pur-party-acc');
+            partySelect.innerHTML = '<option value="">-- Select Supplier --</option>' +
+                accounts.filter(a => a.type === 'Payable' || a.type === 'Asset').map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+
+            document.getElementById('pur-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('pur-rows').innerHTML = '';
+            addPurRow();
+        }
+
+        function addPurRow() {
+            const tbody = document.getElementById('pur-rows');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <select class="row-prod" onchange="updatePurPrice(this)" style="width:100%; padding:5px; border:1px solid #ddd;">
+                        <option value="">Select Item</option>
+                        ${products.map(p => `<option value="${p._id}" data-price="${p.purchasePrice}">${p.name}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="row-qty" value="1" oninput="calcPurTotal()" style="width:60px; padding:5px;"></td>
+                <td><input type="number" class="row-rate" value="0" oninput="calcPurTotal()" style="width:100px; padding:5px;"></td>
+                <td class="row-total" style="text-align:right; font-weight:600;">0.00</td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function updatePurPrice(select) {
+            const price = select.options[select.selectedIndex].dataset.price;
+            select.closest('tr').querySelector('.row-rate').value = price || 0;
+            calcPurTotal();
+        }
+
+        function calcPurTotal() {
+            let grandTotal = 0;
+            document.querySelectorAll('#pur-rows tr').forEach(row => {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.row-rate').value) || 0;
+                const total = qty * rate;
+                row.querySelector('.row-total').innerText = total.toFixed(2);
+                grandTotal += total;
+            });
+            document.getElementById('pur-grand-total').innerText = grandTotal.toFixed(2);
+        }
+
+        async function savePurchase() {
+            const partyId = document.getElementById('pur-party-acc').value;
+            const date = document.getElementById('pur-date').value;
+            const total = parseFloat(document.getElementById('pur-grand-total').innerText);
+
+            if(!partyId || total <= 0) return alert("Details missing");
+
+            const items = [];
+            document.querySelectorAll('#pur-rows tr').forEach(row => {
+                const pId = row.querySelector('.row-prod').value;
+                if(pId) {
+                    items.push({
+                        product: pId,
+                        quantity: parseFloat(row.querySelector('.row-qty').value),
+                        rate: parseFloat(row.querySelector('.row-rate').value)
+                    });
+                }
+            });
+
+            const purchaseAcc = accounts.find(a => a.name.toLowerCase().includes('purchase')) || accounts.find(a => a.type === 'Expense');
+
+            const txData = {
+                userId: currentUser.uid,
+                date,
+                description: "Purchase Entry",
+                type: 'PURCHASE',
+                totalAmount: total,
+                items: items,
+                entries: [
+                    { account: partyId, debit: 0, credit: total },
+                    { account: purchaseAcc ? purchaseAcc._id : null, debit: total, credit: 0 }
+                ]
+            };
+
+            const res = await fetch(`${API_URL}/transactions`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(txData)
+            });
+
+            if(res.ok) {
+                alert("Purchase Saved!");
+                showPage('gateway');
+            }
+        }
+
+        function renderPurchaseBook() {
+            const tbody = document.getElementById('purchase-book-body');
+            const purchases = transactions.filter(tx => tx.type === 'PURCHASE');
+            tbody.innerHTML = purchases.map(tx => {
+                const crEntry = tx.entries.find(e => (e.credit > 0));
+                const supplier = accounts.find(a => a._id === getAccountId(crEntry?.account));
+                return `
+                    <tr>
+                        <td>${tx.date}</td>
+                        <td>#${tx._id.slice(-6).toUpperCase()}</td>
+                        <td>${supplier ? supplier.name : 'Cash Purchase'}</td>
+                        <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
+                        <td><span style="color:blue; font-size:0.7rem; font-weight:bold;">RECEIVED</span></td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='5' style='text-align:center'>No purchases recorded.</td></tr>";
+        }
+
+        function renderStockSummary() {
+            const tbody = document.getElementById('stock-summary-body');
+            let totalVal = 0;
+            tbody.innerHTML = products.map(p => {
+                const val = (p.currentStock || 0) * (p.purchasePrice || 0);
+                totalVal += val;
+                return `
+                    <tr>
+                        <td>${p.name}</td>
+                        <td>${p.category}</td>
+                        <td style="text-align:right;">${p.currentStock || 0}</td>
+                        <td>${p.unit || 'Pcs'}</td>
+                        <td style="text-align:right;">${(p.purchasePrice || 0).toFixed(2)}</td>
+                        <td style="text-align:right; font-weight:600;">${val.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='6' style='text-align:center'>Empty Inventory.</td></tr>";
+            document.getElementById('total-stock-value').innerText = totalVal.toFixed(2);
+        }
+
+        function renderTrialBalance() {
+            const tbody = document.getElementById('trial-balance-body');
+            let totalDr = 0;
+            let totalCr = 0;
+
+            tbody.innerHTML = accounts.map(acc => {
+                const bal = acc.balance || 0;
+                let dr = 0, cr = 0;
+
+                // Logic: Asset/Expense/Receivable are Debit nature
+                // Revenue/Payable are Credit nature
+                const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
+
+                if (isDebitNature) {
+                    if (bal >= 0) dr = bal;
+                    else cr = Math.abs(bal);
+                } else {
+                    if (bal >= 0) cr = bal;
+                    else dr = Math.abs(bal);
+                }
+
+                totalDr += dr;
+                totalCr += cr;
+
+                if (dr === 0 && cr === 0) return ''; // Skip zero balance accounts
+
+                return `
+                    <tr>
+                        <td>${acc.name}</td>
+                        <td>${acc.group || acc.type}</td>
+                        <td style="text-align:right;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
+                        <td style="text-align:right;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('tb-total-dr').innerText = totalDr.toFixed(2);
+            document.getElementById('tb-total-cr').innerText = totalCr.toFixed(2);
+        }
+
+        function calculateNetProfit() {
+            const totalExp = accounts.filter(a => a.type === 'Expense').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+            const totalInc = accounts.filter(a => a.type === 'Revenue').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+            let stockVal = 0;
+            products.forEach(p => stockVal += (p.currentStock || 0) * (p.purchasePrice || 0));
+            return (totalInc + stockVal) - totalExp;
+        }
+
+        function renderProfitLoss() {
+            const expBody = document.getElementById('pl-expenses-body');
+            const incBody = document.getElementById('pl-incomes-body');
+
+            let totalExp = 0;
+            let totalInc = 0;
+
+            const expenses = accounts.filter(a => a.type === 'Expense');
+            const revenues = accounts.filter(a => a.type === 'Revenue');
+
+            expBody.innerHTML = expenses.map(acc => {
+                const bal = Math.abs(acc.balance || 0);
+                totalExp += bal;
+                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
+            }).join('') || "<tr><td colspan='2'>No expenses found</td></tr>";
+
+            incBody.innerHTML = revenues.map(acc => {
+                const bal = Math.abs(acc.balance || 0);
+                totalInc += bal;
+                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
+            }).join('') || "<tr><td colspan='2'>No revenues found</td></tr>";
+
+            // Add Closing Stock to P&L
+            let stockVal = 0;
+            products.forEach(p => stockVal += (p.currentStock || 0) * (p.purchasePrice || 0));
+            if (stockVal > 0) {
+                incBody.innerHTML += `<tr style="font-weight:600; color:var(--success-color);"><td>Closing Stock</td><td style="text-align:right;">${stockVal.toFixed(2)}</td></tr>`;
+                totalInc += stockVal;
+            }
+
+            const net = totalInc - totalExp;
+            const netEl = document.getElementById('pl-net-result');
+            netEl.innerText = `${Math.abs(net).toFixed(2)} ${net >= 0 ? '(Net Profit)' : '(Net Loss)'}`;
+            netEl.style.color = net >= 0 ? 'green' : 'red';
+        }
+
+        function renderBalanceSheet() {
+            const assetBody = document.getElementById('bs-assets-body');
+            const liabBody = document.getElementById('bs-liabilities-body');
+
+            let totalAssets = 0;
+            let totalLiab = 0;
+
+            const assets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type));
+            const liabilities = accounts.filter(a => ['Payable', 'Equity'].includes(a.type));
+
+            const netProfit = calculateNetProfit();
+
+            assetBody.innerHTML = assets.map(acc => {
+                const bal = Math.abs(acc.balance || 0);
+                totalAssets += bal;
+                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
+            }).join('');
+
+            // Add Closing Stock to Assets
+            let stockVal = 0;
+            products.forEach(p => stockVal += (p.currentStock || 0) * (p.purchasePrice || 0));
+            if (stockVal > 0) {
+                assetBody.innerHTML += `<tr><td style="font-weight:600;">Closing Stock (Inventory)</td><td style="text-align:right; font-weight:600;">${stockVal.toFixed(2)}</td></tr>`;
+                totalAssets += stockVal;
+            }
+
+            liabBody.innerHTML = liabilities.map(acc => {
+                const bal = Math.abs(acc.balance || 0);
+                totalLiab += bal;
+                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
+            }).join('');
+
+            // Add Net Profit to Liabilities/Equity
+            liabBody.innerHTML += `<tr><td style="font-weight:600;">Net Profit for the Period</td><td style="text-align:right; font-weight:600; color:${netProfit >= 0 ? 'green' : 'red'};">${netProfit.toFixed(2)}</td></tr>`;
+            totalLiab += netProfit;
+
+            document.getElementById('bs-total-assets').innerText = totalAssets.toFixed(2);
+            document.getElementById('bs-total-liabilities').innerText = totalLiab.toFixed(2);
+
+            const diff = Math.abs(totalAssets - totalLiab);
+            if (diff > 0.1) {
+                console.warn("Balance Sheet out of balance by:", diff);
             }
         }
 
