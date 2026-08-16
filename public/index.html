@@ -397,12 +397,20 @@
             </div>
             <table id="sales-book-table">
                 <thead>
-                    <tr><th>Date</th><th>Bill No</th><th>Customer</th><th>Amount</th><th>Status</th></tr>
+                    <tr>
+                        <th>Date</th>
+                        <th>Bill No</th>
+                        <th>Customer / PAN</th>
+                        <th style="text-align:right;">Taxable</th>
+                        <th style="text-align:right;">VAT (13%)</th>
+                        <th style="text-align:right;">Total</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
                 </thead>
                 <tbody id="sales-book-body"></tbody>
             </table>
         </div>
-        <!-- Purchase Book (Added) -->
+        <!-- Purchase Book -->
         <div id="page-purchase-book" class="main-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                 <h3>Purchase Book (Kharid Khata)</h3>
@@ -410,7 +418,15 @@
             </div>
             <table id="purchase-book-table">
                 <thead>
-                    <tr><th>Date</th><th>Vch No</th><th>Supplier</th><th>Amount</th><th>Status</th></tr>
+                    <tr>
+                        <th>Date</th>
+                        <th>Bill No</th>
+                        <th>Supplier / PAN</th>
+                        <th style="text-align:right;">Taxable</th>
+                        <th style="text-align:right;">VAT (13%)</th>
+                        <th style="text-align:right;">Total</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
                 </thead>
                 <tbody id="purchase-book-body"></tbody>
             </table>
@@ -549,6 +565,10 @@
                 <div>
                     <label style="font-size:0.8rem; color:#64748b;">Opening Balance (Optional)</label>
                     <input type="number" id="acc-balance" value="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:#64748b;">PAN / VAT Number</label>
+                    <input type="text" id="acc-pan" placeholder="9-digit PAN" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
                 </div>
                 <div style="display:flex; gap:10px; margin-top:10px;">
                     <button class="btn" onclick="saveAccount()" style="flex:1;">Save Account</button>
@@ -826,7 +846,10 @@
             const tbody = document.getElementById('accounts-list-body');
             tbody.innerHTML = accounts.map(acc => `
                 <tr>
-                    <td>${acc.name}</td>
+                    <td>
+                        <div style="font-weight:600;">${acc.name}</div>
+                        <div style="font-size:0.75rem; color:#64748b;">PAN: ${acc.panVat || '-'}</div>
+                    </td>
                     <td>${acc.group || acc.type}</td>
                     <td style="font-weight:600; color:${acc.balance < 0 ? 'red' : 'green'}">Rs. ${(acc.balance || 0).toFixed(2)}</td>
                     <td>
@@ -849,6 +872,7 @@
             document.getElementById('acc-name').value = acc.name;
             document.getElementById('acc-type').value = acc.type;
             document.getElementById('acc-balance').value = acc.openingBalance || 0;
+            document.getElementById('acc-pan').value = acc.panVat || '';
             document.getElementById('account-modal').style.display = 'block';
         }
 
@@ -881,6 +905,7 @@
             const name = document.getElementById('acc-name').value;
             const type = document.getElementById('acc-type').value;
             const balance = parseFloat(document.getElementById('acc-balance').value) || 0;
+            const pan = document.getElementById('acc-pan').value;
 
             if (!name) return alert("Please enter account name");
 
@@ -889,6 +914,7 @@
                 name: name,
                 type: type,
                 openingBalance: balance,
+                panVat: pan,
                 group: type
             };
 
@@ -1015,12 +1041,18 @@
             tbody.innerHTML = sales.map(tx => {
                 const drEntry = tx.entries.find(e => (e.debit > 0));
                 const customer = accounts.find(a => a._id === getAccountId(drEntry?.account));
+                const total = getTxAmount(tx);
+                const taxable = total / 1.13;
+                const vat = total - taxable;
+
                 return `
                     <tr>
                         <td>${tx.date}</td>
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
-                        <td>${customer ? customer.name : 'Cash Sale'}</td>
-                        <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
+                        <td>${customer ? customer.name : 'Cash Sale'}<br><small>PAN: ${customer?.panVat || '-'}</small></td>
+                        <td style="text-align:right;">${taxable.toFixed(2)}</td>
+                        <td style="text-align:right;">${vat.toFixed(2)}</td>
+                        <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td>
                             <div style="display:flex; gap:10px; align-items:center;">
                                 <span style="color:green; font-size:0.7rem; font-weight:bold;">COMPLETED</span>
@@ -1029,7 +1061,7 @@
                         </td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='5' style='text-align:center'>No sales recorded.</td></tr>";
+            }).join('') || "<tr><td colspan='7' style='text-align:center'>No sales recorded.</td></tr>";
         }
 
         function renderDayBook() {
@@ -1437,12 +1469,18 @@
             tbody.innerHTML = purchases.map(tx => {
                 const crEntry = tx.entries.find(e => (e.credit > 0));
                 const supplier = accounts.find(a => a._id === getAccountId(crEntry?.account));
+                const total = getTxAmount(tx);
+                const taxable = total / 1.13;
+                const vat = total - taxable;
+
                 return `
                     <tr>
                         <td>${tx.date}</td>
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
-                        <td>${supplier ? supplier.name : 'Cash Purchase'}</td>
-                        <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
+                        <td>${supplier ? supplier.name : 'Cash Purchase'}<br><small>PAN: ${supplier?.panVat || '-'}</small></td>
+                        <td style="text-align:right;">${taxable.toFixed(2)}</td>
+                        <td style="text-align:right;">${vat.toFixed(2)}</td>
+                        <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td>
                             <div style="display:flex; gap:10px; align-items:center;">
                                 <span style="color:blue; font-size:0.7rem; font-weight:bold;">RECEIVED</span>
@@ -1451,7 +1489,7 @@
                         </td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='5' style='text-align:center'>No purchases recorded.</td></tr>";
+            }).join('') || "<tr><td colspan='7' style='text-align:center'>No purchases recorded.</td></tr>";
         }
 
         function renderStockSummary() {
@@ -1607,6 +1645,58 @@
             if (diff > 0.1) {
                 console.warn("Balance Sheet out of balance by:", diff);
             }
+        }
+
+        function renderVatReport() {
+            const container = document.getElementById('vat-report-content');
+            const sales = transactions.filter(tx => tx.type === 'SALES');
+            const purchases = transactions.filter(tx => tx.type === 'PURCHASE');
+
+            const totalSales = sales.reduce((sum, tx) => sum + getTxAmount(tx), 0);
+            const salesTaxable = totalSales / 1.13;
+            const outputVat = totalSales - salesTaxable;
+
+            const totalPurchases = purchases.reduce((sum, tx) => sum + getTxAmount(tx), 0);
+            const purchaseTaxable = totalPurchases / 1.13;
+            const inputVat = totalPurchases - purchaseTaxable;
+
+            const netVat = outputVat - inputVat;
+
+            container.innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px;">
+                    <div style="padding:20px; border:1px solid #e2e8f0; border-radius:10px;">
+                        <h4 style="margin-top:0; color:#dc2626;">Sales VAT (Output)</h4>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span>Taxable Sales:</span>
+                            <span>Rs. ${salesTaxable.toFixed(2)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                            <span>Output VAT (13%):</span>
+                            <span>Rs. ${outputVat.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div style="padding:20px; border:1px solid #e2e8f0; border-radius:10px;">
+                        <h4 style="margin-top:0; color:#2563eb;">Purchase VAT (Input)</h4>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span>Taxable Purchase:</span>
+                            <span>Rs. ${purchaseTaxable.toFixed(2)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                            <span>Input VAT (13%):</span>
+                            <span>Rs. ${inputVat.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:30px; padding:25px; background:#f8fafc; border-radius:10px; border:2px solid ${netVat >= 0 ? '#10b981' : '#dc2626'};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0;">${netVat >= 0 ? 'VAT Payable to Government' : 'VAT Receivable (Credit)'}</h3>
+                        <h2 style="margin:0; color:${netVat >= 0 ? '#10b981' : '#dc2626'};">Rs. ${Math.abs(netVat).toFixed(2)}</h2>
+                    </div>
+                    <p style="margin:10px 0 0; font-size:0.9rem; color:#64748b;">
+                        * Note: This calculation assumes a flat 13% VAT on all recorded sales and purchases.
+                    </p>
+                </div>
+            `;
         }
 
         function logout() {
