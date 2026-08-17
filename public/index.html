@@ -508,19 +508,47 @@
         </div>
 
         <div id="page-daybook" class="main-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h3>Day Book</h3>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="daybook-search" oninput="renderDayBook()" placeholder="Search transactions..." style="padding:5px; border-radius:4px; border:1px solid #ddd; width: 200px;">
-                    <button class="btn" onclick="window.print()">Print Report</button>
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3>Day Book (Dainik Khata)</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text" id="daybook-search" oninput="renderDayBook()" placeholder="Search..." style="padding:8px; border-radius:6px; border:1px solid #ddd; width: 180px;">
+                    <div style="display:flex; align-items:center; gap:5px; background:white; padding:5px 10px; border-radius:6px; border:1px solid #ddd;">
+                        <span style="font-size:0.8rem; color:#64748b;">From:</span>
+                        <input type="date" id="daybook-from" onchange="renderDayBook()" style="border:none; outline:none; font-size:0.85rem;">
+                        <span style="font-size:0.8rem; color:#64748b; margin-left:5px;">To:</span>
+                        <input type="date" id="daybook-to" onchange="renderDayBook()" style="border:none; outline:none; font-size:0.85rem;">
+                    </div>
+                    <button class="btn" onclick="window.print()" style="background:#1e293b;"><i class="fas fa-print"></i> Print</button>
                 </div>
             </div>
-            <table id="daybook-table">
-                <thead>
-                    <tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right;">Amount</th><th class="no-print">Action</th></tr>
-                </thead>
-                <tbody id="daybook-body"></tbody>
-            </table>
+
+            <div id="daybook-print-area" style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                <div class="report-header only-print">
+                    <h2 style="text-align:center; margin:0;">PAWAN ELECTRONICS</h2>
+                    <p style="text-align:center; margin:5px 0;">Day Book Report</p>
+                    <hr>
+                </div>
+
+                <table id="daybook-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description / Party</th>
+                            <th>Type</th>
+                            <th style="text-align:right;">Amount (Rs.)</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="daybook-body"></tbody>
+                    <tfoot>
+                        <tr style="background:#f8fafc; font-weight:700;">
+                            <td colspan="3" style="text-align:right;">Total Transactions Value:</td>
+                            <td id="daybook-total-amount" style="text-align:right;">0.00</td>
+                            <td class="no-print"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         </div>
         <!-- Sales Book -->
         <div id="page-sales-book" class="main-content">
@@ -603,14 +631,17 @@
                 <button class="btn" onclick="window.print()" style="background:#1e293b;"><i class="fas fa-print"></i> Print PDF</button>
             </div>
 
-            <div class="no-print" style="background:white; padding:15px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:20px; display:flex; gap:15px; align-items:flex-end;">
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem; color:#64748b;">Select Account</label>
-                    <select id="st-account-id" onchange="renderStatement()" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        <option value="">-- Choose Account --</option>
-                    </select>
+            <div class="no-print" style="background:white; padding:15px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:20px; display:flex; gap:15px; align-items:flex-end; flex-wrap: wrap;">
+                <div style="flex:2; min-width: 250px; position:relative;">
+                    <label style="font-size:0.8rem; color:#64748b;">Search & Select Account</label>
+                    <input type="text" id="st-account-search" placeholder="Type account name..."
+                        style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; outline:none;"
+                        oninput="filterLedgerAccounts(this.value)"
+                        onfocus="document.getElementById('st-account-results').style.display='block'">
+                    <div id="st-account-results" style="display:none; position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ddd; border-radius:6px; z-index:100; max-height:200px; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+                    <input type="hidden" id="st-account-id">
                 </div>
-                <div>
+                <div style="flex:1; min-width: 120px;">
                     <label style="font-size:0.8rem; color:#64748b;">From</label>
                     <input type="date" id="st-from" onchange="renderStatement()" style="padding:7px; border:1px solid #ddd; border-radius:6px;">
                 </div>
@@ -1741,28 +1772,68 @@
         function renderDayBook() {
             const tbody = document.getElementById('daybook-body');
             if (!tbody) return;
-            const search = document.getElementById('daybook-search').value.toLowerCase();
 
-            let filtered = transactions;
-            if (search) {
-                filtered = transactions.filter(tx =>
-                    tx.description.toLowerCase().includes(search) ||
-                    tx.type.toLowerCase().includes(search) ||
-                    tx._id.slice(-6).toLowerCase().includes(search)
-                );
+            const search = document.getElementById('daybook-search').value.toLowerCase();
+            const fromDate = document.getElementById('daybook-from').value;
+            const toDate = document.getElementById('daybook-to').value;
+
+            // Set default dates if empty (today)
+            if (!document.getElementById('daybook-from').value) {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('daybook-from').value = today;
+                document.getElementById('daybook-to').value = today;
             }
 
-            tbody.innerHTML = filtered.map(tx => `
-                <tr>
-                    <td>${formatDate(tx.date)}</td>
-                    <td>${tx.description}</td>
-                    <td><span style="font-size:0.7rem; padding:2px 6px; border-radius:4px; background:#e2e8f0;">${tx.type}</span></td>
-                    <td style="text-align:right; font-weight:600;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
-                    <td class="no-print">
-                        <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
-            `).join('') || "<tr><td colspan='5' style='text-align:center'>No transactions found.</td></tr>";
+            let filtered = transactions.filter(tx => {
+                const matchesSearch = tx.description.toLowerCase().includes(search) ||
+                                    tx.type.toLowerCase().includes(search) ||
+                                    tx._id.slice(-6).toLowerCase().includes(search);
+
+                const matchesDate = (!fromDate || tx.date >= fromDate) &&
+                                   (!toDate || tx.date <= toDate);
+
+                return matchesSearch && matchesDate;
+            });
+
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            let totalAmt = 0;
+            tbody.innerHTML = filtered.map(tx => {
+                const amt = getTxAmount(tx);
+                totalAmt += amt;
+
+                let typeColor = '#64748b';
+                let typeBg = '#f1f5f9';
+
+                if (tx.type === 'SALES') { typeColor = '#065f46'; typeBg = '#dcfce7'; }
+                else if (tx.type === 'PURCHASE') { typeColor = '#991b1b'; typeBg = '#fee2e2'; }
+                else if (tx.type === 'PAYMENT') { typeColor = '#854d0e'; typeBg = '#fef3c7'; }
+                else if (tx.type === 'RECEIPT') { typeColor = '#1e40af'; typeBg = '#dbeafe'; }
+
+                return `
+                    <tr>
+                        <td>${formatDate(tx.date)}</td>
+                        <td style="font-weight:500;">
+                            ${tx.description}
+                            <div style="font-size:0.7rem; color:#94a3b8;">ID: #${tx._id.slice(-6).toUpperCase()}</div>
+                        </td>
+                        <td>
+                            <span style="font-size:0.7rem; font-weight:700; padding:3px 8px; border-radius:12px; color:${typeColor}; background:${typeBg}; border:1px solid rgba(0,0,0,0.05);">
+                                ${tx.type}
+                            </span>
+                        </td>
+                        <td style="text-align:right; font-weight:600; color:var(--tally-navy);">Rs. ${amt.toFixed(2)}</td>
+                        <td class="no-print">
+                            <div style="display:flex; gap:8px;">
+                                ${tx.type === 'SALES' ? `<button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-print"></i></button>` : ''}
+                                <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='5' style='text-align:center; padding:30px; color:#64748b;'>No transactions found for the selected period.</td></tr>";
+
+            document.getElementById('daybook-total-amount').innerText = `Rs. ${totalAmt.toFixed(2)}`;
         }
 
         async function deleteTx(id) {
@@ -2769,6 +2840,32 @@
                 document.getElementById('search-results').style.display = 'none';
             }
         });
+
+        // Ledger Account Search
+        function filterLedgerAccounts(query) {
+            const resultsDiv = document.getElementById('st-account-results');
+            if (!query) {
+                resultsDiv.innerHTML = accounts.map(acc => `
+                    <div style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #eee;" onclick="selectLedgerAccount('${acc._id}', '${acc.name}')">
+                        ${acc.name} <small style="color:#64748b;">(${acc.type})</small>
+                    </div>
+                `).join('');
+                return;
+            }
+            const filtered = accounts.filter(a => a.name.toLowerCase().includes(query.toLowerCase()));
+            resultsDiv.innerHTML = filtered.map(acc => `
+                <div style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #eee;" onclick="selectLedgerAccount('${acc._id}', '${acc.name}')">
+                    ${acc.name} <small style="color:#64748b;">(${acc.type})</small>
+                </div>
+            `).join('');
+        }
+
+        function selectLedgerAccount(id, name) {
+            document.getElementById('st-account-id').value = id;
+            document.getElementById('st-account-search').value = name;
+            document.getElementById('st-account-results').style.display = 'none';
+            renderStatement();
+        }
 
         // --- Start ---
         showPage('gateway');
