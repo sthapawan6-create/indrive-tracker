@@ -112,6 +112,16 @@ const SettingSchema = new mongoose.Schema({
 });
 const Setting = mongoose.model('Setting', SettingSchema);
 
+const UserSchema = new mongoose.Schema({
+    fullname: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ['Admin', 'Manager', 'Staff'], default: 'Staff' },
+    status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+    createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
+
 const GoalSchema = new mongoose.Schema({
     userId: String,
     name: String,
@@ -167,6 +177,61 @@ const ServiceTicketSchema = new mongoose.Schema({
     notes: String
 }, { timestamps: true });
 const ServiceTicket = mongoose.model('ServiceTicket', ServiceTicketSchema);
+
+// --- User Management APIs ---
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await User.find({}, '-password').sort({ fullname: 1 });
+        res.json(users);
+    } catch (err) { res.status(500).json({ error: "लोड असफल" }); }
+});
+
+app.post('/api/users', async (req, res) => {
+    try {
+        const user = new User(req.body);
+        await user.save();
+        res.json(user);
+    } catch (err) { res.status(500).json({ error: "बचत असफल: " + err.message }); }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+    try {
+        const { fullname, email, password, role, status } = req.body;
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ error: "प्रयोगकर्ता भेटिएन" });
+
+        user.fullname = fullname || user.fullname;
+        user.email = email || user.email;
+        if (password) user.password = password;
+        user.role = role || user.role;
+        user.status = status || user.status;
+
+        await user.save();
+        res.json(user);
+    } catch (err) { res.status(500).json({ error: "अपडेट असफल" }); }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: "सफल" });
+    } catch (err) { res.status(500).json({ error: "मेटाउन सकिएन" }); }
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email, password, status: 'Active' });
+        if (!user) return res.status(401).json({ error: "Invalid credentials or inactive account" });
+
+        res.json({
+            uid: user._id,
+            email: user.email,
+            fullname: user.fullname,
+            role: user.role
+        });
+    } catch (err) { res.status(500).json({ error: "Login failed" }); }
+});
 
 // --- APIs ---
 app.get('/api/service-tickets', async (req, res) => {

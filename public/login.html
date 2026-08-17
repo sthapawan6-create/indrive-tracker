@@ -209,20 +209,34 @@
             }
         }
 
-        function handleLogin() {
+        async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
 
-            if (email && password) {
-                const user = {
-                    email: email,
-                    uid: email.replace(/[^a-zA-Z0-9]/g, '_'),
-                    displayName: 'Business User'
-                };
-                localStorage.setItem('pawanelex_user', JSON.stringify(user));
-                window.location.href = './';
-            } else {
-                document.getElementById('errorMessage').innerText = "Invalid credentials.";
+            if (!email || !password) {
+                errorMessage.innerText = "Please enter both email and password.";
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('pawanelex_user', JSON.stringify(data));
+                    window.location.href = './';
+                } else {
+                    errorMessage.innerText = data.error || "Login failed.";
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                errorMessage.innerText = "Connection error. Please try again.";
             }
         }
 
