@@ -259,7 +259,10 @@
                 <div style="display:grid; grid-template-columns: 200px 1fr; gap:20px; margin-bottom:20px;">
                     <div>
                         <label style="font-size:0.8rem; color:#64748b;">Date</label>
-                        <input type="date" id="jr-date" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="date" id="jr-date" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;" onchange="updateBsDisplay('jr-date', 'jr-bs-date')">
+                            <span id="jr-bs-date" style="font-size:0.8rem; color:#64748b; min-width:80px;"></span>
+                        </div>
                     </div>
                     <div>
                         <label style="font-size:0.8rem; color:#64748b;">Narration (Description)</label>
@@ -312,7 +315,10 @@
             <!-- Billing form structure -->
             <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <input type="date" id="inv-date">
+                    <div>
+                        <input type="date" id="inv-date" onchange="updateBsDisplay('inv-date', 'inv-bs-date')" style="width:100%;">
+                        <div id="inv-bs-date" style="font-size:0.75rem; color:#64748b; margin-top:4px;"></div>
+                    </div>
                     <select id="inv-party-acc"><option value="">-- Select Party --</option></select>
                 </div>
                 <table id="inv-table">
@@ -431,7 +437,10 @@
             <h3>New Purchase Entry</h3>
             <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <input type="date" id="pur-date">
+                    <div>
+                        <input type="date" id="pur-date" onchange="updateBsDisplay('pur-date', 'pur-bs-date')" style="width:100%;">
+                        <div id="pur-bs-date" style="font-size:0.75rem; color:#64748b; margin-top:4px;"></div>
+                    </div>
                     <select id="pur-party-acc"><option value="">-- Select Supplier --</option></select>
                 </div>
                 <table id="pur-table">
@@ -713,6 +722,29 @@
         function getAccountId(acc) {
             if (!acc) return null;
             return typeof acc === 'object' ? (acc._id || acc.id) : acc;
+        }
+
+        // --- Date Helpers (AD/BS) ---
+        function adToBs(adDateStr) {
+            try {
+                if (!adDateStr) return "-";
+                const adDate = new Date(adDateStr);
+                if (isNaN(adDate.getTime())) return adDateStr;
+                const bsDate = new NepaliDate(adDate);
+                return bsDate.format('YYYY-MM-DD');
+            } catch (e) {
+                return adDateStr;
+            }
+        }
+
+        function formatDate(adDateStr) {
+            const bs = adToBs(adDateStr);
+            return `<div style="font-size:0.9rem;">${adDateStr}</div><div style="font-size:0.7rem; color:#64748b;">${bs} BS</div>`;
+        }
+
+        function updateBsDisplay(inputId, displayId) {
+            const ad = document.getElementById(inputId).value;
+            document.getElementById(displayId).innerText = ad ? adToBs(ad) + " BS" : "";
         }
 
         // Helper to get total amount from any transaction type
@@ -1024,7 +1056,7 @@
             const recentTbody = document.getElementById('dash-recent-tx');
             recentTbody.innerHTML = transactions.slice(0, 10).map(tx => `
                 <tr>
-                    <td>${tx.date}</td>
+                    <td>${formatDate(tx.date)}</td>
                     <td>${tx.description}</td>
                     <td><span style="font-size:0.7rem; padding:2px 6px; border-radius:4px; background:#e2e8f0;">${tx.type}</span></td>
                     <td style="font-weight:600; text-align:right;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
@@ -1354,7 +1386,7 @@
 
                 return `
                     <tr>
-                        <td>${tx.date}</td>
+                        <td>${formatDate(tx.date)}</td>
                         <td>${tx.description}</td>
                         <td><span style="font-size:0.75rem; border:1px solid #ddd; padding:1px 4px; border-radius:3px;">${tx.type}</span></td>
                         <td style="text-align:right;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
@@ -1383,7 +1415,7 @@
 
                 return `
                     <tr>
-                        <td>${tx.date}</td>
+                        <td>${formatDate(tx.date)}</td>
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
                         <td>${customer ? customer.name : 'Cash Sale'}<br><small>PAN: ${customer?.panVat || '-'}</small></td>
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
@@ -1413,7 +1445,7 @@
                     <tbody>
                         ${transactions.map(tx => `
                             <tr>
-                                <td>${tx.date}</td>
+                                <td>${formatDate(tx.date)}</td>
                                 <td>${tx.description}</td>
                                 <td>${tx.type}</td>
                                 <td style="text-align:right; font-weight:600;">Rs. ${getTxAmount(tx).toFixed(2)}</td>
@@ -1446,6 +1478,7 @@
                 accounts.map(a => `<option value="${a._id}">${a.name} (Bal: ${a.balance || 0})</option>`).join('');
 
             document.getElementById('inv-date').value = new Date().toISOString().split('T')[0];
+            updateBsDisplay('inv-date', 'inv-bs-date');
             if(document.getElementById('inv-rows').children.length === 0) addInvRow();
         }
 
@@ -1537,6 +1570,7 @@
         // --- Journal Entry ---
         function initJournalForm() {
             document.getElementById('jr-date').value = new Date().toISOString().split('T')[0];
+            updateBsDisplay('jr-date', 'jr-bs-date');
             document.getElementById('jr-rows').innerHTML = '';
             document.getElementById('jr-desc').value = '';
             addJournalRow();
@@ -1723,6 +1757,7 @@
                 accounts.filter(a => a.type === 'Payable' || a.type === 'Asset').map(a => `<option value="${a._id}">${a.name}</option>`).join('');
 
             document.getElementById('pur-date').value = new Date().toISOString().split('T')[0];
+            updateBsDisplay('pur-date', 'pur-bs-date');
             document.getElementById('pur-rows').innerHTML = '';
             addPurRow();
         }
@@ -1864,7 +1899,7 @@
 
                 return `
                     <tr>
-                        <td>${tx.date}</td>
+                        <td>${formatDate(tx.date)}</td>
                         <td>#${tx._id.slice(-6).toUpperCase()}</td>
                         <td>${supplier ? supplier.name : 'Cash Purchase'}<br><small>PAN: ${supplier?.panVat || '-'}</small></td>
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
@@ -2150,7 +2185,7 @@
 
                 return `
                     <tr>
-                        <td>${tx.date}</td>
+                        <td>${formatDate(tx.date)}</td>
                         <td>${partyName}</td>
                         <td>${tx.description}</td>
                         <td style="text-align:right;">${drAmt > 0 ? drAmt.toFixed(2) : '-'}</td>
