@@ -1825,7 +1825,8 @@
                         <td style="text-align:right; font-weight:600; color:var(--tally-navy);">Rs. ${amt.toFixed(2)}</td>
                         <td class="no-print">
                             <div style="display:flex; gap:8px;">
-                                ${tx.type === 'SALES' ? `<button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-print"></i></button>` : ''}
+                                ${tx.type === 'SALES' ? `<button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-file-invoice"></i></button>` : ''}
+                                <button onclick="printVoucher('${tx._id}')" class="btn-icon" style="color:#10b981;" title="Print Voucher / Receipt"><i class="fas fa-print"></i></button>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </td>
@@ -2865,6 +2866,79 @@
             document.getElementById('st-account-search').value = name;
             document.getElementById('st-account-results').style.display = 'none';
             renderStatement();
+        }
+
+        function printVoucher(txId) {
+            const tx = transactions.find(t => t._id === txId);
+            if (!tx) return;
+
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS", address: "New Road", phone: "01-XXXX" };
+            const printWin = window.open('', '', 'width=800,height=600');
+
+            const entriesHtml = tx.entries.map(e => {
+                const acc = accounts.find(a => a._id === getAccountId(e.account));
+                return `
+                    <tr>
+                        <td style="padding:10px; border-bottom:1px solid #eee;">${acc ? acc.name : 'Unknown Account'}</td>
+                        <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">${e.debit ? 'Rs. ' + e.debit.toFixed(2) : '-'}</td>
+                        <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">${e.credit ? 'Rs. ' + e.credit.toFixed(2) : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Voucher #${txId.slice(-6)}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; }
+                        .voucher-box { border: 2px solid #333; padding: 20px; position: relative; }
+                        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+                        .v-type { position: absolute; top: 20px; right: 20px; background: #333; color: #fff; padding: 5px 15px; font-weight: bold; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th { background: #f4f4f4; padding: 10px; text-align: left; border-bottom: 2px solid #333; }
+                        .footer { margin-top: 50px; display: flex; justify-content: space-between; }
+                        .sig { border-top: 1px solid #333; width: 150px; text-align: center; padding-top: 5px; }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    <div class="voucher-box">
+                        <div class="v-type">${tx.type} VOUCHER</div>
+                        <div class="header">
+                            <h1 style="margin:0;">${settings.name}</h1>
+                            <p style="margin:5px 0;">${settings.address} | Tel: ${settings.phone}</p>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between;">
+                            <div><strong>Voucher No:</strong> #${txId.slice(-6).toUpperCase()}</div>
+                            <div><strong>Date:</strong> ${tx.date}</div>
+                        </div>
+
+                        <div style="margin-top:15px;"><strong>Description:</strong> ${tx.description}</div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Particulars</th>
+                                    <th style="text-align:right;">Debit (Dr)</th>
+                                    <th style="text-align:right;">Credit (Cr)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${entriesHtml}
+                            </tbody>
+                        </table>
+
+                        <div class="footer">
+                            <div class="sig">Prepared By</div>
+                            <div class="sig">Receiver's Signature</div>
+                            <div class="sig">Authorized Signatory</div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
         }
 
         // --- Start ---
