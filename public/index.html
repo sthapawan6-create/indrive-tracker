@@ -2127,11 +2127,30 @@
         }
 
         function calcJournal() {
+            const rows = Array.from(document.querySelectorAll('#jr-rows tr'));
             let totalDr = 0;
             let totalCr = 0;
             let isValid = true;
 
-            document.querySelectorAll('#jr-rows tr').forEach(row => {
+            // Smart Auto-Balance for 2-row entries (Real-time sync)
+            if (rows.length === 2) {
+                const activeInput = document.activeElement;
+                if (activeInput && (activeInput.classList.contains('jr-debit') || activeInput.classList.contains('jr-credit'))) {
+                    const activeRow = activeInput.closest('tr');
+                    const otherRow = rows.find(r => r !== activeRow);
+                    const val = activeInput.value;
+
+                    if (activeInput.classList.contains('jr-debit') && parseFloat(val) > 0) {
+                        otherRow.querySelector('.jr-credit').value = val;
+                        otherRow.querySelector('.jr-debit').value = 0;
+                    } else if (activeInput.classList.contains('jr-credit') && parseFloat(val) > 0) {
+                        otherRow.querySelector('.jr-debit').value = val;
+                        otherRow.querySelector('.jr-credit').value = 0;
+                    }
+                }
+            }
+
+            rows.forEach(row => {
                 const accName = row.querySelector('.jr-acc-name').value;
                 const dr = parseFloat(row.querySelector('.jr-debit').value) || 0;
                 const cr = parseFloat(row.querySelector('.jr-credit').value) || 0;
