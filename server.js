@@ -312,7 +312,12 @@ app.post('/api/accounts', async (req, res) => {
     try {
         console.log("Saving Account:", req.body);
         const account = new Account({ ...req.body });
-        account.balance = account.openingBalance || 0;
+        // Ensure balance is set to opening balance if not provided or to sync
+        if (req.body.openingBalance !== undefined) {
+            account.balance = req.body.openingBalance;
+        } else {
+            account.balance = 0;
+        }
         await account.save();
         res.status(200).json(account);
     } catch (err) {
@@ -344,7 +349,9 @@ app.put('/api/accounts/:id', async (req, res) => {
             tx.entries.forEach(e => {
                 if (e.account && e.account.toString() === acc._id.toString()) {
                     const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
-                    newBalance += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                    const dr = parseFloat(e.debit) || 0;
+                    const cr = parseFloat(e.credit) || 0;
+                    newBalance += isDebitInc ? (dr - cr) : (cr - dr);
                 }
             });
         });

@@ -1623,9 +1623,19 @@
                 name: name,
                 type: type,
                 openingBalance: balance,
+                // Only reset current balance to opening balance if creating new OR
+                // if specifically intended for a manual fix.
+                // For safety, let's update balance if we are editing and it's 0
                 panVat: pan,
                 group: type
             };
+
+            // If editing, we might want to ensure the server knows to update the current balance too
+            if (editingAccountId) {
+                accData.balance = balance;
+            } else {
+                accData.balance = balance;
+            }
 
             const url = editingAccountId ? `${API_URL}/accounts/${editingAccountId}` : `${API_URL}/accounts`;
             const method = editingAccountId ? 'PUT' : 'POST';
