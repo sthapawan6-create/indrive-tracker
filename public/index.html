@@ -611,19 +611,26 @@
 
                 <table id="daybook-table">
                     <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Description / Party</th>
-                            <th>Type</th>
-                            <th style="text-align:right;">Amount (Rs.)</th>
-                            <th class="no-print">Actions</th>
+                        <tr style="background:#f1f5f9;">
+                            <th style="padding:12px 10px;">Date</th>
+                            <th style="padding:12px 10px;">Description / Account</th>
+                            <th style="padding:12px 10px;">Type</th>
+                            <th style="padding:12px 10px; text-align:right; color:#16a34a;">In (Receipt)</th>
+                            <th style="padding:12px 10px; text-align:right; color:#dc2626;">Out (Payment)</th>
+                            <th class="no-print" style="padding:12px 10px; text-align:center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="daybook-body"></tbody>
                     <tfoot>
-                        <tr style="background:#f8fafc; font-weight:700;">
-                            <td colspan="3" style="text-align:right;">Total Transactions Value:</td>
-                            <td id="daybook-total-amount" style="text-align:right;">0.00</td>
+                        <tr style="background:#f8fafc; font-weight:700; border-top:2px solid #e2e8f0;">
+                            <td colspan="3" style="text-align:right; padding:12px;">Daily Totals:</td>
+                            <td id="daybook-total-in" style="text-align:right; padding:12px; color:#16a34a;">0.00</td>
+                            <td id="daybook-total-out" style="text-align:right; padding:12px; color:#dc2626;">0.00</td>
+                            <td class="no-print"></td>
+                        </tr>
+                        <tr style="background:#f1f5f9; font-weight:800;">
+                            <td colspan="3" style="text-align:right; padding:12px;">Net Cash Flow:</td>
+                            <td colspan="2" id="daybook-net-balance" style="text-align:center; padding:12px; font-size:1.1rem;">0.00</td>
                             <td class="no-print"></td>
                         </tr>
                     </tfoot>
@@ -1898,9 +1905,10 @@
             }
 
             let filtered = transactions.filter(tx => {
-                const matchesSearch = tx.description.toLowerCase().includes(search) ||
-                                    tx.type.toLowerCase().includes(search) ||
-                                    tx._id.slice(-6).toLowerCase().includes(search);
+                const desc = (tx.description || "").toLowerCase();
+                const type = (tx.type || "").toLowerCase();
+                const id = tx._id.slice(-6).toLowerCase();
+                const matchesSearch = desc.includes(search) || type.includes(search) || id.includes(search);
 
                 const matchesDate = (!fromDate || tx.date >= fromDate) &&
                                    (!toDate || tx.date <= toDate);
@@ -1910,44 +1918,75 @@
 
             filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            let totalAmt = 0;
+            let totalIn = 0;
+            let totalOut = 0;
+
             tbody.innerHTML = filtered.map(tx => {
                 const amt = getTxAmount(tx);
-                totalAmt += amt;
+                let amtIn = 0;
+                let amtOut = 0;
+
+                // Determine if it's In or Out based on transaction type
+                // In: SALES, RECEIPT
+                // Out: PURCHASE, PAYMENT
+                // JOURNAL: Depends on entries, but for summary we take total
+                if (tx.type === 'SALES' || tx.type === 'RECEIPT') {
+                    amtIn = amt;
+                    totalIn += amt;
+                } else if (tx.type === 'PURCHASE' || tx.type === 'PAYMENT') {
+                    amtOut = amt;
+                    totalOut += amt;
+                } else {
+                    // For general Journal, we'll show in 'In' column for now or split if logic exists
+                    amtIn = amt;
+                    totalIn += amt;
+                }
 
                 let typeColor = '#64748b';
                 let typeBg = '#f1f5f9';
+                let typeIcon = 'fa-exchange-alt';
 
-                if (tx.type === 'SALES') { typeColor = '#065f46'; typeBg = '#dcfce7'; }
-                else if (tx.type === 'PURCHASE') { typeColor = '#991b1b'; typeBg = '#fee2e2'; }
-                else if (tx.type === 'PAYMENT') { typeColor = '#854d0e'; typeBg = '#fef3c7'; }
-                else if (tx.type === 'RECEIPT') { typeColor = '#1e40af'; typeBg = '#dbeafe'; }
+                if (tx.type === 'SALES') { typeColor = '#065f46'; typeBg = '#dcfce7'; typeIcon = 'fa-shopping-cart'; }
+                else if (tx.type === 'PURCHASE') { typeColor = '#991b1b'; typeBg = '#fee2e2'; typeIcon = 'fa-truck-loading'; }
+                else if (tx.type === 'PAYMENT') { typeColor = '#854d0e'; typeBg = '#fef3c7'; typeIcon = 'fa-arrow-up'; }
+                else if (tx.type === 'RECEIPT') { typeColor = '#1e40af'; typeBg = '#dbeafe'; typeIcon = 'fa-arrow-down'; }
 
                 return `
-                    <tr>
-                        <td>${formatDate(tx.date)}</td>
-                        <td style="font-weight:500;">
-                            ${tx.description}
-                            <div style="font-size:0.7rem; color:#94a3b8;">ID: #${tx._id.slice(-6).toUpperCase()}</div>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:12px 10px;">${formatDate(tx.date)}</td>
+                        <td style="padding:12px 10px;">
+                            <div style="font-weight:600; color:#1e293b;">${tx.description || 'No Description'}</div>
+                            <div style="font-size:0.7rem; color:#94a3b8; margin-top:2px;">Ref: #${tx._id.slice(-6).toUpperCase()}</div>
                         </td>
-                        <td>
-                            <span style="font-size:0.7rem; font-weight:700; padding:3px 8px; border-radius:12px; color:${typeColor}; background:${typeBg}; border:1px solid rgba(0,0,0,0.05);">
-                                ${tx.type}
+                        <td style="padding:12px 10px;">
+                            <span style="font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:8px; color:${typeColor}; background:${typeBg}; display:inline-flex; align-items:center; gap:5px;">
+                                <i class="fas ${typeIcon}" style="font-size:0.7rem;"></i> ${tx.type}
                             </span>
                         </td>
-                        <td style="text-align:right; font-weight:600; color:var(--tally-navy);">Rs. ${amt.toFixed(2)}</td>
-                        <td class="no-print">
-                            <div style="display:flex; gap:8px;">
+                        <td style="padding:12px 10px; text-align:right; font-weight:700; color:#16a34a;">
+                            ${amtIn > 0 ? amtIn.toLocaleString('en-IN', {minimumFractionDigits:2}) : '-'}
+                        </td>
+                        <td style="padding:12px 10px; text-align:right; font-weight:700; color:#dc2626;">
+                            ${amtOut > 0 ? amtOut.toLocaleString('en-IN', {minimumFractionDigits:2}) : '-'}
+                        </td>
+                        <td class="no-print" style="padding:12px 10px; text-align:center;">
+                            <div style="display:flex; gap:10px; justify-content:center;">
                                 ${tx.type === 'SALES' ? `<button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-file-invoice"></i></button>` : ''}
-                                <button onclick="printVoucher('${tx._id}')" class="btn-icon" style="color:#10b981;" title="Print Voucher / Receipt"><i class="fas fa-print"></i></button>
+                                <button onclick="printVoucher('${tx._id}')" class="btn-icon" style="color:#10b981;" title="Print Voucher"><i class="fas fa-print"></i></button>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash-alt"></i></button>
                             </div>
                         </td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='5' style='text-align:center; padding:30px; color:#64748b;'>No transactions found for the selected period.</td></tr>";
+            }).join('') || "<tr><td colspan='6' style='text-align:center; padding:40px; color:#94a3b8;'>No transactions found for this period.</td></tr>";
 
-            document.getElementById('daybook-total-amount').innerText = `Rs. ${totalAmt.toFixed(2)}`;
+            document.getElementById('daybook-total-in').innerText = totalIn.toLocaleString('en-IN', {minimumFractionDigits:2});
+            document.getElementById('daybook-total-out').innerText = totalOut.toLocaleString('en-IN', {minimumFractionDigits:2});
+
+            const net = totalIn - totalOut;
+            const netEl = document.getElementById('daybook-net-balance');
+            netEl.innerText = (net >= 0 ? 'Cash Inflow: Rs. ' : 'Cash Outflow: Rs. ') + Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits:2});
+            netEl.style.color = net >= 0 ? '#16a34a' : '#dc2626';
         }
 
         async function deleteTx(id) {
