@@ -351,14 +351,32 @@
 
         <!-- Accounts Page -->
         <div id="page-accounts" class="main-content">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h3>Account Ledgers</h3>
-                <button class="btn" onclick="openAccountModal()">+ Add Account</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div>
+                    <h3 style="margin:0;">Account Ledgers</h3>
+                    <p style="margin:5px 0 0; color:#64748b; font-size:0.85rem;">Manage your accounts and parties</p>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div style="position:relative;">
+                        <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
+                        <input type="text" id="account-search" placeholder="Search accounts..." oninput="filterAccountsList()" style="padding:10px 10px 10px 35px; border-radius:10px; border:1px solid #e2e8f0; width:250px; font-size:0.9rem;">
+                    </div>
+                    <button class="btn" onclick="openAccountModal()" style="background:var(--primary-color);">+ Add Account</button>
+                </div>
             </div>
-            <table id="accounts-table">
-                <thead><tr><th>Name</th><th>Group</th><th>Balance</th><th>Actions</th></tr></thead>
-                <tbody id="accounts-list-body"></tbody>
-            </table>
+            <div style="background:white; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <table id="accounts-table">
+                    <thead style="background:#f8fafc;">
+                        <tr>
+                            <th style="padding:15px; text-align:left;">Name</th>
+                            <th style="padding:15px; text-align:left;">Group/Type</th>
+                            <th style="padding:15px; text-align:right;">Balance</th>
+                            <th style="padding:15px; text-align:center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accounts-list-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Billing (Sales) Page -->
@@ -1583,25 +1601,45 @@
             });
         }
 
-        function renderAccountsList() {
+        function renderAccountsList(filtered = null) {
             const tbody = document.getElementById('accounts-list-body');
-            tbody.innerHTML = accounts.map(acc => `
-                <tr>
-                    <td>
-                        <div style="font-weight:600;">${acc.name}</div>
-                        <div style="font-size:0.75rem; color:#64748b;">PAN: ${acc.panVat || '-'}</div>
+            const dataToRender = filtered || accounts;
+
+            tbody.innerHTML = dataToRender.map(acc => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:15px; cursor:pointer;" onclick="viewStatement('${acc._id}')">
+                        <div class="account-name-hover" style="font-weight:600; color:var(--primary-color); text-decoration:none;">${acc.name}</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">PAN: ${acc.panVat || '-'} | ${acc.phone || 'No Phone'}</div>
                     </td>
-                    <td>${acc.group || acc.type}</td>
-                    <td style="font-weight:600; color:${acc.balance < 0 ? 'red' : 'green'}">Rs. ${(acc.balance || 0).toFixed(2)}</td>
-                    <td>
-                        <div style="display:flex; gap:10px;">
-                            <button onclick="viewStatement('${acc._id}')" title="Statement" class="btn-icon"><i class="fas fa-file-invoice"></i></button>
-                            <button onclick="editAccount('${acc._id}')" title="Edit" class="btn-icon" style="color:blue;"><i class="fas fa-edit"></i></button>
-                            <button onclick="deleteAccount('${acc._id}')" title="Delete" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                    <td style="padding:15px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px; font-size:0.8rem; color:#475569;">${acc.group || acc.type}</span></td>
+                    <td style="padding:15px; text-align:right; font-weight:700; color:${acc.balance < 0 ? '#dc2626' : '#16a34a'}">
+                        Rs. ${Math.abs(acc.balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                        <span style="font-size:0.7rem; color:#64748b;">${acc.balance < 0 ? ' (Dr)' : ' (Cr)'}</span>
+                    </td>
+                    <td style="padding:15px;">
+                        <div style="display:flex; gap:12px; justify-content:center;">
+                            <button onclick="viewStatement('${acc._id}')" title="Statement" class="btn-icon" style="color:#6366f1;"><i class="fas fa-file-invoice"></i></button>
+                            <button onclick="editAccount('${acc._id}')" title="Edit" class="btn-icon" style="color:#2563eb;"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteAccount('${acc._id}')" title="Delete" class="btn-icon" style="color:#dc2626;"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
             `).join('');
+
+            if (dataToRender.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:#64748b;">No accounts found matching your search.</td></tr>`;
+            }
+        }
+
+        function filterAccountsList() {
+            const query = document.getElementById('account-search').value.toLowerCase();
+            const filtered = accounts.filter(acc =>
+                acc.name.toLowerCase().includes(query) ||
+                (acc.group && acc.group.toLowerCase().includes(query)) ||
+                (acc.type && acc.type.toLowerCase().includes(query)) ||
+                (acc.panVat && acc.panVat.includes(query))
+            );
+            renderAccountsList(filtered);
         }
 
         let editingAccountId = null;
