@@ -1530,108 +1530,142 @@
             const tx = transactions.find(t => t._id === txId);
             if (!tx) return;
 
-            // Find party from entries. For SALES, entries[0] is usually the Party (Dr)
             const partyEntry = tx.entries.find(e => {
                 const acc = accounts.find(a => a._id === (e.account._id || e.account));
                 return acc && (acc.type === 'Receivable' || acc.type === 'Cash' || acc.type === 'Asset');
             });
             const party = partyEntry ? accounts.find(a => a._id === (partyEntry.account._id || partyEntry.account)) : null;
-
-            const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS", address: "New Road", phone: "01-XXXX" };
-
-            const printWin = window.open('', '', 'width=400,height=600');
-            let itemRows = (tx.items || []).map(item => {
-                const p = products.find(prod => prod._id === item.product);
-                const rate = item.rate || 0;
-                const qty = item.quantity || 0;
-                return `
-                    <tr>
-                        <td colspan="2" style="padding-top:8px; font-weight:bold; border-top: 1px solid #eee;">${p ? p.name : 'Item'}</td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:left; color:#555;">${qty} @ ${rate.toFixed(2)}</td>
-                        <td style="text-align:right; font-weight:bold;">${(qty * rate).toFixed(2)}</td>
-                    </tr>`;
-            }).join('');
+            const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS", address: "New Road, Kathmandu", phone: "01-XXXX", pan: "" };
 
             const total = tx.totalAmount;
             const taxable = total / 1.13;
             const vat = total - taxable;
 
+            const printWin = window.open('', '', 'width=800,height=900');
+
+            let itemRows = (tx.items || []).map((item, index) => {
+                const p = products.find(prod => prod._id === item.product);
+                const rate = item.rate || 0;
+                const qty = item.quantity || 0;
+                const amt = qty * rate;
+                return `
+                    <tr>
+                        <td style="border:1px solid #000; text-align:center; padding:5px;">${index + 1}</td>
+                        <td style="border:1px solid #000; padding:5px;">${p ? p.name : 'Item'}</td>
+                        <td style="border:1px solid #000; text-align:center; padding:5px;">${qty} ${p?.unit || 'Pcs'}</td>
+                        <td style="border:1px solid #000; text-align:right; padding:5px;">${rate.toFixed(2)}</td>
+                        <td style="border:1px solid #000; text-align:right; padding:5px;">${amt.toFixed(2)}</td>
+                    </tr>`;
+            }).join('');
+
             printWin.document.write(`
                 <html>
                 <head>
-                    <title>Invoice #${txId.slice(-6)}</title>
+                    <title>Tax Invoice - ${txId.slice(-6).toUpperCase()}</title>
                     <style>
-                        @page { margin: 5mm; }
-                        body {
-                            font-family: 'Segoe UI', Arial, sans-serif;
-                            width: 72mm;
-                            margin: 0 auto;
-                            padding: 5mm;
-                            font-size: 12px;
-                            line-height: 1.4;
-                            color: #000;
-                        }
-                        .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-                        .divider { border-top: 1px dashed #000; margin: 8px 0; }
-                        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                        .total-section { margin-top: 10px; border-top: 1px solid #000; padding-top: 5px; }
-                        .bold { font-weight: bold; }
-                        .text-center { text-align: center; }
-                        .footer { margin-top: 20px; font-size: 10px; text-align: center; font-style: italic; }
+                        body { font-family: 'Arial', sans-serif; padding: 20px; color: #000; font-size: 14px; }
+                        .invoice-box { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 30px; }
+                        .header-table { width: 100%; margin-bottom: 20px; }
+                        .title { font-size: 24px; font-weight: bold; text-align: center; text-decoration: underline; margin-bottom: 10px; }
+                        .info-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+                        .info-table td { padding: 5px; vertical-align: top; }
+                        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        .items-table th { border: 1px solid #000; background: #f2f2f2; padding: 8px; }
+                        .items-table td { border: 1px solid #000; padding: 8px; }
+                        .totals-table { width: 40%; margin-left: auto; border-collapse: collapse; }
+                        .totals-table td { padding: 5px; border: 1px solid #000; }
+                        .footer-note { margin-top: 30px; font-size: 12px; }
+                        .sign-section { margin-top: 50px; display: flex; justify-content: space-between; }
+                        .sign-box { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
+                        @media print { .no-print { display: none; } }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <div style="font-size: 16px; font-weight: bold; text-transform: uppercase;">${settings.name}</div>
-                        <div style="font-size: 11px;">${settings.address}</div>
-                        <div style="font-size: 11px;">Contact: ${settings.phone}</div>
-                        <div class="bold" style="margin-top:8px; font-size: 13px; border: 1px solid #000; display: inline-block; padding: 2px 10px;">TAX INVOICE</div>
+                    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+                        <button onclick="window.print()">Print / Save as PDF</button>
                     </div>
+                    <div class="invoice-box">
+                        <div class="title">TAX INVOICE</div>
 
-                    <div style="font-size: 11px; margin-bottom: 10px;">
-                        <table style="margin:0;">
-                            <tr><td><strong>Invoice No:</strong></td><td style="text-align:right;">#${txId.slice(-6).toUpperCase()}</td></tr>
-                            <tr><td><strong>Date:</strong></td><td style="text-align:right;">${tx.date}</td></tr>
-                            <tr><td><strong>Customer:</strong></td><td style="text-align:right;">${party ? party.name : 'CASH CUSTOMER'}</td></tr>
-                            ${party?.panVat ? `<tr><td><strong>PAN/VAT:</strong></td><td style="text-align:right;">${party.panVat}</td></tr>` : ''}
-                        </table>
-                    </div>
-
-                    <div class="divider"></div>
-                    <table>
-                        <thead>
-                            <tr style="border-bottom: 1px solid #000;">
-                                <th style="text-align:left; padding-bottom:5px;">Description</th>
-                                <th style="text-align:right; padding-bottom:5px;">Amount</th>
+                        <table class="header-table">
+                            <tr>
+                                <td style="width: 60%;">
+                                    <strong style="font-size: 18px;">${settings.name}</strong><br>
+                                    ${settings.address}<br>
+                                    Phone: ${settings.phone}<br>
+                                    <strong>PAN/VAT: ${settings.pan}</strong>
+                                </td>
+                                <td style="text-align: right;">
+                                    <strong>Invoice No:</strong> ${txId.slice(-6).toUpperCase()}<br>
+                                    <strong>Date:</strong> ${tx.date}<br>
+                                    <strong>Time:</strong> ${new Date(tx.createdAt).toLocaleTimeString()}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>${itemRows}</tbody>
-                    </table>
+                        </table>
 
-                    <div class="total-section">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                            <span>Taxable Amount:</span><span>${taxable.toFixed(2)}</span>
+                        <table class="info-table" style="border: 1px solid #000;">
+                            <tr>
+                                <td style="width: 50%; border-right: 1px solid #000;">
+                                    <strong>Buyer Details:</strong><br>
+                                    Name: ${party ? party.name : 'Cash Customer'}<br>
+                                    Address: ${party?.address || '-'}<br>
+                                    Contact: ${party?.phone || '-'}<br>
+                                    <strong>Buyer PAN/VAT: ${party?.panVat || '-'}</strong>
+                                </td>
+                                <td>
+                                    <strong>Payment Mode:</strong> ${party?.type === 'Cash' || !party ? 'CASH' : 'CREDIT'}<br>
+                                    <strong>Currency:</strong> NPR
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>S.N.</th>
+                                    <th>Description of Goods</th>
+                                    <th>Qty</th>
+                                    <th>Rate</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemRows}
+                            </tbody>
+                        </table>
+
+                        <table class="totals-table">
+                            <tr>
+                                <td>Taxable Amount</td>
+                                <td style="text-align: right;">${taxable.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>VAT (13%)</td>
+                                <td style="text-align: right;">${vat.toFixed(2)}</td>
+                            </tr>
+                            <tr style="font-weight: bold; background: #eee;">
+                                <td>Grand Total</td>
+                                <td style="text-align: right;">Rs. ${total.toFixed(2)}</td>
+                            </tr>
+                        </table>
+
+                        <div class="footer-note">
+                            <strong>Amount in words:</strong> ${numberToEnglish(total)} Rupees Only.
                         </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                            <span>VAT (13%):</span><span>${vat.toFixed(2)}</span>
+
+                        <div class="sign-section">
+                            <div class="sign-box">Receiver's Signature</div>
+                            <div class="sign-box">Authorized Signature</div>
                         </div>
-                        <div class="divider" style="border-top-style: solid;"></div>
-                        <div style="display:flex; justify-content:space-between; font-size: 14px;" class="bold">
-                            <span>GRAND TOTAL:</span><span>Rs. ${total.toFixed(2)}</span>
+
+                        <div style="text-align:center; margin-top:30px; font-size:10px; color:#666;">
+                            * This is a computer generated invoice *
                         </div>
                     </div>
-
-                    <div class="footer">
-                        Thank You! Please visit again.<br>
-                        Goods once sold are not returnable.
-                    </div>
-
                     <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(() => window.close(), 1000);
+                        function numberToEnglish(n) {
+                            // Simple version for words
+                            return n.toLocaleString('en-IN'); // Just placeholder or simple logic
                         }
                     <\/script>
                 </body>
