@@ -162,6 +162,7 @@
             <div class="menu-item" onclick="showPage('profit-loss')"><i class="fas fa-chart-line"></i>Profit & Loss</div>
             <div class="menu-item" onclick="showPage('balance-sheet')"><i class="fas fa-balance-scale"></i>Balance Sheet</div>
             <div class="menu-item" onclick="showPage('vat-report')"><i class="fas fa-file-invoice"></i>VAT Report</div>
+            <div class="menu-item" onclick="showPage('daily-profit')"><i class="fas fa-chart-line"></i>Daily Profit</div>
             <div class="menu-item" onclick="showPage('payment-book')"><i class="fas fa-money-bill-wave"></i>Payment Book</div>
             <div class="menu-item" onclick="showPage('statement')"><i class="fas fa-file-alt"></i>Ledger</div>
             <div class="menu-item" onclick="showPage('stock-summary')"><i class="fas fa-warehouse"></i>Stock</div>
@@ -682,6 +683,24 @@
             <h3>VAT Report</h3>
             <div style="background:white; padding:20px; border-radius:12px;">
                 <div id="vat-report-content">Loading...</div>
+            </div>
+        </div>
+
+        <div id="page-daily-profit" class="main-content">
+            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3>Daily Profit Analysis</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:5px; background:white; padding:5px 10px; border-radius:6px; border:1px solid #ddd;">
+                        <span style="font-size:0.8rem; color:#64748b;">From:</span>
+                        <input type="date" id="dp-from" onchange="renderDailyProfit()" style="border:none; outline:none; font-size:0.85rem;">
+                        <span style="font-size:0.8rem; color:#64748b; margin-left:5px;">To:</span>
+                        <input type="date" id="dp-to" onchange="renderDailyProfit()" style="border:none; outline:none; font-size:0.85rem;">
+                    </div>
+                    <button class="btn" onclick="window.print()" style="background:#1e293b;"><i class="fas fa-print"></i> Print</button>
+                </div>
+            </div>
+            <div id="daily-profit-content" style="background:white; padding:25px; border-radius:15px; border:1px solid var(--border-color);">
+                Loading...
             </div>
         </div>
 
@@ -1267,6 +1286,7 @@
                 if(pageId === 'profit-loss') renderProfitLoss();
                 if(pageId === 'balance-sheet') renderBalanceSheet();
                 if(pageId === 'vat-report') renderVatReport();
+                if(pageId === 'daily-profit') renderDailyProfit();
                 if(pageId === 'payment-book') renderPaymentBook();
                 if(pageId === 'users') loadUsers();
                 if(pageId === 'settings') initSettings();
@@ -3491,51 +3511,120 @@
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <span>Taxable Sales:</span>
                             <span>Rs. ${salesTaxable.toFixed(2)}</span>
-
-            </div>
-        </div>
+                        </div>
                         <div style="display:flex; justify-content:space-between; font-weight:bold;">
                             <span>Output VAT (13%):</span>
                             <span>Rs. ${outputVat.toFixed(2)}</span>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
+                        </div>
+                    </div>
                     <div style="padding:20px; border:1px solid #e2e8f0; border-radius:10px;">
                         <h4 style="margin-top:0; color:#2563eb;">Purchase VAT (Input)</h4>
                         <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <span>Taxable Purchase:</span>
                             <span>Rs. ${purchaseTaxable.toFixed(2)}</span>
-
-            </div>
-        </div>
+                        </div>
                         <div style="display:flex; justify-content:space-between; font-weight:bold;">
                             <span>Input VAT (13%):</span>
                             <span>Rs. ${inputVat.toFixed(2)}</span>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
+                        </div>
+                    </div>
+                </div>
                 <div style="margin-top:30px; padding:25px; background:#f8fafc; border-radius:10px; border:2px solid ${netVat >= 0 ? '#10b981' : '#dc2626'};">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h3 style="margin:0;">${netVat >= 0 ? 'VAT Payable to Government' : 'VAT Receivable (Credit)'}</h3>
                         <h2 style="margin:0; color:${netVat >= 0 ? '#10b981' : '#dc2626'};">Rs. ${Math.abs(netVat).toFixed(2)}</h2>
-
-            </div>
-        </div>
+                    </div>
                     <p style="margin:10px 0 0; font-size:0.9rem; color:#64748b;">
                         * Note: This calculation assumes a flat 13% VAT on all recorded sales and purchases.
                     </p>
+                </div>
+            `;
+        }
 
-            </div>
-        </div>
+        function renderDailyProfit() {
+            const container = document.getElementById('daily-profit-content');
+            if(!container) return;
+
+            const fromDate = document.getElementById('dp-from').value;
+            const toDate = document.getElementById('dp-to').value;
+
+            let filteredTx = transactions.filter(tx => tx.type === 'SALES');
+            if (fromDate) filteredTx = filteredTx.filter(tx => tx.date >= fromDate);
+            if (toDate) filteredTx = filteredTx.filter(tx => tx.date <= toDate);
+
+            let grandTotalSales = 0;
+            let grandTotalCost = 0;
+            let grandTotalVat = 0;
+
+            const tableRows = filteredTx.map(tx => {
+                const salesVal = tx.totalAmount || getTxAmount(tx);
+                const vat = tx.vatAmount || 0;
+                const netSales = salesVal - vat;
+
+                let txCost = 0;
+                if (tx.items && tx.items.length > 0) {
+                    tx.items.forEach(it => {
+                        const p = products.find(prod => prod._id === (it.productId || it.product));
+                        const cPrice = p ? (p.purchasePrice || 0) : 0;
+                        txCost += (it.quantity || it.qty || 0) * cPrice;
+                    });
+                }
+
+                const profit = netSales - txCost;
+                grandTotalSales += netSales;
+                grandTotalCost += txCost;
+                grandTotalVat += vat;
+
+                return `
+                    <tr>
+                        <td>${formatDate(tx.date)}</td>
+                        <td>#${tx.billNo || tx._id.slice(-6).toUpperCase()}</td>
+                        <td style="text-align:right;">${netSales.toFixed(2)}</td>
+                        <td style="text-align:right;">${txCost.toFixed(2)}</td>
+                        <td style="text-align:right; font-weight:600; color:${profit >= 0 ? '#16a34a' : '#dc2626'};">
+                            ${profit.toFixed(2)}
+                        </td>
+                        <td style="text-align:right; color:#64748b;">${vat.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            const netProfit = grandTotalSales - grandTotalCost;
+
+            container.innerHTML = `
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px; margin-bottom:20px;">
+                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                        <div style="color:#64748b; font-size:0.85rem;">Total Net Sales</div>
+                        <div style="font-size:1.2rem; font-weight:700;">Rs. ${grandTotalSales.toFixed(2)}</div>
+                    </div>
+                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                        <div style="color:#64748b; font-size:0.85rem;">Total Cost (COGS)</div>
+                        <div style="font-size:1.2rem; font-weight:700;">Rs. ${grandTotalCost.toFixed(2)}</div>
+                    </div>
+                    <div style="background:#f0fdf4; padding:15px; border-radius:10px; border:1px solid #bbf7d0;">
+                        <div style="color:#16a34a; font-size:0.85rem;">Estimated Profit</div>
+                        <div style="font-size:1.2rem; font-weight:700; color:#16a34a;">Rs. ${netProfit.toFixed(2)}</div>
+                    </div>
+                    <div style="background:#fff7ed; padding:15px; border-radius:10px; border:1px solid #ffedd5;">
+                        <div style="color:#c2410c; font-size:0.85rem;">Total VAT Collected</div>
+                        <div style="font-size:1.2rem; font-weight:700; color:#c2410c;">Rs. ${grandTotalVat.toFixed(2)}</div>
+                    </div>
+                </div>
+                <table class="report-table">
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th>Date</th>
+                            <th>Bill #</th>
+                            <th style="text-align:right;">Net Sale</th>
+                            <th style="text-align:right;">Cost</th>
+                            <th style="text-align:right;">Profit</th>
+                            <th style="text-align:right;">VAT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows || '<tr><td colspan="6" style="text-align:center; padding:20px;">No sales found for selected period.</td></tr>'}
+                    </tbody>
+                </table>
             `;
         }
 
@@ -3852,9 +3941,7 @@
                 resultsDiv.innerHTML = accounts.map(acc => `
                     <div style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #eee;" onclick="selectLedgerAccount('${acc._id}', '${acc.name}')">
                         ${acc.name} <small style="color:#64748b;">(${acc.type})</small>
-
-            </div>
-        </div>
+                    </div>
                 `).join('');
                 return;
             }
@@ -3862,9 +3949,7 @@
             resultsDiv.innerHTML = filtered.map(acc => `
                 <div style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #eee;" onclick="selectLedgerAccount('${acc._id}', '${acc.name}')">
                     ${acc.name} <small style="color:#64748b;">(${acc.type})</small>
-
-            </div>
-        </div>
+                </div>
             `).join('');
         }
 
@@ -3911,21 +3996,17 @@
                 <body onload="window.print(); window.close();">
                     <div class="voucher-box">
                         <div class="v-type">${tx.type} VOUCHER</div>
-                        <div class="header">
-                            <h1 style="margin:0;">${settings.name}</h1>
-                            <p style="margin:5px 0;">${settings.address} | Tel: ${settings.phone}</p>
+                <div class="header">
+                    <h1 style="margin:0;">${settings.name}</h1>
+                    <p style="margin:5px 0;">${settings.address} | Tel: ${settings.phone}</p>
+                </div>
 
-            </div>
-        </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <div><strong>Voucher No:</strong> #${txId.slice(-6).toUpperCase()}</div>
+                    <div><strong>Date:</strong> ${tx.date}</div>
+                </div>
 
-                        <div style="display:flex; justify-content:space-between;">
-                            <div><strong>Voucher No:</strong> #${txId.slice(-6).toUpperCase()}</div>
-                            <div><strong>Date:</strong> ${tx.date}</div>
-
-            </div>
-        </div>
-
-                        <div style="margin-top:15px;"><strong>Description:</strong> ${tx.description}</div>
+                <div style="margin-top:15px;"><strong>Description:</strong> ${tx.description}</div>
 
                         <table>
                             <thead>
@@ -3944,12 +4025,8 @@
                             <div class="sig">Prepared By</div>
                             <div class="sig">Receiver's Signature</div>
                             <div class="sig">Authorized Signatory</div>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
+                        </div>
+                    </div>
                 </body>
                 </html>
             `);
