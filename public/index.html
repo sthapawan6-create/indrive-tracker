@@ -2474,7 +2474,7 @@
                     else dr = Math.abs(bal);
                 }
 
-                if (dr === 0 && cr === 0) return '';
+                if (dr === 0 && cr === 0 && (acc.openingBalance || 0) === 0) return '';
 
                 totalDr += dr;
                 totalCr += cr;
@@ -2578,15 +2578,17 @@
 
             expBody.innerHTML = expenses.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
+                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalExp += bal;
                 return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).join('') || "<tr><td colspan='2'>No expenses found</td></tr>";
+            }).filter(h => h !== '').join('') || "<tr><td colspan='2'>No expenses found</td></tr>";
 
             incBody.innerHTML = revenues.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
+                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalInc += bal;
                 return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).join('') || "<tr><td colspan='2'>No revenues found</td></tr>";
+            }).filter(h => h !== '').join('') || "<tr><td colspan='2'>No revenues found</td></tr>";
 
             // Add Closing Stock to P&L
             let stockVal = 0;
@@ -2616,9 +2618,10 @@
 
             assetBody.innerHTML = assets.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
+                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalAssets += bal;
                 return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).join('');
+            }).filter(h => h !== '').join('');
 
             // Add Closing Stock to Assets
             let stockVal = 0;
@@ -2630,9 +2633,10 @@
 
             liabBody.innerHTML = liabilities.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
+                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalLiab += bal;
                 return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).join('');
+            }).filter(h => h !== '').join('');
 
             // Add Net Profit to Liabilities/Equity
             liabBody.innerHTML += `<tr><td style="font-weight:600;">Net Profit for the Period</td><td style="text-align:right; font-weight:600; color:${netProfit >= 0 ? 'green' : 'red'};">${netProfit.toFixed(2)}</td></tr>`;
