@@ -386,50 +386,23 @@
         </div>
 
         <div class="main-content" id="page-trial-balance">
-            <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3><i class="fas fa-microscope"></i> Audit & Trial Balance</h3>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" onclick="renderTrialBalance()" style="background:#6366f1;"><i class="fas fa-sync"></i> Refresh Audit</button>
-                    <button class="btn" onclick="window.print()" style="background:#1e293b;"><i class="fas fa-print"></i> Print Report</button>
-                </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h3>Trial Balance</h3>
+                <button class="btn" onclick="window.print()">Print Report</button>
             </div>
-
-            <!-- Audit Alert Box -->
-            <div id="audit-summary-box" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:25px;">
-                <div class="stat-card" style="border-left: 4px solid #10b981;">
-                    <div class="label">Balance Status</div>
-                    <div id="audit-status" class="value" style="font-size: 1.2rem;">Checking...</div>
-                </div>
-                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
-                    <div class="label">Difference (Dr-Cr)</div>
-                    <div id="audit-diff" class="value" style="font-size: 1.2rem;">0.00</div>
-                </div>
-                <div class="stat-card" style="border-left: 4px solid #3b82f6;">
-                    <div class="label">Total Accounts</div>
-                    <div id="audit-count" class="value" style="font-size: 1.2rem;">0</div>
-                </div>
-            </div>
-
-            <div style="background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
-                <table id="trial-balance-table">
-                    <thead>
-                        <tr>
-                            <th>Account Name</th>
-                            <th>Category</th>
-                            <th style="text-align:right;">Debit (Dr)</th>
-                            <th style="text-align:right;">Credit (Cr)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trial-balance-body"></tbody>
-                    <tfoot>
-                        <tr style="font-weight:bold; background:#f8fafc; border-top:2px solid #333;">
-                            <td colspan="2" style="text-align:right;">GRAND TOTAL:</td>
-                            <td id="tb-total-dr" style="text-align:right; color:#1e40af;">0.00</td>
-                            <td id="tb-total-cr" style="text-align:right; color:#1e40af;">0.00</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+            <table id="trial-balance-table">
+                <thead>
+                    <tr><th>Account Name</th><th>Group</th><th style="text-align:right;">Debit (Dr)</th><th style="text-align:right;">Credit (Cr)</th></tr>
+                </thead>
+                <tbody id="trial-balance-body"></tbody>
+                <tfoot>
+                    <tr style="font-weight:bold; background:#f8fafc;">
+                        <td colspan="2" style="text-align:right;">Total:</td>
+                        <td id="tb-total-dr" style="text-align:right;">0.00</td>
+                        <td id="tb-total-cr" style="text-align:right;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
         <div class="main-content" id="page-profit-loss">
@@ -2453,9 +2426,9 @@
 
         function renderTrialBalance() {
             const tbody = document.getElementById('trial-balance-body');
+            if (!tbody) return;
             let totalDr = 0;
             let totalCr = 0;
-            let accCount = 0;
 
             tbody.innerHTML = accounts.map(acc => {
                 const bal = acc.balance || 0;
@@ -2470,50 +2443,25 @@
                     else dr = Math.abs(bal);
                 }
 
-                if (dr === 0 && cr === 0) return '';
-
                 totalDr += dr;
                 totalCr += cr;
-                accCount++;
+
+                if (dr === 0 && cr === 0) return '';
 
                 return `
-                    <tr onclick="viewLedger('${acc._id}')" style="cursor:pointer; transition:0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                        <td>
-                            <div style="font-weight:600; color:var(--tally-navy);">${acc.name}</div>
-                            <div style="font-size:0.7rem; color:#94a3b8;">Click to view ledger</div>
-                        </td>
-                        <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 8px; border-radius:10px;">${acc.group || acc.type}</span></td>
-                        <td style="text-align:right; font-weight:500;">${dr > 0 ? dr.toLocaleString(undefined, {minimumFractionDigits:2}) : '-'}</td>
-                        <td style="text-align:right; font-weight:500;">${cr > 0 ? cr.toLocaleString(undefined, {minimumFractionDigits:2}) : '-'}</td>
+                    <tr>
+                        <td>${acc.name}</td>
+                        <td>${acc.group || acc.type}</td>
+                        <td style="text-align:right;">${dr.toFixed(2)}</td>
+                        <td style="text-align:right;">${cr.toFixed(2)}</td>
                     </tr>
                 `;
-            }).join('');
+            }).join('') || "<tr><td colspan='4' style='text-align:center'>No accounts with balance found.</td></tr>";
 
-            document.getElementById('tb-total-dr').innerText = `Rs. ${totalDr.toLocaleString(undefined, {minimumFractionDigits:2})}`;
-            document.getElementById('tb-total-cr').innerText = `Rs. ${totalCr.toLocaleString(undefined, {minimumFractionDigits:2})}`;
-
-            // Audit Calculations
-            const diff = Math.abs(totalDr - totalCr);
-            const statusEl = document.getElementById('audit-status');
-            const diffEl = document.getElementById('audit-diff');
-
-            document.getElementById('audit-count').innerText = accCount;
-            diffEl.innerText = `Rs. ${diff.toFixed(2)}`;
-
-            if (diff < 0.01) {
-                statusEl.innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> Balanced';
-                statusEl.style.color = '#10b981';
-                diffEl.style.color = '#64748b';
-            } else {
-                statusEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#ef4444;"></i> Mismatch';
-                statusEl.style.color = '#ef4444';
-                diffEl.style.color = '#ef4444';
-            }
-        }
-            }).join('');
-
-            document.getElementById('tb-total-dr').innerText = totalDr.toFixed(2);
-            document.getElementById('tb-total-cr').innerText = totalCr.toFixed(2);
+            const tDr = document.getElementById('tb-total-dr');
+            const tCr = document.getElementById('tb-total-cr');
+            if(tDr) tDr.innerText = totalDr.toFixed(2);
+            if(tCr) tCr.innerText = totalCr.toFixed(2);
         }
 
         function calculateNetProfit() {
