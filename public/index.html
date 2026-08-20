@@ -1647,9 +1647,12 @@
             });
 
             if (res.ok) {
-                alert(editingAccountId ? "Account Updated!" : "Account Created!");
+                alert(editingAccountId ? "खाता अपडेट भयो!" : "नयाँ खाता बन्यो!");
                 closeAccountModal();
-                refreshData('accounts');
+
+                // Refresh both the accounts list and whatever current page is open
+                const currentPage = document.querySelector('.main-content[style*="display: block"]')?.id.replace('page-', '');
+                await refreshData(currentPage || 'accounts');
             } else {
                 alert("Error saving account");
             }
@@ -2472,7 +2475,13 @@
             let accCount = 0;
 
             tbody.innerHTML = accounts.map(acc => {
-                const bal = acc.balance || 0;
+                // Calculation: Balance = Stored Balance (which should include opening)
+                // If stored balance is 0 but openingBalance is not, use openingBalance
+                let bal = parseFloat(acc.balance);
+                if (isNaN(bal) || (bal === 0 && (acc.openingBalance || 0) !== 0)) {
+                    bal = parseFloat(acc.openingBalance) || 0;
+                }
+
                 let dr = 0, cr = 0;
 
                 const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
@@ -2647,6 +2656,16 @@
                 totalLiab += bal;
                 return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
             }).filter(h => h !== '').join('');
+
+            // Add Opening Balance (Capital) to Liabilities/Equity to balance initial entries
+            let totalOpeningAssets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type)).reduce((s, a) => s + (a.openingBalance || 0), 0);
+            let totalOpeningLiab = accounts.filter(a => ['Payable', 'Equity', 'Liability'].includes(a.type)).reduce((s, a) => s + (a.openingBalance || 0), 0);
+            let initialCapital = totalOpeningAssets - totalOpeningLiab;
+
+            if (initialCapital !== 0) {
+                liabBody.innerHTML += `<tr style="color:var(--primary-color);"><td>Opening Balance (Initial Capital)</td><td style="text-align:right;">${Math.abs(initialCapital).toFixed(2)}</td></tr>`;
+                totalLiab += Math.abs(initialCapital);
+            }
 
             // Add Net Profit to Liabilities/Equity
             liabBody.innerHTML += `<tr><td style="font-weight:600;">Net Profit for the Period</td><td style="text-align:right; font-weight:600; color:${netProfit >= 0 ? 'green' : 'red'};">${netProfit.toFixed(2)}</td></tr>`;
