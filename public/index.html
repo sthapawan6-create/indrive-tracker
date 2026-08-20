@@ -401,7 +401,12 @@
             <div id="audit-results-panel" style="display:none; background:#fff5f5; border:1px solid #feb2b2; padding:15px; border-radius:10px; margin-bottom:20px; color:#c53030;">
                 <h4 style="margin-top:0;"><i class="fas fa-exclamation-circle"></i> Integrity Mismatches Found</h4>
                 <ul id="audit-mismatch-list" style="font-size:0.9rem; padding-left:20px;"></ul>
-                <p style="font-size:0.8rem; margin-bottom:0;">* These accounts have balances that don't match their transaction history. Use "Recalculate Balances" in Settings to fix.</p>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <p style="font-size:0.8rem; margin-bottom:0;">* These accounts have balances that don't match their transaction history.</p>
+                    <button class="btn" style="background:#c53030; font-size:0.8rem; padding:5px 12px;" onclick="fixAllMismatches()">
+                        <i class="fas fa-magic"></i> Fix All Mismatches
+                    </button>
+                </div>
             </div>
 
             <!-- Audit Summary Cards -->
@@ -463,34 +468,61 @@
         </div>
 
         <div class="main-content" id="page-balance-sheet">
-            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h3>Balance Sheet</h3>
-                <button class="btn" onclick="window.print()">Print Report</button>
-            </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; background:white; padding:15px; border-radius:12px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                 <div>
-                    <h4>Liabilities & Equity</h4>
-                    <table>
-                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
-                        <tbody id="bs-liabilities-body"></tbody>
-                    </table>
+                    <h2 style="margin:0; color:#1e293b; font-size:1.5rem;">Balance Sheet</h2>
+                    <p style="margin:5px 0 0; color:#64748b; font-size:0.85rem;">Financial Position as of Today</p>
                 </div>
-                <div>
-                    <h4>Assets</h4>
-                    <table>
-                        <thead><tr><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead>
-                        <tbody id="bs-assets-body"></tbody>
-                    </table>
-                </div>
+                <button class="btn" onclick="window.print()" style="background:#4f46e5; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-print"></i> Print Report
+                </button>
             </div>
-            <div style="margin-top:20px; padding:15px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between; font-weight:bold; border:1px solid #ddd;">
-                <div style="width:50%; display:flex; justify-content:space-between; padding-right:20px;">
-                    <span>Total Liabilities:</span>
-                    <span id="bs-total-liabilities">0.00</span>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:25px;">
+                <!-- Liabilities Column (Left) -->
+                <div style="background:white; border-radius:15px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <div style="background:#f8fafc; padding:15px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0; color:#0f172a; display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-hand-holding-usd" style="color:#ef4444;"></i> LIABILITIES & EQUITY
+                        </h4>
+                    </div>
+                    <div style="padding:0;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead style="background:#f1f5f9; font-size:0.75rem; text-transform:uppercase; color:#64748b;">
+                                <tr><th style="padding:12px 20px; text-align:left;">Particulars</th><th style="padding:12px 20px; text-align:right;">Amount (Rs.)</th></tr>
+                            </thead>
+                            <tbody id="bs-liabilities-body" style="font-size:0.9rem; color:#334155;"></tbody>
+                            <tfoot style="background:#f8fafc; border-top:2px solid #e2e8f0;">
+                                <tr style="font-weight:700; color:#0f172a;">
+                                    <td style="padding:15px 20px;">TOTAL LIABILITIES & EQUITY</td>
+                                    <td id="bs-total-liabilities" style="padding:15px 20px; text-align:right; font-size:1.1rem; color:#ef4444;">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
-                <div style="width:50%; display:flex; justify-content:space-between; padding-left:20px;">
-                    <span>Total Assets:</span>
-                    <span id="bs-total-assets">0.00</span>
+
+                <!-- Assets Column (Right) -->
+                <div style="background:white; border-radius:15px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                    <div style="background:#f8fafc; padding:15px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="margin:0; color:#0f172a; display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-piggy-bank" style="color:#10b981;"></i> ASSETS (सम्पत्ति)
+                        </h4>
+                    </div>
+                    <div style="padding:0;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead style="background:#f1f5f9; font-size:0.75rem; text-transform:uppercase; color:#64748b;">
+                                <tr><th style="padding:12px 20px; text-align:left;">Particulars</th><th style="padding:12px 20px; text-align:right;">Amount (Rs.)</th></tr>
+                            </thead>
+                            <tbody id="bs-assets-body" style="font-size:0.9rem; color:#334155;"></tbody>
+                            <tfoot style="background:#f8fafc; border-top:2px solid #e2e8f0;">
+                                <tr style="font-weight:700; color:#0f172a;">
+                                    <td style="padding:15px 20px;">TOTAL ASSETS</td>
+                                    <td id="bs-total-assets" style="padding:15px 20px; text-align:right; font-size:1.1rem; color:#10b981;">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2597,6 +2629,27 @@
             }
         }
 
+        async function fixAllMismatches() {
+            if(!confirm("Are you sure you want to recalculate all account balances? This will sync all accounts with their transaction history.")) return;
+
+            try {
+                const res = await fetch(`${API_URL}/recalculate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if(res.ok) {
+                    alert("✅ All account balances have been successfully recalculated and fixed!");
+                    await refreshData('trial-balance');
+                    document.getElementById('audit-results-panel').style.display = 'none';
+                } else {
+                    alert("Error fixing mismatches. Please try again.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Connection error while fixing mismatches.");
+            }
+        }
+
         function calculateNetProfit() {
             const totalExp = accounts.filter(a => a.type === 'Expense').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
             const totalInc = accounts.filter(a => a.type === 'Revenue').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
@@ -2650,54 +2703,50 @@
             let totalAssets = 0;
             let totalLiab = 0;
 
-            const assets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type));
-            const liabilities = accounts.filter(a => ['Payable', 'Equity'].includes(a.type));
+            // Only show non-zero balance accounts
+            const assets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type) && Math.abs(a.balance || 0) > 0.01);
+            const liabilities = accounts.filter(a => ['Payable', 'Equity', 'Liability'].includes(a.type) && Math.abs(a.balance || 0) > 0.01);
 
             const netProfit = calculateNetProfit();
 
             assetBody.innerHTML = assets.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
-                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalAssets += bal;
-                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).filter(h => h !== '').join('');
+                return `<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:12px 20px;">${acc.name}</td><td style="padding:12px 20px; text-align:right; font-weight:600;">${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+            }).join('');
 
             // Add Closing Stock to Assets
             let stockVal = 0;
             products.forEach(p => stockVal += (p.currentStock || 0) * (p.purchasePrice || 0));
-            if (stockVal > 0) {
-                assetBody.innerHTML += `<tr><td style="font-weight:600;">Closing Stock (Inventory)</td><td style="text-align:right; font-weight:600;">${stockVal.toFixed(2)}</td></tr>`;
+            if (stockVal > 0.01) {
+                assetBody.innerHTML += `<tr style="border-bottom:1px solid #f1f5f9; background:#fffcf0;"><td style="padding:12px 20px; font-weight:600;">Closing Stock (Inventory)</td><td style="padding:12px 20px; text-align:right; font-weight:700; color:#b45309;">${stockVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
                 totalAssets += stockVal;
             }
 
             liabBody.innerHTML = liabilities.map(acc => {
                 const bal = Math.abs(acc.balance || 0);
-                if (bal === 0 && (acc.openingBalance || 0) === 0) return '';
                 totalLiab += bal;
-                return `<tr><td>${acc.name}</td><td style="text-align:right;">${bal.toFixed(2)}</td></tr>`;
-            }).filter(h => h !== '').join('');
+                return `<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:12px 20px;">${acc.name}</td><td style="padding:12px 20px; text-align:right; font-weight:600;">${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+            }).join('');
 
             // Add Opening Balance (Capital) to Liabilities/Equity to balance initial entries
-            let totalOpeningAssets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type)).reduce((s, a) => s + (a.openingBalance || 0), 0);
-            let totalOpeningLiab = accounts.filter(a => ['Payable', 'Equity', 'Liability'].includes(a.type)).reduce((s, a) => s + (a.openingBalance || 0), 0);
+            let totalOpeningAssets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type)).reduce((s, a) => s + (parseFloat(a.openingBalance) || 0), 0);
+            let totalOpeningLiab = accounts.filter(a => ['Payable', 'Equity', 'Liability'].includes(a.type)).reduce((s, a) => s + (parseFloat(a.openingBalance) || 0), 0);
             let initialCapital = totalOpeningAssets - totalOpeningLiab;
 
-            if (initialCapital !== 0) {
-                liabBody.innerHTML += `<tr style="color:var(--primary-color);"><td>Opening Balance (Initial Capital)</td><td style="text-align:right;">${Math.abs(initialCapital).toFixed(2)}</td></tr>`;
+            if (Math.abs(initialCapital) > 0.01) {
+                liabBody.innerHTML += `<tr style="border-bottom:1px solid #f1f5f9; background:#f0f9ff;"><td style="padding:12px 20px; color:#0369a1; font-weight:600;">Opening Balance (Initial Capital)</td><td style="padding:12px 20px; text-align:right; font-weight:700;">${Math.abs(initialCapital).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
                 totalLiab += Math.abs(initialCapital);
             }
 
             // Add Net Profit to Liabilities/Equity
-            liabBody.innerHTML += `<tr><td style="font-weight:600;">Net Profit for the Period</td><td style="text-align:right; font-weight:600; color:${netProfit >= 0 ? 'green' : 'red'};">${netProfit.toFixed(2)}</td></tr>`;
-            totalLiab += netProfit;
-
-            document.getElementById('bs-total-assets').innerText = totalAssets.toFixed(2);
-            document.getElementById('bs-total-liabilities').innerText = totalLiab.toFixed(2);
-
-            const diff = Math.abs(totalAssets - totalLiab);
-            if (diff > 0.1) {
-                console.warn("Balance Sheet out of balance by:", diff);
+            if (Math.abs(netProfit) > 0.01) {
+                liabBody.innerHTML += `<tr style="border-bottom:1px solid #f1f5f9; background:#f0fdf4;"><td style="padding:12px 20px; font-weight:600; color:#166534;">Net Profit for the Period</td><td style="padding:12px 20px; text-align:right; font-weight:700; color:${netProfit >= 0 ? '#166534' : '#991b1b'};">${netProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+                totalLiab += netProfit;
             }
+
+            document.getElementById('bs-total-assets').innerText = totalAssets.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            document.getElementById('bs-total-liabilities').innerText = totalLiab.toLocaleString('en-IN', {minimumFractionDigits: 2});
         }
 
         function renderVatReport() {
