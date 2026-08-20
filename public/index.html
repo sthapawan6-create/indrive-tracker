@@ -2474,16 +2474,13 @@
             let totalCr = 0;
             let accCount = 0;
 
-            tbody.innerHTML = accounts.map(acc => {
-                // Calculation: Balance = Stored Balance (which should include opening)
-                // If stored balance is 0 but openingBalance is not, use openingBalance
+            let rowsHtml = accounts.map(acc => {
                 let bal = parseFloat(acc.balance);
                 if (isNaN(bal) || (bal === 0 && (acc.openingBalance || 0) !== 0)) {
                     bal = parseFloat(acc.openingBalance) || 0;
                 }
 
                 let dr = 0, cr = 0;
-
                 const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
                 if (isDebitNature) {
                     if (bal >= 0) dr = bal;
@@ -2507,7 +2504,30 @@
                         <td style="text-align:right;">${cr.toFixed(2)}</td>
                     </tr>
                 `;
-            }).join('') || "<tr><td colspan='4' style='text-align:center'>No accounts with balance found.</td></tr>";
+            }).join('');
+
+            // Add Opening Balance Difference to balance the Trial Balance
+            let totalOpAssets = accounts.filter(a => ['Asset', 'Receivable'].includes(a.type)).reduce((s, a) => s + (parseFloat(a.openingBalance) || 0), 0);
+            let totalOpLiab = accounts.filter(a => ['Payable', 'Equity', 'Liability'].includes(a.type)).reduce((s, a) => s + (parseFloat(a.openingBalance) || 0), 0);
+            let opDiff = totalOpAssets - totalOpLiab;
+
+            if (opDiff !== 0) {
+                const drVal = opDiff < 0 ? Math.abs(opDiff) : 0;
+                const crVal = opDiff > 0 ? opDiff : 0;
+
+                rowsHtml += `
+                    <tr style="color:var(--primary-color); font-weight:600; background:#f0f7ff;">
+                        <td>Opening Balance (Initial Capital)</td>
+                        <td>Equity</td>
+                        <td style="text-align:right;">${drVal > 0 ? drVal.toFixed(2) : '0.00'}</td>
+                        <td style="text-align:right;">${crVal > 0 ? crVal.toFixed(2) : '0.00'}</td>
+                    </tr>
+                `;
+                totalDr += drVal;
+                totalCr += crVal;
+            }
+
+            tbody.innerHTML = rowsHtml || "<tr><td colspan='4' style='text-align:center'>No accounts with balance found.</td></tr>";
 
             const tDr = document.getElementById('tb-total-dr');
             const tCr = document.getElementById('tb-total-cr');
