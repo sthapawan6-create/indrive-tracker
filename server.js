@@ -51,6 +51,15 @@ app.get('/api/health', (req, res) => {
     res.json(status);
 });
 
+// --- AWS S3 Client Configuration ---
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION || 'ap-south-1',
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+});
+
 // --- Models ---
 const BackupLogSchema = new mongoose.Schema({
     userId: String,
@@ -649,25 +658,68 @@ app.delete('/api/transactions/:id', async (req, res) => {
 
 app.post('/api/recalculate', async (req, res) => {
     const { userId } = req.body;
+    const finalUserId = userId || 'pawan-electronics-admin';
     try {
-        const accounts = await Account.find({ userId });
-        const transactions = await Transaction.find({ userId });
+        const accounts = await Account.find({ userId: finalUserId });
+        const transactions = await Transaction.find({ userId: finalUserId });
 
         for (const acc of accounts) {
             let newBalance = acc.openingBalance || 0;
+            const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
+
             transactions.forEach(tx => {
                 tx.entries.forEach(e => {
                     if (e.account && e.account.toString() === acc._id.toString()) {
-                        const isDebitInc = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
-                        newBalance += isDebitInc ? (e.debit - e.credit) : (e.credit - e.debit);
+                        const dr = parseFloat(e.debit) || 0;
+                        const cr = parseFloat(e.credit) || 0;
+                        newBalance += isDebitInc ? (dr - cr) : (cr - dr);
                     }
                 });
             });
             acc.balance = newBalance;
             await acc.save();
         }
-        res.json({ message: "सबै खाताको ब्यालेन्स पुन: गणना गरियो र मिलाइयो!" });
-    } catch (err) { res.status(500).json({ error: "Recalculation failed" }); }
+        res.json({ message: "सबै खाताको ब्यालेन्स पुन: गणना गरियो र मिलाइयो!", count: accounts.length });
+    } catch (err) {
+        console.error("Recalculate Error:", err);
+        res.status(500).json({ error: "Recalculation failed: " + err.message });
+    }
+});
+
+// --- S3 Backup API ---
+app.post('/api/backup/s3', async (req, res) => {
+    try {
+        const { userId, data } = req.body;
+        const finalUserId = userId || 'pawan-electronics-admin';
+        const fileName = `backups/${finalUserId}/ERP_Backup_${new Date().toISOString().replace(/:/g, '-')}.json`;
+
+        const params = {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: fileName,
+            Body: JSON.stringify(data, null, 2),
+            ContentType: 'application/json'
+        };
+
+        await s3Client.send(new PutObjectCommand(params));
+
+        const log = new BackupLog({
+            userId: finalUserId,
+            status: 'Success',
+            fileKey: fileName
+        });
+        await log.save();
+
+        res.json({ message: "Cloud backup successful!", file: fileName });
+    } catch (err) {
+        console.error("S3 Backup Error:", err);
+        const log = new BackupLog({
+            userId: req.body.userId || 'unknown',
+            status: 'Failed',
+            error: err.message
+        });
+        await log.save();
+        res.status(500).json({ error: "Cloud backup failed: " + err.message });
+    }
 });
 
 // --- Page Routes (AT THE END) ---
