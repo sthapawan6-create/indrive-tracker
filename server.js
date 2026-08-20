@@ -376,7 +376,11 @@ app.delete('/api/accounts/:id', async (req, res) => {
         const { userId } = req.query;
         if (!userId) return res.status(400).json({ error: "userId आवश्यक छ" });
 
-        const acc = await Account.findOne({ _id: req.params.id, userId });
+        const query = {
+            _id: req.params.id,
+            $or: [{ userId }, { userId: 'pawan-electronics-admin' }, { userId: { $exists: false } }, { userId: "" }]
+        };
+        const acc = await Account.findOne(query);
         if (!acc) return res.status(404).json({ error: "खाता भेटिएन" });
 
         const hasTx = await Transaction.findOne({ userId, "entries.account": req.params.id });
