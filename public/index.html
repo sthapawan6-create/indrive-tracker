@@ -1541,7 +1541,7 @@
             const taxable = total / 1.13;
             const vat = total - taxable;
 
-            const printWin = window.open('', '', 'width=800,height=900');
+            const printWin = window.open('', '', 'width=850,height=900');
 
             let itemRows = (tx.items || []).map((item, index) => {
                 const p = products.find(prod => prod._id === item.product);
@@ -1550,11 +1550,11 @@
                 const amt = qty * rate;
                 return `
                     <tr>
-                        <td style="border:1px solid #000; text-align:center; padding:5px;">${index + 1}</td>
-                        <td style="border:1px solid #000; padding:5px;">${p ? p.name : 'Item'}</td>
-                        <td style="border:1px solid #000; text-align:center; padding:5px;">${qty} ${p?.unit || 'Pcs'}</td>
-                        <td style="border:1px solid #000; text-align:right; padding:5px;">${rate.toFixed(2)}</td>
-                        <td style="border:1px solid #000; text-align:right; padding:5px;">${amt.toFixed(2)}</td>
+                        <td style="border:1px solid #000; text-align:center; padding:8px;">${index + 1}</td>
+                        <td style="border:1px solid #000; padding:8px;">${p ? p.name : 'Item'}</td>
+                        <td style="border:1px solid #000; text-align:center; padding:8px;">${qty} ${p?.unit || 'Pcs'}</td>
+                        <td style="border:1px solid #000; text-align:right; padding:8px;">${rate.toFixed(2)}</td>
+                        <td style="border:1px solid #000; text-align:right; padding:8px;">${amt.toFixed(2)}</td>
                     </tr>`;
             }).join('');
 
@@ -1563,39 +1563,39 @@
                 <head>
                     <title>Tax Invoice - ${txId.slice(-6).toUpperCase()}</title>
                     <style>
-                        body { font-family: 'Arial', sans-serif; padding: 20px; color: #000; font-size: 14px; }
-                        .invoice-box { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 30px; }
-                        .header-table { width: 100%; margin-bottom: 20px; }
-                        .title { font-size: 24px; font-weight: bold; text-align: center; text-decoration: underline; margin-bottom: 10px; }
+                        body { font-family: 'Arial', sans-serif; padding: 20px; color: #000; font-size: 13px; line-height: 1.5; }
+                        .invoice-box { max-width: 800px; margin: auto; border: 2px solid #000; padding: 20px; min-height: 800px; position: relative; }
+                        .title { font-size: 22px; font-weight: bold; text-align: center; text-decoration: underline; margin-bottom: 20px; }
+                        .header-table { width: 100%; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
                         .info-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
-                        .info-table td { padding: 5px; vertical-align: top; }
+                        .info-table td { padding: 5px; vertical-align: top; border: 1px solid #000; }
                         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                        .items-table th { border: 1px solid #000; background: #f2f2f2; padding: 8px; }
-                        .items-table td { border: 1px solid #000; padding: 8px; }
-                        .totals-table { width: 40%; margin-left: auto; border-collapse: collapse; }
-                        .totals-table td { padding: 5px; border: 1px solid #000; }
-                        .footer-note { margin-top: 30px; font-size: 12px; }
-                        .sign-section { margin-top: 50px; display: flex; justify-content: space-between; }
-                        .sign-box { border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px; }
-                        @media print { .no-print { display: none; } }
+                        .items-table th { border: 1px solid #000; background: #f2f2f2; padding: 10px; font-weight: bold; }
+                        .items-table td { border: 1px solid #000; padding: 10px; }
+                        .totals-table { width: 45%; margin-left: auto; border-collapse: collapse; }
+                        .totals-table td { padding: 8px; border: 1px solid #000; }
+                        .footer-note { margin-top: 30px; font-size: 12px; border-top: 1px dashed #ccc; padding-top: 10px; }
+                        .sign-section { margin-top: 80px; display: flex; justify-content: space-between; padding: 0 20px; }
+                        .sign-box { border-top: 1px solid #000; width: 220px; text-align: center; padding-top: 5px; font-weight: bold; }
+                        @media print { .no-print { display: none; } .invoice-box { border: 2px solid #000; } }
                     </style>
                 </head>
                 <body>
-                    <div class="no-print" style="text-align:right; margin-bottom:10px;">
-                        <button onclick="window.print()">Print / Save as PDF</button>
+                    <div class="no-print" style="text-align:right; margin-bottom:20px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 5px; cursor: pointer;">Print / Save as PDF</button>
                     </div>
                     <div class="invoice-box">
                         <div class="title">TAX INVOICE</div>
 
-                        <table class="header-table">
+                        <table class="header-table" style="border:none;">
                             <tr>
-                                <td style="width: 60%;">
-                                    <strong style="font-size: 18px;">${settings.name}</strong><br>
+                                <td style="width: 60%; border:none;">
+                                    <strong style="font-size: 20px;">${settings.name}</strong><br>
                                     ${settings.address}<br>
                                     Phone: ${settings.phone}<br>
                                     <strong>PAN/VAT: ${settings.pan}</strong>
                                 </td>
-                                <td style="text-align: right;">
+                                <td style="text-align: right; border:none; vertical-align:top;">
                                     <strong>Invoice No:</strong> ${txId.slice(-6).toUpperCase()}<br>
                                     <strong>Date:</strong> ${tx.date}<br>
                                     <strong>Time:</strong> ${new Date(tx.createdAt).toLocaleTimeString()}
@@ -1603,18 +1603,20 @@
                             </tr>
                         </table>
 
-                        <table class="info-table" style="border: 1px solid #000;">
+                        <table class="info-table">
                             <tr>
-                                <td style="width: 50%; border-right: 1px solid #000;">
-                                    <strong>Buyer Details:</strong><br>
-                                    Name: ${party ? party.name : 'Cash Customer'}<br>
+                                <td style="width: 55%;">
+                                    <strong>Buyer's Details:</strong><br>
+                                    Name: <strong>${party ? party.name : 'Cash Customer'}</strong><br>
                                     Address: ${party?.address || '-'}<br>
-                                    Contact: ${party?.phone || '-'}<br>
-                                    <strong>Buyer PAN/VAT: ${party?.panVat || '-'}</strong>
+                                    Phone: ${party?.phone || '-'}<br>
+                                    <strong>Buyer's PAN/VAT: ${party?.panVat || '-'}</strong>
                                 </td>
-                                <td>
-                                    <strong>Payment Mode:</strong> ${party?.type === 'Cash' || !party ? 'CASH' : 'CREDIT'}<br>
-                                    <strong>Currency:</strong> NPR
+                                <td style="width: 45%;">
+                                    <strong>Transaction Details:</strong><br>
+                                    Payment Method: ${party?.type === 'Cash' || !party ? 'Cash' : 'Credit'}<br>
+                                    Transaction Type: Sales<br>
+                                    Currency: NPR (Rs.)
                                 </td>
                             </tr>
                         </table>
@@ -1622,11 +1624,11 @@
                         <table class="items-table">
                             <thead>
                                 <tr>
-                                    <th>S.N.</th>
+                                    <th style="width:50px;">S.N.</th>
                                     <th>Description of Goods</th>
-                                    <th>Qty</th>
-                                    <th>Rate</th>
-                                    <th>Amount</th>
+                                    <th style="width:80px;">Qty</th>
+                                    <th style="width:100px;">Rate</th>
+                                    <th style="width:120px;">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1636,21 +1638,21 @@
 
                         <table class="totals-table">
                             <tr>
-                                <td>Taxable Amount</td>
+                                <td style="font-weight:bold;">Taxable Amount</td>
                                 <td style="text-align: right;">${taxable.toFixed(2)}</td>
                             </tr>
                             <tr>
-                                <td>VAT (13%)</td>
+                                <td style="font-weight:bold;">VAT (13%)</td>
                                 <td style="text-align: right;">${vat.toFixed(2)}</td>
                             </tr>
-                            <tr style="font-weight: bold; background: #eee;">
+                            <tr style="font-weight: bold; background: #f2f2f2;">
                                 <td>Grand Total</td>
                                 <td style="text-align: right;">Rs. ${total.toFixed(2)}</td>
                             </tr>
                         </table>
 
                         <div class="footer-note">
-                            <strong>Amount in words:</strong> ${numberToEnglish(total)} Rupees Only.
+                            <strong>Amount in words:</strong> <span id="amt-words"></span>
                         </div>
 
                         <div class="sign-section">
@@ -1658,15 +1660,27 @@
                             <div class="sign-box">Authorized Signature</div>
                         </div>
 
-                        <div style="text-align:center; margin-top:30px; font-size:10px; color:#666;">
-                            * This is a computer generated invoice *
+                        <div style="position: absolute; bottom: 20px; left: 0; right: 0; text-align:center; font-size:10px; color:#777;">
+                            * This is a computer generated invoice and does not require a physical signature *
                         </div>
                     </div>
+
                     <script>
-                        function numberToEnglish(n) {
-                            // Simple version for words
-                            return n.toLocaleString('en-IN'); // Just placeholder or simple logic
+                        function inWords(num) {
+                            var a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+                            var b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+                            if ((num = num.toString()).length > 9) return 'overflow';
+                            var n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+                            if (!n) return '';
+                            var str = '';
+                            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+                            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+                            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+                            str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+                            str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'Only' : 'Only';
+                            return str;
                         }
+                        document.getElementById('amt-words').innerText = inWords(Math.floor(${total}));
                     <\/script>
                 </body>
                 </html>
@@ -2395,7 +2409,7 @@
                         <div style="display:flex; gap:5px;">
                             <select class="row-prod" onchange="updateRowPrice(this)" style="flex:1; padding:5px; border:1px solid #ddd;">
                                 <option value="">Select Item</option>
-                                ${products.map(p => `<option value="${p._id}" data-price="${p.salePrice}" data-cost="${p.purchasePrice}">${p.name}</option>`).join('')}
+                                ${products.map(p => `<option value="${p._id}" data-price="${p.salePrice}" data-cost="${p.purchasePrice}" data-stock="${p.currentStock || 0}">${p.name} (Stock: ${p.currentStock || 0})</option>`).join('')}
                             </select>
                             <button class="btn" onclick="quickAddProduct(this)" style="padding:2px 8px; background:#6366f1; font-size:0.8rem;">+</button>
                         </div>
@@ -2412,8 +2426,15 @@
         function updateRowPrice(select) {
             const opt = select.options[select.selectedIndex];
             const price = opt.dataset.price;
-            const cost = opt.dataset.cost;
-            select.closest('tr').querySelector('.row-rate').value = price || 0;
+            const stock = opt.dataset.stock;
+            const row = select.closest('tr');
+            row.querySelector('.row-rate').value = price || 0;
+
+            let infoDiv = row.querySelector('.row-info');
+            if(infoDiv) {
+                infoDiv.innerText = `Current Stock: ${stock || 0}`;
+            }
+
             calcTotal();
         }
 
@@ -2843,7 +2864,7 @@
                     <div style="display:flex; gap:5px;">
                         <select class="row-prod" onchange="updatePurPrice(this)" style="flex:1; padding:5px; border:1px solid #ddd;">
                             <option value="">Select Item</option>
-                            ${products.map(p => `<option value="${p._id}" data-price="${p.purchasePrice}">${p.name}</option>`).join('')}
+                            ${products.map(p => `<option value="${p._id}" data-price="${p.purchasePrice}" data-stock="${p.currentStock || 0}">${p.name} (Stock: ${p.currentStock || 0})</option>`).join('')}
                         </select>
                         <button class="btn" onclick="quickAddProduct(this)" style="padding:2px 8px; background:#6366f1; font-size:0.8rem;">+</button>
                     </div>
@@ -2856,8 +2877,21 @@
         }
 
         function updatePurPrice(select) {
-            const price = select.options[select.selectedIndex].dataset.price;
+            const opt = select.options[select.selectedIndex];
+            const price = opt.dataset.price;
+            const stock = opt.dataset.stock;
             select.closest('tr').querySelector('.row-rate').value = price || 0;
+
+            // Add info div for stock if not present
+            let infoDiv = select.parentElement.parentElement.querySelector('.row-info');
+            if(!infoDiv) {
+                infoDiv = document.createElement('div');
+                infoDiv.className = 'row-info';
+                infoDiv.style = 'font-size:0.7rem; color:#64748b; margin-left:5px;';
+                select.parentElement.parentElement.appendChild(infoDiv);
+            }
+            infoDiv.innerText = `Current Stock: ${stock || 0}`;
+
             calcPurTotal();
         }
 

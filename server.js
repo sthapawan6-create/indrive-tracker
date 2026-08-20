@@ -510,8 +510,12 @@ app.post('/api/transactions', async (req, res) => {
                     const prod = await Product.findOne({ _id: pId, userId: finalUserId });
                     if (prod) {
                         const qty = Number(item.qty || item.quantity);
+                        const rate = Number(item.rate || 0);
                         if (type === 'SALES' || type === 'PURCHASE_RETURN') prod.currentStock -= qty;
-                        if (type === 'PURCHASE' || type === 'SALES_RETURN') prod.currentStock += qty;
+                        if (type === 'PURCHASE' || type === 'SALES_RETURN') {
+                            prod.currentStock += qty;
+                            if (type === 'PURCHASE' && rate > 0) prod.purchasePrice = rate;
+                        }
                         await prod.save();
                     }
                 }
