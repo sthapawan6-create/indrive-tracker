@@ -42,13 +42,7 @@ connectDB();
 
 // Health Check API
 app.get('/api/health', (req, res) => {
-    const status = {
-        server: "Running",
-        database: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
-        dbState: mongoose.connection.readyState,
-        timestamp: new Date()
-    };
-    res.json(status);
+    res.json({ status: "OK", timestamp: new Date() });
 });
 
 // --- AWS S3 Client Configuration ---

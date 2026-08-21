@@ -485,6 +485,28 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Recent Sales Section -->
+            <div style="margin-top:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h4 style="margin:0;">Recent Sales Invoices</h4>
+                    <button class="btn" onclick="showPage('sales-book')" style="padding:5px 12px; font-size:0.8rem; background:#64748b;">View Sales Book</button>
+                </div>
+                <div style="background:white; border-radius:12px; border:1px solid var(--border-color); overflow:hidden;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        <thead style="background:#f8fafc; border-bottom:1px solid #eee;">
+                            <tr>
+                                <th style="padding:12px; text-align:left;">Date</th>
+                                <th style="padding:12px; text-align:left;">Bill No</th>
+                                <th style="padding:12px; text-align:left;">Customer</th>
+                                <th style="padding:12px; text-align:right;">Amount</th>
+                                <th style="padding:12px; text-align:center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-sales-list"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div class="main-content" id="page-trial-balance">
@@ -1274,7 +1296,10 @@
                 }
                 if(pageId === 'accounts') renderAccountsList();
                 if(pageId === 'products') renderProductsList();
-                if(pageId === 'billing') initBillingForm();
+                if(pageId === 'billing') {
+                    initBillingForm();
+                    renderRecentSales();
+                }
                 if(pageId === 'purchase') initPurchaseForm();
                 if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
@@ -2242,6 +2267,34 @@
             document.getElementById('st-final-bal').innerText = getBalStr(runningBal);
         }
 
+        function renderRecentSales() {
+            const tbody = document.getElementById('recent-sales-list');
+            if (!tbody) return;
+
+            const recentSales = transactions
+                .filter(tx => tx.type === 'SALES')
+                .slice(0, 5);
+
+            tbody.innerHTML = recentSales.map(tx => {
+                const drEntry = tx.entries.find(e => (e.debit > 0));
+                const customer = accounts.find(a => a._id === getAccountId(drEntry?.account));
+                const total = tx.totalAmount || getTxAmount(tx);
+
+                return `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding:12px;">${tx.date}</td>
+                        <td style="padding:12px; font-weight:600;">#${tx.billNo || tx._id.slice(-6).toUpperCase()}</td>
+                        <td style="padding:12px;">${customer ? customer.name : 'Cash Sale'}</td>
+                        <td style="padding:12px; text-align:right; font-weight:700; color:#059669;">Rs. ${total.toLocaleString()}</td>
+                        <td style="padding:12px; text-align:center;">
+                            <button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#4f46e5; margin-right:8px;" title="Print/PDF"><i class="fas fa-file-pdf"></i></button>
+                            <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='5' style='padding:20px; text-align:center; color:#64748b;'>No recent sales found.</td></tr>";
+        }
+
         function renderSalesBook() {
             const tbody = document.getElementById('sales-book-body');
             if (!tbody) return;
@@ -2282,6 +2335,7 @@
                         <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td class="no-print">
                             <div style="display:flex; gap:10px; align-items:center;">
+                                <button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#4f46e5;" title="Print Invoice"><i class="fas fa-file-pdf"></i></button>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
@@ -3135,6 +3189,7 @@
                         <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td class="no-print">
                             <div style="display:flex; gap:10px; align-items:center;">
+                                <button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#4f46e5;" title="Print Invoice"><i class="fas fa-file-pdf"></i></button>
                                 <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
