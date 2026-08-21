@@ -452,7 +452,7 @@
                             <select id="inv-party-acc" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;">
                                 <option value="CASH">-- CASH SALE --</option>
                             </select>
-                            <button class="btn" onclick="quickAddAccount('Receivable')" style="padding:5px 10px; background:#6366f1;">+</button>
+                            <button class="btn" onclick="openAccountModal('Receivable')" style="padding:5px 10px; background:#6366f1;">+</button>
                         </div>
                     </div>
                 </div>
@@ -766,7 +766,7 @@
                         <label style="font-size:0.8rem; color:#64748b;">Supplier / Party</label>
                         <div style="display:flex; gap:5px;">
                             <select id="pur-party-acc" style="flex:1; padding:8px; border:1px solid #ddd; border-radius:6px;"><option value="">-- Select Supplier --</option></select>
-                            <button class="btn" onclick="quickAddAccount('Payable')" style="padding:5px 10px; background:#6366f1;">+</button>
+                            <button class="btn" onclick="openAccountModal('Payable')" style="padding:5px 10px; background:#6366f1;">+</button>
                         </div>
                     </div>
                 </div>
@@ -1105,38 +1105,54 @@
 
     <!-- Account Modal -->
     <div id="account-modal" class="modal">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="modal-title">Add New Account</h3>
-                <span onclick="closeAccountModal()" style="cursor:pointer; font-size:1.5rem;">&times;</span>
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; position: sticky; top: 0; background: white; z-index: 10; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                <h3 id="modal-title" style="margin:0;">Add New Account</h3>
+                <span onclick="closeAccountModal()" style="cursor:pointer; font-size:1.5rem; font-weight: bold;">&times;</span>
             </div>
-            <div style="display:grid; gap:15px;">
+            <div style="display:grid; gap:12px;">
                 <div>
                     <label style="font-size:0.8rem; color:#64748b;">Account Name</label>
-                    <input type="text" id="acc-name" placeholder="e.g. Ram Prasad / Petrol Expense" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
+                    <input type="text" id="acc-name" placeholder="e.g. Ram Prasad / Petrol Expense" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
                 </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Account Type</label>
+                        <select id="acc-type" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
+                            <option value="Receivable">Customer (Receivable)</option>
+                            <option value="Payable">Supplier (Payable)</option>
+                            <option value="Expense">Expense (खर्च)</option>
+                            <option value="Asset">Bank/Cash (Asset)</option>
+                            <option value="Revenue">Income (Revenue)</option>
+                            <option value="Equity">Equity/Capital (पुँजी)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Opening Bal.</label>
+                        <input type="number" id="acc-balance" value="0" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">Phone Number</label>
+                        <input type="text" id="acc-phone" placeholder="Phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:#64748b;">PAN / VAT</label>
+                        <input type="text" id="acc-pan" placeholder="9-digit PAN" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
+                    </div>
+                </div>
+
                 <div>
-                    <label style="font-size:0.8rem; color:#64748b;">Account Type (Group)</label>
-                    <select id="acc-type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
-                        <option value="Receivable">Customer (Receivable)</option>
-                        <option value="Payable">Supplier (Payable)</option>
-                        <option value="Expense">Expense (खर्च)</option>
-                        <option value="Asset">Bank/Cash (Asset)</option>
-                        <option value="Revenue">Income (Revenue)</option>
-                        <option value="Equity">Equity/Capital (पुँजी)</option>
-                    </select>
+                    <label style="font-size:0.8rem; color:#64748b;">Address</label>
+                    <input type="text" id="acc-address" placeholder="Address" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
                 </div>
-                <div>
-                    <label style="font-size:0.8rem; color:#64748b;">Opening Balance (Optional)</label>
-                    <input type="number" id="acc-balance" value="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
-                </div>
-                <div>
-                    <label style="font-size:0.8rem; color:#64748b;">PAN / VAT Number</label>
-                    <input type="text" id="acc-pan" placeholder="9-digit PAN" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin-top:5px;">
-                </div>
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <button class="btn" onclick="saveAccount()" style="flex:1;">Save Account</button>
-                    <button class="btn" onclick="closeAccountModal()" style="background:#64748b; flex:1;">Cancel</button>
+
+                <div style="display:flex; gap:10px; margin-top:15px; position: sticky; bottom: 0; background: white; padding-top: 10px; border-top: 1px solid #eee;">
+                    <button class="btn" onclick="saveAccount()" style="flex:1; padding: 10px;">Save Account</button>
+                    <button class="btn" onclick="closeAccountModal()" style="background:#64748b; flex:1; padding: 10px;">Cancel</button>
                 </div>
             </div>
         </div>
@@ -2035,7 +2051,10 @@
                 <tr style="border-bottom:1px solid #f1f5f9;">
                     <td style="padding:15px; cursor:pointer;" onclick="viewStatement('${acc._id}')">
                         <div class="account-name-hover" style="font-weight:600; color:var(--primary-color); text-decoration:none;">${acc.name}</div>
-                        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">PAN: ${acc.panVat || '-'} | ${acc.phone || 'No Phone'}</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+                            ${acc.address ? acc.address + ' | ' : ''}
+                            PAN: ${acc.panVat || '-'} | Ph: ${acc.phone || '-'}
+                        </div>
                     </td>
                     <td style="padding:15px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px; font-size:0.8rem; color:#475569;">${acc.group || acc.type}</span></td>
                     <td style="padding:15px; text-align:right; font-weight:700; color:${acc.balance < 0 ? '#dc2626' : '#16a34a'}">
@@ -2077,6 +2096,8 @@
             document.getElementById('acc-name').value = acc.name;
             document.getElementById('acc-type').value = acc.type;
             document.getElementById('acc-balance').value = acc.openingBalance || 0;
+            document.getElementById('acc-phone').value = acc.phone || '';
+            document.getElementById('acc-address').value = acc.address || '';
             document.getElementById('acc-pan').value = acc.panVat || '';
             document.getElementById('account-modal').style.display = 'block';
         }
@@ -2094,12 +2115,18 @@
         }
 
         // --- Account Modal Logic ---
-        function openAccountModal() {
+        function openAccountModal(type) {
             editingAccountId = null;
             document.getElementById('modal-title').innerText = 'Add New Account';
             document.getElementById('account-modal').style.display = 'block';
             document.getElementById('acc-name').value = '';
             document.getElementById('acc-balance').value = '0';
+            document.getElementById('acc-phone').value = '';
+            document.getElementById('acc-address').value = '';
+            document.getElementById('acc-pan').value = '';
+            if (type && typeof type === 'string') {
+                document.getElementById('acc-type').value = type;
+            }
         }
 
         function closeAccountModal() {
@@ -2110,6 +2137,8 @@
             const name = document.getElementById('acc-name').value;
             const type = document.getElementById('acc-type').value;
             const balance = parseFloat(document.getElementById('acc-balance').value) || 0;
+            const phone = document.getElementById('acc-phone').value;
+            const address = document.getElementById('acc-address').value;
             const pan = document.getElementById('acc-pan').value;
 
             if (!name) return alert("Please enter account name");
@@ -2119,9 +2148,8 @@
                 name: name,
                 type: type,
                 openingBalance: balance,
-                // Only reset current balance to opening balance if creating new OR
-                // if specifically intended for a manual fix.
-                // For safety, let's update balance if we are editing and it's 0
+                phone: phone,
+                address: address,
                 panVat: pan,
                 group: type
             };
