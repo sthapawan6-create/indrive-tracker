@@ -1589,14 +1589,14 @@
             const printWin = window.open('', '', 'width=850,height=900');
 
             let itemRows = (tx.items || []).map((item, index) => {
-                const p = products.find(prod => prod._id === item.product);
+                const p = products.find(prod => prod._id === (item.product?._id || item.product || item.productId));
                 const rate = item.rate || 0;
-                const qty = item.quantity || 0;
+                const qty = item.quantity || item.qty || 0;
                 const amt = qty * rate;
                 return `
                     <tr>
                         <td style="border:1px solid #000; text-align:center; padding:8px;">${index + 1}</td>
-                        <td style="border:1px solid #000; padding:8px;">${p ? p.name : 'Item'}</td>
+                        <td style="border:1px solid #000; padding:8px;">${p ? p.name : (item.name || 'Product')}</td>
                         <td style="border:1px solid #000; text-align:center; padding:8px;">${qty} ${p?.unit || 'Pcs'}</td>
                         <td style="border:1px solid #000; text-align:right; padding:8px;">${rate.toFixed(2)}</td>
                         <td style="border:1px solid #000; text-align:right; padding:8px;">${amt.toFixed(2)}</td>
