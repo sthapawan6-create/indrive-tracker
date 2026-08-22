@@ -799,6 +799,29 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Recent Purchases Table -->
+            <div style="margin-top:30px; background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">Recent Purchase Invoices</h3>
+                    <button class="btn" onclick="showPage('purchasebook')" style="background:#6366f1; font-size:0.8rem;">View All Purchases</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#f8fafc; text-align:left; border-bottom:1px solid #eee;">
+                                <th style="padding:10px;">Date</th>
+                                <th style="padding:10px;">Supplier</th>
+                                <th style="padding:10px; text-align:right;">Amount</th>
+                                <th style="padding:10px; text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-purchases-list">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div id="page-daybook" class="main-content">
@@ -1316,7 +1339,10 @@
                     initBillingForm();
                     renderRecentSales();
                 }
-                if(pageId === 'purchase') initPurchaseForm();
+                if(pageId === 'purchase') {
+                    initPurchaseForm();
+                    renderRecentPurchases();
+                }
                 if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
                 if(pageId === 'statement') initStatementPage();
@@ -1587,13 +1613,21 @@
         };
 
         // --- Rendering Logic ---
-        function printInvoice(txId) {
+        function printInvoice(txId, type = 'SALES') {
             const tx = transactions.find(t => t._id === txId);
             if (!tx) return;
 
+            // Determine if it's a Purchase or Sale to find the right party
+            const isPurchase = tx.type === 'PURCHASE' || type === 'PURCHASE';
+
             const partyEntry = tx.entries.find(e => {
                 const acc = accounts.find(a => a._id === (e.account._id || e.account));
-                return acc && (acc.type === 'Receivable' || acc.type === 'Cash' || acc.type === 'Asset');
+                if (!acc) return false;
+                if (isPurchase) {
+                    return acc.type === 'Payable' || acc.type === 'Cash' || acc.type === 'Asset';
+                } else {
+                    return acc.type === 'Receivable' || acc.type === 'Cash' || acc.type === 'Asset';
+                }
             });
             const party = partyEntry ? accounts.find(a => a._id === (partyEntry.account._id || partyEntry.account)) : null;
             const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS", address: "New Road, Kathmandu", phone: "01-XXXX", pan: "" };
@@ -1603,6 +1637,8 @@
             const vat = total - taxable;
 
             const printWin = window.open('', '', 'width=850,height=900');
+            const invoiceTitle = isPurchase ? "PURCHASE INVOICE" : "TAX INVOICE";
+            const partyLabel = isPurchase ? "Supplier's Details" : "Buyer's Details";
 
             let itemRows = (tx.items || []).map((item, index) => {
                 const p = products.find(prod => prod._id === (item.product?._id || item.product || item.productId));
@@ -1646,7 +1682,7 @@
                         <button onclick="window.print()" style="padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 5px; cursor: pointer;">Print / Save as PDF</button>
                     </div>
                     <div class="invoice-box">
-                        <div class="title">TAX INVOICE</div>
+                        <div class="title">${invoiceTitle}</div>
 
                         <table class="header-table" style="border:none;">
                             <tr>
@@ -1657,9 +1693,9 @@
                                     <strong>PAN/VAT: ${settings.pan}</strong>
                                 </td>
                                 <td style="text-align: right; border:none; vertical-align:top;">
-                                    <strong>Invoice No:</strong> ${txId.slice(-6).toUpperCase()}<br>
+                                    <strong>Invoice No:</strong> ${tx.billNo || tx._id.slice(-6).toUpperCase()}<br>
                                     <strong>Date:</strong> ${tx.date}<br>
-                                    <strong>Time:</strong> ${new Date(tx.createdAt).toLocaleTimeString()}
+                                    <strong>Time:</strong> ${new Date(tx.createdAt || Date.now()).toLocaleTimeString()}
                                 </td>
                             </tr>
                         </table>
@@ -1667,16 +1703,16 @@
                         <table class="info-table">
                             <tr>
                                 <td style="width: 55%;">
-                                    <strong>Buyer's Details:</strong><br>
-                                    Name: <strong>${party ? party.name : 'Cash Customer'}</strong><br>
+                                    <strong>${partyLabel}:</strong><br>
+                                    Name: <strong>${party ? party.name : (isPurchase ? 'Unknown Supplier' : 'Cash Customer')}</strong><br>
                                     Address: ${party?.address || '-'}<br>
                                     Phone: ${party?.phone || '-'}<br>
-                                    <strong>Buyer's PAN/VAT: ${party?.panVat || '-'}</strong>
+                                    <strong>PAN/VAT: ${party?.panVat || '-'}</strong>
                                 </td>
                                 <td style="width: 45%;">
                                     <strong>Transaction Details:</strong><br>
-                                    Payment Method: ${party?.type === 'Cash' || !party ? 'Cash' : 'Credit'}<br>
-                                    Transaction Type: Sales<br>
+                                    Payment Method: ${tx.entries.some(e => accounts.find(a => a._id === getAccountId(e.account))?.type === 'Asset') ? 'Cash/Bank' : 'Credit'}<br>
+                                    Transaction Type: ${tx.type}<br>
                                     Currency: NPR (Rs.)
                                 </td>
                             </tr>
@@ -2301,6 +2337,7 @@
 
             const recentSales = transactions
                 .filter(tx => tx.type === 'SALES')
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
                 .slice(0, 5);
 
             tbody.innerHTML = recentSales.map(tx => {
@@ -2321,6 +2358,34 @@
                     </tr>
                 `;
             }).join('') || "<tr><td colspan='5' style='padding:20px; text-align:center; color:#64748b;'>No recent sales found.</td></tr>";
+        }
+
+        function renderRecentPurchases() {
+            const tbody = document.getElementById('recent-purchases-list');
+            if (!tbody) return;
+
+            const recentPurchases = transactions
+                .filter(tx => tx.type === 'PURCHASE')
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 5);
+
+            tbody.innerHTML = recentPurchases.map(tx => {
+                const crEntry = tx.entries.find(e => (e.credit > 0));
+                const supplier = accounts.find(a => a._id === getAccountId(crEntry?.account));
+                const total = tx.totalAmount || getTxAmount(tx);
+
+                return `
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding:12px;">${tx.date}</td>
+                        <td style="padding:12px;">${supplier ? supplier.name : 'Cash Purchase'}</td>
+                        <td style="padding:12px; text-align:right; font-weight:700; color:#dc2626;">Rs. ${total.toLocaleString()}</td>
+                        <td style="padding:12px; text-align:center;">
+                            <button onclick="printInvoice('${tx._id}', 'PURCHASE')" class="btn-icon" style="color:#4f46e5; margin-right:8px;" title="Print/PDF"><i class="fas fa-file-pdf"></i></button>
+                            <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('') || "<tr><td colspan='4' style='padding:20px; text-align:center; color:#64748b;'>No recent purchases found.</td></tr>";
         }
 
         function renderSalesBook() {
@@ -3213,6 +3278,14 @@
                         <td>#${tx.billNo || tx._id.slice(-6).toUpperCase()}</td>
                         <td>${supplier ? supplier.name : 'Cash Purchase'}<br><small>PAN: ${supplier?.panVat || '-'}</small></td>
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
+                        <td style="text-align:right;">${vat.toFixed(2)}</td>
+                        <td style="text-align:right; font-weight:700;">${total.toFixed(2)}</td>
+                        <td style="text-align:center;">
+                            <button onclick="printInvoice('${tx._id}', 'PURCHASE')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-file-pdf"></i></button>
+                            <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#dc2626; margin-left:8px;" title="Delete"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+            }).join('') || "<tr><td colspan='7' style='text-align:center; padding:20px; color:#64748b;'>No purchases recorded.</td></tr>";
                         <td style="text-align:right;">${vat.toFixed(2)}</td>
                         <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td class="no-print">
