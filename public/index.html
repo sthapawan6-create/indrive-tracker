@@ -799,29 +799,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Recent Purchases Table -->
-            <div style="margin-top:30px; background:white; padding:20px; border-radius:12px; border:1px solid var(--border-color);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                    <h3 style="margin:0;">Recent Purchase Invoices</h3>
-                    <button class="btn" onclick="showPage('purchasebook')" style="background:#6366f1; font-size:0.8rem;">View All Purchases</button>
-                </div>
-                <div style="overflow-x:auto;">
-                    <table style="width:100%; border-collapse:collapse;">
-                        <thead>
-                            <tr style="background:#f8fafc; text-align:left; border-bottom:1px solid #eee;">
-                                <th style="padding:10px;">Date</th>
-                                <th style="padding:10px;">Supplier</th>
-                                <th style="padding:10px; text-align:right;">Amount</th>
-                                <th style="padding:10px; text-align:center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recent-purchases-list">
-                            <!-- Injected by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
         <div id="page-daybook" class="main-content">
@@ -875,8 +852,6 @@
             </div>
         </div>
 
-            </div>
-        </div>
         <!-- Sales Book -->
         <div id="page-sales-book" class="main-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
@@ -1014,8 +989,6 @@
             </div>
         </div>
 
-            </div>
-        </div>
         <div id="page-stock-summary" class="main-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
                 <h3>Stock Summary</h3>
@@ -1339,10 +1312,7 @@
                     initBillingForm();
                     renderRecentSales();
                 }
-                if(pageId === 'purchase') {
-                    initPurchaseForm();
-                    renderRecentPurchases();
-                }
+                if(pageId === 'purchase') initPurchaseForm();
                 if(pageId === 'journal') initJournalForm();
                 if(pageId === 'daybook') renderDayBook();
                 if(pageId === 'statement') initStatementPage();
@@ -1901,17 +1871,11 @@
                             <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:4px;">
                                 <span style="font-weight:600; color:#475569;">${acc.name}</span>
                                 <span style="font-weight:700; color:#1e293b;">Rs. ${bal.toLocaleString('en-IN')}</span>
-
-            </div>
-        </div>
+                            </div>
                             <div style="height:6px; background:#f1f5f9; border-radius:10px; overflow:hidden;">
                                 <div style="height:100%; background:#6366f1; width:${pc}%; border-radius:10px;"></div>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
+                            </div>
+                        </div>
                     `;
                 }).join('');
             } else {
@@ -2361,31 +2325,7 @@
         }
 
         function renderRecentPurchases() {
-            const tbody = document.getElementById('recent-purchases-list');
-            if (!tbody) return;
-
-            const recentPurchases = transactions
-                .filter(tx => tx.type === 'PURCHASE')
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5);
-
-            tbody.innerHTML = recentPurchases.map(tx => {
-                const crEntry = tx.entries.find(e => (e.credit > 0));
-                const supplier = accounts.find(a => a._id === getAccountId(crEntry?.account));
-                const total = tx.totalAmount || getTxAmount(tx);
-
-                return `
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                        <td style="padding:12px;">${tx.date}</td>
-                        <td style="padding:12px;">${supplier ? supplier.name : 'Cash Purchase'}</td>
-                        <td style="padding:12px; text-align:right; font-weight:700; color:#dc2626;">Rs. ${total.toLocaleString()}</td>
-                        <td style="padding:12px; text-align:center;">
-                            <button onclick="printInvoice('${tx._id}', 'PURCHASE')" class="btn-icon" style="color:#4f46e5; margin-right:8px;" title="Print/PDF"><i class="fas fa-file-pdf"></i></button>
-                            <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            }).join('') || "<tr><td colspan='4' style='padding:20px; text-align:center; color:#64748b;'>No recent purchases found.</td></tr>";
+            // Removed as per request
         }
 
         function renderSalesBook() {
@@ -3280,18 +3220,10 @@
                         <td style="text-align:right;">${taxable.toFixed(2)}</td>
                         <td style="text-align:right;">${vat.toFixed(2)}</td>
                         <td style="text-align:right; font-weight:700;">${total.toFixed(2)}</td>
-                        <td style="text-align:center;">
-                            <button onclick="printInvoice('${tx._id}', 'PURCHASE')" class="btn-icon" style="color:#6366f1;" title="Print Invoice"><i class="fas fa-file-pdf"></i></button>
-                            <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#dc2626; margin-left:8px;" title="Delete"><i class="fas fa-trash"></i></button>
-                        </td>
-                    </tr>`;
-            }).join('') || "<tr><td colspan='7' style='text-align:center; padding:20px; color:#64748b;'>No purchases recorded.</td></tr>";
-                        <td style="text-align:right;">${vat.toFixed(2)}</td>
-                        <td style="font-weight:600; text-align:right;">Rs. ${total.toFixed(2)}</td>
                         <td class="no-print">
-                            <div style="display:flex; gap:10px; align-items:center;">
+                            <div style="display:flex; gap:10px; align-items:center; justify-content:center;">
                                 <button onclick="printInvoice('${tx._id}')" class="btn-icon" style="color:#4f46e5;" title="Print Invoice"><i class="fas fa-file-pdf"></i></button>
-                                <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:red;"><i class="fas fa-trash"></i></button>
+                                <button onclick="deleteTx('${tx._id}')" class="btn-icon" style="color:#dc2626;" title="Delete"><i class="fas fa-trash"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -3850,9 +3782,7 @@
                         <p>New Road, Kathmandu | PAN: 606XXXXXX</p>
                         <hr>
                         <h3>BALANCE CONFIRMATION LETTER</h3>
-
-            </div>
-        </div>
+                    </div>
                     <div class="content">
                         <p>Date: ${new Date().toLocaleDateString()}</p>
                         <p>To,<br><strong>${acc.name}</strong><br>PAN: ${acc.panVat || 'N/A'}</p>
@@ -3864,15 +3794,11 @@
                         </h2>
                         <p>Please examine the above balance and let us know if it agrees with your records. If there is any discrepancy, please provide us with the details.</p>
                         <p>If we do not hear from you within 7 days, we will assume that the balance shown above is correct.</p>
-
-            </div>
-        </div>
+                    </div>
                     <div class="footer">
                         <div class="sign-box">Authorized Signature<br>(Pawan Electronics)</div>
                         <div class="sign-box">Receiver's Signature<br>(${acc.name})</div>
-
-            </div>
-        </div>
+                    </div>
                     <script>window.onload = function() { window.print(); window.close(); }<\/script>
                 </body>
                 </html>
@@ -3973,11 +3899,9 @@
                 <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
                     <h2 style="margin:0; text-transform:uppercase;">\${settings.name}</h2>
                     <p style="margin:2px 0;">\${settings.address} | Tel: \${settings.phone}</p>
-                    <p style="margin:2px 0;"><strong>PAN/VAT No: \${settings.pan}</strong></p>
-                    <h3 style="margin:10px 0 0 0; background:#eee; padding:5px; border-radius:4px;">\${title}</h3>
-
-            </div>
-        </div>
+                    <p style="margin:2px 0;"><strong>PAN/VAT No: ${settings.pan}</strong></p>
+                    <h3 style="margin:10px 0 0 0; background:#eee; padding:5px; border-radius:4px;">${title}</h3>
+                </div>
             `;
         }
 
@@ -4045,13 +3969,9 @@
                         <div>
                             <div class="title">${r.title}</div>
                             <div class="subtitle">${r.subtitle}</div>
-
-            </div>
-        </div>
+                        </div>
                         <span class="tag">${r.type}</span>
-
-            </div>
-        </div>
+                    </div>
                 `).join('');
                 resultsDiv.style.display = 'block';
             } else {
