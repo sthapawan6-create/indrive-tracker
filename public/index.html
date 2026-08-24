@@ -2726,18 +2726,84 @@
 
         listBody.innerHTML = journalTxs.map(t => {
             const amount = t.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+            const vId = t._id ? t._id.slice(-6).toUpperCase() : 'JV-NEW';
             return `
                 <tr>
-                    <td>${t.date}</td>
+                    <td>${t.date} <br><small style="color:#94a3b8;">ID: ${vId}</small></td>
                     <td>${t.description}</td>
                     <td style="text-align:right; font-weight:600;">Rs. ${amount.toFixed(2)}</td>
                     <td style="text-align:center;">
-                        <button onclick="editJournal('${t._id}')" class="btn-icon" style="color:#6366f1;"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteJournal('${t._id}')" class="btn-icon" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+                        <button onclick="printJournal('${t._id}')" class="btn-icon" style="color:#10b981;" title="Print"><i class="fas fa-print"></i></button>
+                        <button onclick="editJournal('${t._id}')" class="btn-icon" style="color:#6366f1;" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteJournal('${t._id}')" class="btn-icon" style="color:#ef4444;" title="Delete"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
         }).join('') || '<tr><td colspan="4" style="text-align:center;">No recent journals.</td></tr>';
+    }
+
+    function printJournal(id) {
+        const tx = transactions.find(t => t._id === id);
+        if(!tx) return;
+
+        const printWindow = window.open('', '_blank');
+        const entriesHtml = tx.entries.map(e => {
+            const acc = accounts.find(a => a._id === e.account);
+            return `
+                <tr>
+                    <td>${acc ? acc.name : 'Unknown Account'}</td>
+                    <td style="text-align:right;">${e.debit > 0 ? e.debit.toFixed(2) : '-'}</td>
+                    <td style="text-align:right;">${e.credit > 0 ? e.credit.toFixed(2) : '-'}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const total = tx.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Journal Voucher - ${tx.date}</title>
+                <style>
+                    body { font-family: sans-serif; padding: 40px; color: #333; }
+                    .header { text-align: center; border-bottom: 2px solid #dc2626; padding-bottom: 10px; margin-bottom: 20px; }
+                    .info { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                    th { background: #f4f4f4; }
+                    .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+                    .sign { border-top: 1px solid #000; width: 180px; text-align: center; padding-top: 5px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1 style="margin:0;">PAWAN ELECTRONICS</h1>
+                    <p>Journal Voucher</p>
+                </div>
+                <div class="info">
+                    <div><strong>Date:</strong> ${tx.date}</div>
+                    <div><strong>Voucher No:</strong> JV-${tx._id.slice(-6).toUpperCase()}</div>
+                </div>
+                <p><strong>Narration:</strong> ${tx.description}</p>
+                <table>
+                    <thead>
+                        <tr><th>Particulars</th><th style="text-align:right;">Debit</th><th style="text-align:right;">Credit</th></tr>
+                    </thead>
+                    <tbody>
+                        ${entriesHtml}
+                        <tr style="font-weight:bold;"><td>Total</td><td style="text-align:right;">${total.toFixed(2)}</td><td style="text-align:right;">${total.toFixed(2)}</td></tr>
+                    </tbody>
+                </table>
+                <div class="footer">
+                    <div class="sign">Prepared By</div>
+                    <div class="sign">Checked By</div>
+                    <div class="sign">Approved By</div>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        setTimeout(() => { printWindow.print(); }, 500);
     }
 
     async function deleteJournal(id) {
@@ -2845,17 +2911,29 @@
         const option = Array.from(document.getElementById('account-options').options).find(o => o.value === val);
 
         const row = input.closest('td');
-        // Remove existing quick-add button if any
         const existingBtn = row.querySelector('.quick-add-btn');
         if (existingBtn) existingBtn.remove();
 
+        // Remove existing balance indicator
+        const existingBal = row.querySelector('.bal-indicator');
+        if (existingBal) existingBal.remove();
+
         if (!option) {
             input.style.borderColor = '#ef4444';
-            // Open full account modal directly for new accounts
             lastAccountSourceInput = input;
             openAccountModal(null, val);
         } else {
             input.style.borderColor = '#cbd5e1';
+            // Show Live Balance
+            const accId = option.getAttribute('data-id');
+            const acc = accounts.find(a => a._id === accId);
+            if (acc) {
+                const balSpan = document.createElement('span');
+                balSpan.className = 'bal-indicator';
+                balSpan.style = "position:absolute; font-size:10px; color:#64748b; top:2px; right:10px;";
+                balSpan.innerText = `Bal: ${acc.balance.toFixed(2)}`;
+                row.appendChild(balSpan);
+            }
         }
         calcJournal();
     }
