@@ -83,13 +83,15 @@ const TransactionSchema = new mongoose.Schema({
     description: String,
     type: { type: String, default: 'JOURNAL' },
     billNo: String,
+    refBillNo: String,
     taxableAmount: { type: Number, default: 0 },
     vatAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },
     items: [{
         product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         quantity: Number,
-        rate: Number
+        rate: Number,
+        discount: { type: Number, default: 0 }
     }],
     entries: [{
         account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' },
@@ -483,6 +485,7 @@ app.post('/api/transactions', async (req, res) => {
             entries,
             type: type || 'JOURNAL',
             billNo,
+            refBillNo: req.body.refBillNo,
             taxableAmount: taxableAmount || 0,
             vatAmount: vatAmount || 0,
             totalAmount: totalAmount || 0,
