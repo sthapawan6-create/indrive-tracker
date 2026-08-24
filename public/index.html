@@ -402,6 +402,23 @@
                     </button>
                 </div>
             </div>
+
+            <div style="margin-top:40px;">
+                <h4 style="margin-bottom:15px; color:#1e293b;">Recent Journal Vouchers</h4>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead style="background:#f8fafc;">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th style="text-align:right;">Amount</th>
+                                <th style="text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jr-recent-list"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2684,7 +2701,11 @@
     }
 
     // --- Journal Entry ---
+    let editingJournalId = null;
+
     function initJournalForm() {
+        editingJournalId = null;
+        document.getElementById('jr-save-btn').innerHTML = '<i class="fas fa-save"></i> SAVE VOUCHER';
         document.getElementById('jr-date').value = new Date().toISOString().split('T')[0];
         updateBsDisplay('jr-date', 'jr-bs-date');
         document.getElementById('jr-rows').innerHTML = '';
@@ -2696,6 +2717,80 @@
 
         addJournalRow();
         addJournalRow(); // Start with 2 rows
+        renderRecentJournals();
+    }
+
+    function renderRecentJournals() {
+        const listBody = document.getElementById('jr-recent-list');
+        const journalTxs = transactions.filter(t => t.type === 'JOURNAL').slice(0, 10);
+
+        listBody.innerHTML = journalTxs.map(t => {
+            const amount = t.entries.reduce((sum, e) => sum + (e.debit || 0), 0);
+            return `
+                <tr>
+                    <td>${t.date}</td>
+                    <td>${t.description}</td>
+                    <td style="text-align:right; font-weight:600;">Rs. ${amount.toFixed(2)}</td>
+                    <td style="text-align:center;">
+                        <button onclick="editJournal('${t._id}')" class="btn-icon" style="color:#6366f1;"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteJournal('${t._id}')" class="btn-icon" style="color:#ef4444;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="4" style="text-align:center;">No recent journals.</td></tr>';
+    }
+
+    async function deleteJournal(id) {
+        if(!confirm("Are you sure you want to delete this journal voucher?")) return;
+        const res = await fetch(`${API_URL}/transactions/${id}?userId=${currentUser.uid}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert("Journal deleted.");
+            refreshData('journal');
+        }
+    }
+
+    function editJournal(id) {
+        const tx = transactions.find(t => t._id === id);
+        if(!tx) return;
+
+        editingJournalId = id;
+        document.getElementById('jr-save-btn').innerHTML = '<i class="fas fa-check-circle"></i> UPDATE VOUCHER';
+        document.getElementById('jr-date').value = tx.date;
+        updateBsDisplay('jr-date', 'jr-bs-date');
+        document.getElementById('jr-desc').value = tx.description;
+
+        const tbody = document.getElementById('jr-rows');
+        tbody.innerHTML = '';
+
+        tx.entries.forEach(entry => {
+            const acc = accounts.find(a => a._id === entry.account);
+            const row = document.createElement('tr');
+            row.style.borderBottom = "1px solid #f1f5f9";
+            row.innerHTML = `
+                <td style="padding:10px 5px; position:relative;">
+                    <input list="account-options" class="jr-acc-name" value="${acc ? acc.name : ''}" placeholder="Search account..."
+                           style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px;"
+                           onchange="validateJrAcc(this)">
+                </td>
+                <td style="padding:10px 5px;">
+                    <input type="number" class="jr-debit" value="${entry.debit || ''}" placeholder="0.00" oninput="calcJournal()"
+                           style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; text-align:right; font-family:monospace;">
+                </td>
+                <td style="padding:10px 5px;">
+                    <input type="number" class="jr-credit" value="${entry.credit || ''}" placeholder="0.00" oninput="calcJournal()"
+                           onkeydown="if(event.key==='Enter') { event.preventDefault(); addJournalRow(); }"
+                           style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; text-align:right; font-family:monospace;">
+                </td>
+                <td style="padding:10px 5px; text-align:center;">
+                    <button onclick="this.closest('tr').remove(); calcJournal();" style="color:#ef4444; border:none; background:none; cursor:pointer; font-size:1.1rem;">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        calcJournal();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function addJournalRow() {
@@ -2856,15 +2951,18 @@
             entries: entries
         };
 
-        const res = await fetch(`${API_URL}/transactions`, {
-            method: 'POST',
+        const url = editingJournalId ? `${API_URL}/transactions/${editingJournalId}` : `${API_URL}/transactions`;
+        const method = editingJournalId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(txData)
         });
 
         if (res.ok) {
-            alert("Journal Voucher Saved Successfully!");
-            showPage('daybook');
+            alert(editingJournalId ? "Journal Updated!" : "Journal Voucher Saved Successfully!");
+            refreshData('journal');
         } else {
             alert("Error saving journal entry.");
         }
