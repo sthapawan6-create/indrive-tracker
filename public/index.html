@@ -2748,10 +2748,19 @@
 
         const printWindow = window.open('', '_blank');
         const entriesHtml = tx.entries.map(e => {
-            const acc = accounts.find(a => a._id === e.account);
+            // Robust ID matching
+            const targetId = (e.account && typeof e.account === 'object') ? (e.account._id || e.account.id) : e.account;
+
+            const acc = accounts.find(a => {
+                const aId = a._id || a.id;
+                return String(aId) === String(targetId);
+            });
+
+            const accName = acc ? acc.name : (e.accountName || (e.account && e.account.name) || 'Unknown Account');
+
             return `
                 <tr>
-                    <td>${acc ? acc.name : 'Unknown Account'}</td>
+                    <td>${accName}</td>
                     <td style="text-align:right;">${e.debit > 0 ? e.debit.toFixed(2) : '-'}</td>
                     <td style="text-align:right;">${e.credit > 0 ? e.credit.toFixed(2) : '-'}</td>
                 </tr>
