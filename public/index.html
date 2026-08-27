@@ -1802,11 +1802,17 @@
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
         accounts.forEach(acc => {
-            const bal = acc.balance || 0;
-            if (acc.type === 'Asset') cashBank += bal;
-            if (acc.type === 'Receivable') rec += bal;
-            if (acc.type === 'Payable') pay += bal;
-            if (acc.type === 'Expense') overallExpense += Math.abs(bal);
+            const { dr, cr } = getAccountDrCr(acc);
+
+            if (acc.type === 'Asset') cashBank += (dr - cr);
+
+            // Smart Dash Logic: Actual Dr means Receivable, Actual Cr means Payable
+            if (['Receivable', 'Payable'].includes(acc.type)) {
+                rec += dr;
+                pay += cr;
+            }
+
+            if (acc.type === 'Expense') overallExpense += Math.abs(acc.balance || 0);
         });
 
         transactions.forEach(tx => {
