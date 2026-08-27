@@ -2396,7 +2396,10 @@
 
         document.getElementById('st-total-dr').innerText = totalDr.toFixed(2);
         document.getElementById('st-total-cr').innerText = totalCr.toFixed(2);
-        document.getElementById('st-final-bal').innerText = getBalStr(runningBal);
+
+        // Final Balance Summary Fix
+        const finalBalEl = document.getElementById('st-final-bal');
+        finalBalEl.innerHTML = getBalStr(runningBal);
     }
 
     function renderRecentSales() {
