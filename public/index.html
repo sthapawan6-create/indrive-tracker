@@ -2346,7 +2346,10 @@
 
         transactions.forEach(tx => {
             if (tx.date < fromDate) {
-                const entry = tx.entries.find(e => getAccountId(e.account) === accId);
+                const entry = tx.entries.find(e => {
+                    const id = typeof e.account === 'object' ? e.account._id : e.account;
+                    return id === accId;
+                });
                 if (entry) {
                     const dr = parseFloat(entry.debit) || 0;
                     const cr = parseFloat(entry.credit) || 0;
@@ -2427,8 +2430,6 @@
         }
 
         tbody.innerHTML = rows;
-
-        tbody.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:#94a3b8;'>No transactions found in this period.</td></tr>";
 
         document.getElementById('st-total-dr').innerText = totalDr.toFixed(2);
         document.getElementById('st-total-cr').innerText = totalCr.toFixed(2);
