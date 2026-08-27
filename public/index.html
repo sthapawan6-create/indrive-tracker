@@ -2356,16 +2356,19 @@
             }
         });
 
+        // 2. Filter transactions for the selected period
         const periodTx = transactions.filter(tx => {
-            const hasAcc = tx.entries.some(e => getAccountId(e.account) === accId);
-            return hasAcc && tx.date >= fromDate && tx.date <= toDate;
+            return tx.entries.some(e => {
+                const id = typeof e.account === 'object' ? e.account._id : e.account;
+                return id === accId;
+            }) && tx.date >= fromDate && tx.date <= toDate;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
         let runningBal = openingBal;
         let totalDr = 0, totalCr = 0;
 
         const getBalStr = (bal) => {
-            const absBal = Math.abs(bal).toFixed(2);
+            const absBal = Math.abs(bal).toLocaleString('en-IN', {minimumFractionDigits: 2});
             let sign = '';
             if (isDebitNature) sign = bal >= 0 ? 'Dr' : 'Cr';
             else sign = bal >= 0 ? 'Cr' : 'Dr';
@@ -2375,42 +2378,55 @@
         const tbody = document.getElementById('st-tbody');
         let rows = `
             <tr style="background:#f8fafc; font-weight:700; color:#475569;">
-                <td colspan="3" style="padding:15px;">Opening Balance (B/F)</td>
+                <td style="padding:15px;">-</td>
+                <td style="padding:15px;">Opening Balance (B/F)</td>
+                <td style="padding:15px; text-align:center;">-</td>
                 <td style="text-align:right; padding:15px;">-</td>
                 <td style="text-align:right; padding:15px;">-</td>
                 <td style="text-align:right; padding:15px;">${getBalStr(openingBal)}</td>
             </tr>
         `;
 
-        rows += periodTx.map(tx => {
-            const entry = tx.entries.find(e => getAccountId(e.account) === accId);
-            const dr = parseFloat(entry.debit) || 0;
-            const cr = parseFloat(entry.credit) || 0;
+        if (periodTx.length > 0) {
+            rows += periodTx.map(tx => {
+                const entry = tx.entries.find(e => {
+                    const id = typeof e.account === 'object' ? e.account._id : e.account;
+                    return id === accId;
+                });
 
-            // Find the "Opposite" account for better context
-            const opposite = tx.entries.find(e => getAccountId(e.account) !== accId);
-            const oppName = opposite ? (accounts.find(a => a._id === getAccountId(opposite.account))?.name || 'Multiple') : 'N/A';
+                const dr = parseFloat(entry.debit) || 0;
+                const cr = parseFloat(entry.credit) || 0;
 
-            if (isDebitNature) runningBal += (dr - cr);
-            else runningBal += (cr - dr);
+                const opposite = tx.entries.find(e => {
+                    const id = typeof e.account === 'object' ? e.account._id : e.account;
+                    return id !== accId;
+                });
+                const oppAcc = opposite ? accounts.find(a => a._id === (typeof opposite.account === 'object' ? opposite.account._id : opposite.account)) : null;
+                const oppName = oppAcc ? oppAcc.name : 'Multiple';
 
-            totalDr += dr;
-            totalCr += cr;
+                if (isDebitNature) runningBal += (dr - cr);
+                else runningBal += (cr - dr);
 
-            return `
-                <tr style="border-bottom:1px solid #f1f5f9;">
-                    <td style="padding:12px 15px;">${formatDate(tx.date)}</td>
-                    <td style="padding:12px 15px;">
-                        <div style="font-weight:600; color:#1e293b;">${oppName}</div>
-                        <div style="font-size:0.75rem; color:#64748b;">${tx.description || ''}</div>
-                    </td>
-                    <td style="padding:12px 15px; text-align:center;"><span style="font-size:0.7rem; padding:3px 8px; border-radius:12px; background:#f1f5f9; color:#475569; font-weight:600;">${tx.type}</span></td>
-                    <td style="text-align:right; padding:12px 15px; color:#16a34a; font-weight:600;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
-                    <td style="text-align:right; padding:12px 15px; color:#dc2626; font-weight:600;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
-                    <td style="text-align:right; padding:12px 15px; font-weight:700;">${getBalStr(runningBal)}</td>
-                </tr>
-            `;
-        }).join('');
+                totalDr += dr;
+                totalCr += cr;
+
+                return `
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:12px 15px;">${formatDate(tx.date)}</td>
+                        <td style="padding:12px 15px;">
+                            <div style="font-weight:600; color:#1e293b;">${oppName}</div>
+                            <div style="font-size:0.75rem; color:#64748b;">${tx.description || ''}</div>
+                        </td>
+                        <td style="padding:12px 15px; text-align:center;"><span style="font-size:0.7rem; padding:3px 8px; border-radius:12px; background:#f1f5f9; color:#475569; font-weight:600;">${tx.type}</span></td>
+                        <td style="text-align:right; padding:12px 15px; color:#16a34a; font-weight:600;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
+                        <td style="text-align:right; padding:12px 15px; color:#dc2626; font-weight:600;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
+                        <td style="text-align:right; padding:12px 15px; font-weight:700;">${getBalStr(runningBal)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        tbody.innerHTML = rows;
 
         tbody.innerHTML = rows || "<tr><td colspan='6' style='text-align:center; padding:30px; color:#94a3b8;'>No transactions found in this period.</td></tr>";
 
