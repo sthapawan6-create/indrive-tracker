@@ -2243,18 +2243,32 @@
         }, 100);
     }
 
-    function initStatementPage() {
-        const select = document.getElementById('st-account-id');
-        select.innerHTML = '<option value="">-- Choose Account --</option>' +
-            accounts.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
-
-        // Check if we navigated from dashboard drill-down
-        const preSelected = localStorage.getItem('selected_ledger_account');
-        if (preSelected) {
-            select.value = preSelected;
-            localStorage.removeItem('selected_ledger_account');
+    function filterLedgerAccounts(query) {
+        const results = document.getElementById('st-account-results');
+        if (!query) {
+            results.style.display = 'none';
+            return;
         }
 
+        const filtered = accounts.filter(a => a.name.toLowerCase().includes(query.toLowerCase()));
+        results.innerHTML = filtered.map(a => `
+            <div onclick="selectLedgerAccount('${a._id}', '${a.name}')"
+                 style="padding:10px; cursor:pointer; border-bottom:1px solid #eee; font-size:0.9rem;">
+                 ${a.name} <small style="color:#64748b; float:right;">${a.type}</small>
+            </div>
+        `).join('') || '<div style="padding:10px; color:#94a3b8;">No account found</div>';
+        results.style.display = 'block';
+    }
+
+    function selectLedgerAccount(id, name) {
+        document.getElementById('st-account-id').value = id;
+        document.getElementById('st-account-search').value = name;
+        document.getElementById('st-account-results').style.display = 'none';
+        renderStatement();
+    }
+
+    function initStatementPage() {
+        // Initial dates
         if (!document.getElementById('st-from').value) {
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2262,7 +2276,13 @@
             document.getElementById('st-to').value = now.toISOString().split('T')[0];
         }
 
-        if (select.value) renderStatement();
+        // Drill-down support
+        const preSelected = localStorage.getItem('selected_ledger_account');
+        if (preSelected) {
+            const acc = accounts.find(a => a._id === preSelected);
+            if(acc) selectLedgerAccount(acc._id, acc.name);
+            localStorage.removeItem('selected_ledger_account');
+        }
     }
 
     function downloadLedgerExcel() {
