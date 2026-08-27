@@ -2324,28 +2324,33 @@
         if (!accId) return;
 
         const acc = accounts.find(a => a._id === accId);
+        if (!acc) return;
+
         document.getElementById('st-display-name').innerText = acc.name;
         document.getElementById('st-display-type').innerText = `Group: ${acc.group || acc.type}`;
         document.getElementById('st-display-date').innerText = `Period: ${fromDate} to ${toDate}`;
 
-        // Add Excel Export Button if not exists
+        // Ensure Excel Export and Print buttons exist
         let btnContainer = document.querySelector('.statement-actions');
         if (!btnContainer) {
              const header = document.querySelector('#page-statement .page-header');
-             btnContainer = document.createElement('div');
-             btnContainer.className = 'statement-actions';
-             btnContainer.innerHTML = `
-                <button onclick="downloadLedgerExcel()" class="btn-secondary" style="margin-right:10px;"><i class="fas fa-file-excel"></i> Export Excel</button>
-                <button onclick="window.print()" class="btn-primary"><i class="fas fa-print"></i> Print Statement</button>
-             `;
-             header.appendChild(btnContainer);
+             if (header) {
+                 btnContainer = document.createElement('div');
+                 btnContainer.className = 'statement-actions';
+                 btnContainer.innerHTML = `
+                    <button onclick="downloadLedgerExcel()" class="btn-secondary" style="margin-right:10px; padding:6px 12px; font-size:0.85rem;"><i class="fas fa-file-excel"></i> Export Excel</button>
+                    <button onclick="window.print()" class="btn-primary" style="padding:6px 12px; font-size:0.85rem;"><i class="fas fa-print"></i> Print</button>
+                 `;
+                 header.appendChild(btnContainer);
+             }
         }
 
         let openingBal = parseFloat(acc.openingBalance) || 0;
         const isDebitNature = ['Asset', 'Expense', 'Receivable'].includes(acc.type);
 
+        // 1. Calculate Opening Balance before 'fromDate'
         transactions.forEach(tx => {
-            if (tx.date < fromDate) {
+            if (tx.date < fromDate && tx.entries) {
                 const entry = tx.entries.find(e => {
                     const id = typeof e.account === 'object' ? e.account._id : e.account;
                     return id === accId;
@@ -2361,10 +2366,12 @@
 
         // 2. Filter transactions for the selected period
         const periodTx = transactions.filter(tx => {
-            return tx.entries.some(e => {
+            if (!tx.entries) return false;
+            const hasAcc = tx.entries.some(e => {
                 const id = typeof e.account === 'object' ? e.account._id : e.account;
                 return id === accId;
-            }) && tx.date >= fromDate && tx.date <= toDate;
+            });
+            return hasAcc && tx.date >= fromDate && tx.date <= toDate;
         }).sort((a,b) => new Date(a.date) - new Date(b.date));
 
         let runningBal = openingBal;
@@ -2381,62 +2388,56 @@
         const tbody = document.getElementById('st-tbody');
         let rows = `
             <tr style="background:#f8fafc; font-weight:700; color:#475569;">
-                <td style="padding:15px;">-</td>
-                <td style="padding:15px;">Opening Balance (B/F)</td>
-                <td style="padding:15px; text-align:center;">-</td>
-                <td style="text-align:right; padding:15px;">-</td>
-                <td style="text-align:right; padding:15px;">-</td>
-                <td style="text-align:right; padding:15px;">${getBalStr(openingBal)}</td>
+                <td style="padding:12px 15px;">-</td>
+                <td style="padding:12px 15px;">Opening Balance (B/F)</td>
+                <td style="padding:12px 15px; text-align:center;">-</td>
+                <td style="text-align:right; padding:12px 15px;">-</td>
+                <td style="text-align:right; padding:12px 15px;">-</td>
+                <td style="text-align:right; padding:12px 15px;">${getBalStr(openingBal)}</td>
             </tr>
         `;
 
-        if (periodTx.length > 0) {
-            rows += periodTx.map(tx => {
-                const entry = tx.entries.find(e => {
-                    const id = typeof e.account === 'object' ? e.account._id : e.account;
-                    return id === accId;
-                });
+        periodTx.forEach(tx => {
+            const entry = tx.entries.find(e => {
+                const id = typeof e.account === 'object' ? e.account._id : e.account;
+                return id === accId;
+            });
 
-                const dr = parseFloat(entry.debit) || 0;
-                const cr = parseFloat(entry.credit) || 0;
+            const dr = parseFloat(entry.debit) || 0;
+            const cr = parseFloat(entry.credit) || 0;
 
-                const opposite = tx.entries.find(e => {
-                    const id = typeof e.account === 'object' ? e.account._id : e.account;
-                    return id !== accId;
-                });
-                const oppAcc = opposite ? accounts.find(a => a._id === (typeof opposite.account === 'object' ? opposite.account._id : opposite.account)) : null;
-                const oppName = oppAcc ? oppAcc.name : 'Multiple';
+            const opposite = tx.entries.find(e => {
+                const id = typeof e.account === 'object' ? e.account._id : e.account;
+                return id !== accId;
+            });
+            const oppAcc = opposite ? accounts.find(a => a._id === (typeof opposite.account === 'object' ? opposite.account._id : opposite.account)) : null;
+            const oppName = oppAcc ? oppAcc.name : (tx.entries.length > 2 ? 'Multiple' : 'N/A');
 
-                if (isDebitNature) runningBal += (dr - cr);
-                else runningBal += (cr - dr);
+            if (isDebitNature) runningBal += (dr - cr);
+            else runningBal += (cr - dr);
 
-                totalDr += dr;
-                totalCr += cr;
+            totalDr += dr;
+            totalCr += cr;
 
-                return `
-                    <tr style="border-bottom:1px solid #f1f5f9;">
-                        <td style="padding:12px 15px;">${formatDate(tx.date)}</td>
-                        <td style="padding:12px 15px;">
-                            <div style="font-weight:600; color:#1e293b;">${oppName}</div>
-                            <div style="font-size:0.75rem; color:#64748b;">${tx.description || ''}</div>
-                        </td>
-                        <td style="padding:12px 15px; text-align:center;"><span style="font-size:0.7rem; padding:3px 8px; border-radius:12px; background:#f1f5f9; color:#475569; font-weight:600;">${tx.type}</span></td>
-                        <td style="text-align:right; padding:12px 15px; color:#16a34a; font-weight:600;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
-                        <td style="text-align:right; padding:12px 15px; color:#dc2626; font-weight:600;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
-                        <td style="text-align:right; padding:12px 15px; font-weight:700;">${getBalStr(runningBal)}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
+            rows += `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:10px 15px;">${formatDate(tx.date)}</td>
+                    <td style="padding:10px 15px;">
+                        <div style="font-weight:600; color:#1e293b;">${oppName}</div>
+                        <div style="font-size:0.75rem; color:#64748b;">${tx.description || ''}</div>
+                    </td>
+                    <td style="padding:10px 15px; text-align:center;"><span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:#f1f5f9; color:#475569; font-weight:700;">${tx.type}</span></td>
+                    <td style="text-align:right; padding:10px 15px; color:#16a34a; font-weight:600;">${dr > 0 ? dr.toFixed(2) : '-'}</td>
+                    <td style="text-align:right; padding:10px 15px; color:#dc2626; font-weight:600;">${cr > 0 ? cr.toFixed(2) : '-'}</td>
+                    <td style="text-align:right; padding:10px 15px; font-weight:700;">${getBalStr(runningBal)}</td>
+                </tr>
+            `;
+        });
 
         tbody.innerHTML = rows;
-
         document.getElementById('st-total-dr').innerText = totalDr.toFixed(2);
-        document.getElementById('st-total-cr').innerText = totalCr.toFixed(2);
-
-        // Final Balance Summary Fix
-        const finalBalEl = document.getElementById('st-final-bal');
-        finalBalEl.innerHTML = getBalStr(runningBal);
+        document.getElementById('st-total-cr').innerText = totalCr.innerText = totalCr.toFixed(2);
+        document.getElementById('st-final-bal').innerHTML = getBalStr(runningBal);
     }
 
     function renderRecentSales() {
