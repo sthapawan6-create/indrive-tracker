@@ -1772,7 +1772,101 @@
         printWin.document.close();
     }
 
+    function generateAIInsights() {
+        if (transactions.length === 0) return "Welcome! Start recording transactions to get AI-powered financial insights.";
+
+        const today = new Date().toISOString().split('T')[0];
+        const sales = transactions.filter(t => t.type === 'SALES');
+        const todaySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+        // 1. Sales Trend
+        if (todaySales > 0) return `Great! You've made Rs. ${todaySales.toLocaleString()} in sales today. Keep it up!`;
+
+        // 2. Debtors insight
+        const topDebtor = accounts
+            .filter(a => ['Receivable', 'Payable'].includes(a.type))
+            .sort((a, b) => b.balance - a.balance)[0];
+
+        if (topDebtor && topDebtor.balance > 0) {
+            return `Reminder: ${topDebtor.name} has the highest outstanding balance of Rs. ${topDebtor.balance.toLocaleString()}.`;
+        }
+
+        // 3. Stock Insight
+        const lowStock = products.filter(p => (p.currentStock || 0) < 5);
+        if (lowStock.length > 0) {
+            return `Alert: ${lowStock.length} items are running low on stock. Check your inventory soon.`;
+        }
+
+        // 4. Expense check
+        const totalExp = accounts.filter(a => a.type === 'Expense').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+        if (totalExp > 0) {
+            return `Your total business expenses have reached Rs. ${totalExp.toLocaleString()}. Consider reviewing overhead costs.`;
+        }
+
+        return "Your financial records look healthy and balanced. Have a productive day!";
+    }
+
+    function generateAIInsights() {
+        if (transactions.length === 0) return "Welcome to Pawan Electronics! Once you add transactions, I will analyze your business health here.";
+
+        const today = new Date().toISOString().split('T')[0];
+        const sales = transactions.filter(t => t.type === 'SALES');
+        const todaySales = sales.filter(s => s.date === today).reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+        // 1. Sales Trend Insight
+        if (todaySales > 0) return `Boom! You've generated Rs. ${todaySales.toLocaleString()} in sales today. You're doing great!`;
+
+        // 2. Critical Debtors Insight
+        const topDebtor = accounts
+            .filter(a => ['Receivable', 'Payable'].includes(a.type))
+            .sort((a, b) => {
+                const aBal = getAccountDrCr(a).dr;
+                const bBal = getAccountDrCr(b).dr;
+                return bBal - aBal;
+            })[0];
+
+        if (topDebtor && getAccountDrCr(topDebtor).dr > 1000) {
+            return `AI Tip: <strong>${topDebtor.name}</strong> owes you Rs. ${Math.abs(topDebtor.balance).toLocaleString()}. A quick follow-up call might speed up recovery.`;
+        }
+
+        // 3. Inventory Optimization Insight
+        const lowStock = products.filter(p => (p.currentStock || 0) < 5);
+        if (lowStock.length > 0) {
+            return `Inventory Alert: ${lowStock.length} items are running low. Re-stocking <strong>${lowStock[0].name}</strong> soon would be wise.`;
+        }
+
+        // 4. Cash Flow Health
+        const totalExp = accounts.filter(a => a.type === 'Expense').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+        const totalInc = accounts.filter(a => a.type === 'Revenue').reduce((s, a) => s + Math.abs(a.balance || 0), 0);
+        if (totalExp > totalInc && totalInc > 0) {
+            return "Observation: Expenses are currently higher than revenue. Reviewing your utility or rent costs might help.";
+        }
+
+        return "Business is steady. Your accounts are balanced and stock levels look healthy. Have a productive day!";
+    }
+
     function renderDashboard() {
+        // AI Insights Panel
+        const dashboard = document.getElementById('page-gateway');
+        const existingAI = dashboard.querySelector('.ai-insight-panel');
+        if(existingAI) existingAI.remove();
+
+        const insights = generateAIInsights();
+        const aiDiv = document.createElement('div');
+        aiDiv.className = 'ai-insight-panel';
+        aiDiv.style = 'background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2); position: relative; overflow: hidden;';
+        aiDiv.innerHTML = `
+            <div style="position: absolute; right: -10px; top: -10px; font-size: 5rem; opacity: 0.1; transform: rotate(15deg);"><i class="fas fa-brain"></i></div>
+            <div style="font-size: 2rem; background: rgba(255,255,255,0.2); min-width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div style="z-index: 1;">
+                <h3 style="margin: 0; font-size: 1rem; opacity: 0.8; letter-spacing: 0.5px;">AI BUSINESS ASSISTANT</h3>
+                <p style="margin: 5px 0 0; font-weight: 500; font-size: 1.1rem; line-height: 1.4;">${insights}</p>
+            </div>
+        `;
+        dashboard.insertBefore(aiDiv, dashboard.querySelector('.dashboard-grid'));
+
         const settings = JSON.parse(localStorage.getItem('erp_settings')) || { name: "PAWAN ELECTRONICS" };
         document.querySelector('.logo h2').innerText = settings.name;
 
