@@ -2074,9 +2074,9 @@
                     </div>
                 </td>
                 <td style="padding:15px;"><span style="background:#f1f5f9; padding:4px 10px; border-radius:6px; font-size:0.8rem; color:#475569;">${acc.group || acc.type}</span></td>
-                <td style="padding:15px; text-align:right; font-weight:700; color:${acc.balance < 0 ? '#dc2626' : '#16a34a'}">
+                <td style="padding:15px; text-align:right; font-weight:700; color:${acc.balance >= 0 ? '#16a34a' : '#dc2626'}">
                     Rs. ${Math.abs(acc.balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                    <span style="font-size:0.7rem; color:#64748b;">${acc.balance < 0 ? ' (Dr)' : ' (Cr)'}</span>
+                    <span style="font-size:0.75rem; font-weight:bold;">${acc.balance >= 0 ? 'Dr' : 'Cr'}</span>
                 </td>
                 <td style="padding:15px;">
                     <div style="display:flex; gap:12px; justify-content:center;">
@@ -2933,14 +2933,16 @@
             openAccountModal(null, val);
         } else {
             input.style.borderColor = '#cbd5e1';
-            // Show Live Balance
+            // Show Live Balance with Dr/Cr detection
             const accId = option.getAttribute('data-id');
             const acc = accounts.find(a => a._id === accId);
             if (acc) {
+                const bal = acc.balance || 0;
+                const type = bal >= 0 ? 'Dr' : 'Cr';
                 const balSpan = document.createElement('span');
                 balSpan.className = 'bal-indicator';
-                balSpan.style = "position:absolute; font-size:10px; color:#64748b; top:2px; right:10px;";
-                balSpan.innerText = `Bal: ${acc.balance.toFixed(2)}`;
+                balSpan.style = `position:absolute; font-size:10px; color:${bal >= 0 ? '#059669' : '#dc2626'}; top:2px; right:10px; font-weight:bold;`;
+                balSpan.innerText = `${Math.abs(bal).toFixed(2)} ${type}`;
                 row.appendChild(balSpan);
             }
         }
